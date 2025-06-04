@@ -19,7 +19,7 @@ import {
   Circle, 
   Trash2, 
   Edit2,
-  Share2,
+  Share2, 
   Zap,
   Trash
 } from 'lucide-react-native';

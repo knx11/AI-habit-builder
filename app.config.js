@@ -35,6 +35,6 @@ export default {
     eas: {
       projectId: "your-project-id"
     },
-    EXPO_PUBLIC_GEMENI: "AIzaSyDvYxEd5bXSPaxQQTXIjfmyF9jxyysIbEgi"
+    EXPO_PUBLIC_GEMINI: "AIzaSyDvYxEd5bXSPaxQQTXIjfmyF9jxyysIbEgi"
   }
 };
