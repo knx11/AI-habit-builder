@@ -5,7 +5,6 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   Platform,
-  Alert,
   Animated,
   PanResponder,
 } from 'react-native';
