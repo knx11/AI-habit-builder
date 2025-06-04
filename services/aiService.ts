@@ -46,6 +46,8 @@ Format your response as a valid JSON object with this structure:
           }
         ]
       }),
+      // Add timeout to prevent hanging requests
+      signal: AbortSignal.timeout(15000) // 15 second timeout
     });
 
     if (!response.ok) {
@@ -90,11 +92,12 @@ Format your response as a valid JSON object with this structure:
     };
   } catch (error) {
     console.error('Error generating task breakdown:', error);
+    // Always return a valid response even if the network request fails
     return createDefaultBreakdown(taskTitle, taskDescription);
   }
 };
 
-// Fallback function to create a default breakdown when AI fails
+// Improved fallback function to create a default breakdown when AI fails
 const createDefaultBreakdown = (title: string, description: string): AITaskBreakdownResponse => {
   const words = (title + ' ' + (description || '')).split(/\s+/).length;
   const complexity = Math.min(Math.max(words / 10, 1), 5);
@@ -161,6 +164,8 @@ Please provide a concise analysis (2-3 sentences) of my productivity and one act
           }
         ]
       }),
+      // Add timeout to prevent hanging requests
+      signal: AbortSignal.timeout(10000) // 10 second timeout
     });
 
     if (!response.ok) {
