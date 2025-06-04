@@ -201,6 +201,9 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
     alert('Task exported to calendar');
   };
   
+  // Check if the task has subtasks
+  const hasSubTasks = task.subTasks && task.subTasks.length > 0;
+  
   return (
     <Modal
       visible={visible}
@@ -318,7 +321,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Subtasks</Text>
                 <View style={styles.subTaskActions}>
-                  {task.subTasks.length > 0 ? (
+                  {hasSubTasks ? (
                     <TouchableOpacity 
                       onPress={handleDeleteAllSubTasks}
                       style={styles.deleteAllButton}
@@ -354,7 +357,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                 </View>
               )}
               
-              {task.subTasks.length === 0 ? (
+              {!hasSubTasks ? (
                 <Text style={styles.emptyText}>No subtasks yet</Text>
               ) : (
                 <>
@@ -434,14 +437,16 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                     </View>
                   ))}
                   
-                  {/* Add a dedicated Delete All button at the bottom for better visibility */}
-                  <TouchableOpacity 
-                    style={styles.deleteAllSubtasksButton}
-                    onPress={handleDeleteAllSubTasks}
-                  >
-                    <Trash2 size={18} color={colors.danger} />
-                    <Text style={styles.deleteAllSubtasksText}>Delete All Subtasks</Text>
-                  </TouchableOpacity>
+                  {/* Only show this button if there are multiple subtasks */}
+                  {task.subTasks.length > 1 && (
+                    <TouchableOpacity 
+                      style={styles.deleteAllSubtasksButton}
+                      onPress={handleDeleteAllSubTasks}
+                    >
+                      <Trash2 size={18} color={colors.danger} />
+                      <Text style={styles.deleteAllSubtasksText}>Delete All Subtasks</Text>
+                    </TouchableOpacity>
+                  )}
                 </>
               )}
               
