@@ -5,6 +5,7 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   Platform,
+  Alert,
   Animated,
   PanResponder,
 } from 'react-native';
@@ -103,7 +104,7 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
       >
         <View style={styles.taskHeader}>
           <View style={styles.titleContainer}>
-            <TouchableOpacity onPress={handleToggleComplete} activeOpacity={0.7}>
+            <TouchableOpacity onPress={handleToggleComplete}>
               {task.completed ? (
                 <CheckCircle size={24} color={colors.primary} />
               ) : (

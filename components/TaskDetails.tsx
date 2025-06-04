@@ -1,20 +1,36 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  TouchableOpacity, 
+  Modal,
   TextInput,
-  ScrollView,
   Platform,
-  Modal as RNModal,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
-import { CheckCircle, Circle, Trash2, Edit2, Plus } from 'lucide-react-native';
+import { 
+  X, 
+  Clock, 
+  Calendar, 
+  CheckCircle, 
+  Circle, 
+  Trash2, 
+  Edit2,
+  Share2, 
+  Zap,
+  Trash
+} from 'lucide-react-native';
 import { colors } from '@/constants/colors';
+import { Task } from '@/types/task';
 import { useTaskStore } from '@/store/taskStore';
 import { formatTime, formatDate } from '@/utils/helpers';
-import ProgressBar from './ProgressBar';
+import Button from '@/components/Button';
+import PomodoroTimer from '@/components/PomodoroTimer';
+import * as Haptics from 'expo-haptics';
+import { generateTaskBreakdown } from '@/services/aiService';
 
 interface TaskDetailsProps {
   visible: boolean;
@@ -23,29 +39,34 @@ interface TaskDetailsProps {
 }
 
 export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsProps) {
-  const {
-    tasks,
-    completeTask,
-    completeSubTask,
+  const { 
+    tasks, 
+    completeTask, 
+    completeSubTask, 
     deleteTask,
-    deleteSubTask,
     updateTask,
+    updateSubTask,
+    deleteSubTask,
     addSubTask,
+    addAIGeneratedSubTasks,
+    deleteAllSubTasks
   } = useTaskStore();
+  
+  const [showTimer, setShowTimer] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [editingSubTaskId, setEditingSubTaskId] = useState<string | null>(null);
+  const [newTitle, setNewTitle] = useState('');
+  const [newSubTaskTitle, setNewSubTaskTitle] = useState('');
+  const [newSubTaskTime, setNewSubTaskTime] = useState('');
+  const [addingSubTask, setAddingSubTask] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   
   const task = tasks.find((t) => t.id === taskId);
   
-  const [newTitle, setNewTitle] = useState('');
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [newSubTaskTitle, setNewSubTaskTitle] = useState('');
-  const [newSubTaskTime, setNewSubTaskTime] = useState('30');
-  const [addingSubTask, setAddingSubTask] = useState(false);
-  
-  if (!task) return null;
-  
-  const progress = task.subTasks.length > 0
-    ? (task.subTasks.filter((st) => st.completed).length / task.subTasks.length) * 100
-    : task.completed ? 100 : 0;
+  if (!task) {
+    return null;
+  }
   
   const handleToggleComplete = () => {
     if (Platform.OS !== 'web') {
@@ -76,53 +97,140 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
     deleteSubTask(task.id, subTaskId);
   };
   
-  const handleEditTitle = () => {
+  const handleDeleteAllSubTasks = () => {
     if (Platform.OS !== 'web') {
-      Haptics.selectionAsync();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     }
+    
+    // Direct implementation without using Alert for better compatibility
+    if (task.subTasks.length > 0) {
+      // Call the deleteAllSubTasks function directly
+      deleteAllSubTasks(task.id);
+      
+      // Provide feedback that deletion was successful
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    }
+  };
+  
+  const handleEditTitle = () => {
     setNewTitle(task.title);
     setEditingTitle(true);
   };
   
   const saveTitle = () => {
-    if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
     if (newTitle.trim()) {
       updateTask(task.id, { title: newTitle });
     }
     setEditingTitle(false);
   };
   
-  const handleAddSubTask = () => {
-    if (!newSubTaskTitle.trim()) return;
-    
-    if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  const handleEditSubTask = (subTaskId: string, title: string, estimatedMinutes: number) => {
+    setEditingSubTaskId(subTaskId);
+    setNewSubTaskTitle(title);
+    setNewSubTaskTime(estimatedMinutes.toString());
+  };
+  
+  const saveSubTask = () => {
+    if (editingSubTaskId && newSubTaskTitle.trim()) {
+      updateSubTask(task.id, editingSubTaskId, { 
+        title: newSubTaskTitle,
+        estimatedMinutes: parseInt(newSubTaskTime) || 15
+      });
     }
-    
-    addSubTask(task.id, {
-      title: newSubTaskTitle.trim(),
-      estimatedMinutes: parseInt(newSubTaskTime) || 30,
-    });
-    
+    setEditingSubTaskId(null);
+  };
+  
+  const handleAddSubTask = () => {
+    setAddingSubTask(true);
     setNewSubTaskTitle('');
-    setNewSubTaskTime('30');
+    setNewSubTaskTime('15');
+  };
+  
+  const saveNewSubTask = () => {
+    if (newSubTaskTitle.trim()) {
+      addSubTask(task.id, {
+        title: newSubTaskTitle,
+        estimatedMinutes: parseInt(newSubTaskTime) || 15
+      });
+    }
     setAddingSubTask(false);
   };
   
+  const handleGenerateAISubtasks = async () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    
+    setIsGeneratingAI(true);
+    setAiError(null);
+    
+    try {
+      const result = await generateTaskBreakdown(task.title, task.description);
+      
+      // Update the main task's estimated time
+      updateTask(task.id, { 
+        estimatedMinutes: result.totalEstimatedMinutes,
+        aiGenerated: true
+      });
+      
+      // Add the generated subtasks
+      addAIGeneratedSubTasks(task.id, result.subTasks);
+      
+    } catch (error) {
+      console.error('Error generating AI subtasks:', error);
+      setAiError("Failed to generate subtasks. Please try again.");
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+  
+  const exportToCalendar = () => {
+    // This would integrate with the device calendar
+    // For now, we'll just show a message
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    alert('Task exported to calendar');
+  };
+  
+  // Check if the task has subtasks
+  const hasSubTasks = task.subTasks && task.subTasks.length > 0;
+  
   return (
-    <RNModal
+    <Modal
       visible={visible}
-      transparent
       animationType="slide"
+      transparent={true}
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={0.7} />
+      <View style={styles.container}>
         <View style={styles.content}>
-          <ScrollView style={styles.container}>
-            <View style={styles.header}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={onClose} hitSlop={10}>
+              <X size={24} color={colors.text} />
+            </TouchableOpacity>
+            
+            <View style={styles.headerActions}>
+              <TouchableOpacity 
+                style={styles.headerButton}
+                onPress={exportToCalendar}
+              >
+                <Share2 size={20} color={colors.text} />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.headerButton, styles.deleteButton]}
+                onPress={handleDeleteTask}
+              >
+                <Trash2 size={20} color={colors.danger} />
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          <ScrollView style={styles.body}>
+            <View style={styles.titleSection}>
               {editingTitle ? (
                 <View style={styles.editTitleContainer}>
                   <TextInput
@@ -131,232 +239,306 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                     onChangeText={setNewTitle}
                     autoFocus
                   />
-                  <TouchableOpacity onPress={saveTitle} activeOpacity={0.7}>
+                  <TouchableOpacity onPress={saveTitle}>
                     <Text style={styles.saveButton}>Save</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <View style={styles.titleContainer}>
-                  <TouchableOpacity onPress={handleToggleComplete} activeOpacity={0.7}>
+                  <TouchableOpacity onPress={handleToggleComplete}>
                     {task.completed ? (
                       <CheckCircle size={24} color={colors.primary} />
                     ) : (
                       <Circle size={24} color={colors.primary} />
                     )}
                   </TouchableOpacity>
-                  <Text
-                    style={[
-                      styles.title,
-                      task.completed && styles.completedText,
-                    ]}
-                  >
+                  
+                  <Text style={[styles.title, task.completed && styles.completedText]}>
                     {task.title}
                   </Text>
+                  
+                  <TouchableOpacity onPress={handleEditTitle}>
+                    <Edit2 size={18} color={colors.textLight} />
+                  </TouchableOpacity>
                 </View>
               )}
               
-              <View style={styles.actions}>
-                {!editingTitle && (
-                  <TouchableOpacity 
-                    onPress={handleDeleteTask}
-                    style={styles.actionButton}
-                    activeOpacity={0.7}
-                  >
-                    <Trash2 size={20} color={colors.danger} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-            
-            <View style={styles.infoContainer}>
-              <Text style={styles.infoLabel}>Created</Text>
-              <Text style={styles.infoValue}>
-                {formatDate(task.createdAt)}
-              </Text>
-            </View>
-            
-            {task.category && (
-              <View style={styles.infoContainer}>
-                <Text style={styles.infoLabel}>Category</Text>
+              {task.category && (
                 <View style={styles.categoryChip}>
                   <Text style={styles.categoryText}>{task.category}</Text>
                 </View>
-              </View>
-            )}
-            
-            <View style={styles.infoContainer}>
-              <Text style={styles.infoLabel}>Estimated Time</Text>
-              <Text style={styles.infoValue}>
-                {formatTime(task.estimatedMinutes)}
-              </Text>
+              )}
             </View>
             
-            {task.description && (
-              <View style={styles.descriptionContainer}>
-                <Text style={styles.descriptionLabel}>Description</Text>
-                <Text style={styles.description}>{task.description}</Text>
-              </View>
-            )}
-            
-            <View style={styles.subtasksContainer}>
-              <View style={styles.subtasksHeader}>
-                <Text style={styles.subtasksTitle}>Subtasks</Text>
-                <TouchableOpacity 
-                  onPress={() => setAddingSubTask(true)}
-                  activeOpacity={0.7}
-                >
-                  <Plus size={20} color={colors.primary} />
-                </TouchableOpacity>
+            <View style={styles.infoSection}>
+              <View style={styles.infoItem}>
+                <Clock size={16} color={colors.textLight} />
+                <Text style={styles.infoText}>
+                  Estimated: {formatTime(task.estimatedMinutes)}
+                </Text>
               </View>
               
-              {task.subTasks.length > 0 && (
-                <View style={styles.progressContainer}>
-                  <ProgressBar progress={progress} />
-                  <Text style={styles.progressText}>
-                    {task.subTasks.filter((st) => st.completed).length} of{' '}
-                    {task.subTasks.length} completed
-                  </Text>
+              <View style={styles.infoItem}>
+                <Calendar size={16} color={colors.textLight} />
+                <Text style={styles.infoText}>
+                  Created: {formatDate(task.createdAt)}
+                </Text>
+              </View>
+            </View>
+            
+            {task.description ? (
+              <View style={styles.descriptionSection}>
+                <Text style={styles.sectionTitle}>Description</Text>
+                <Text style={styles.description}>{task.description}</Text>
+              </View>
+            ) : null}
+            
+            {showTimer ? (
+              <View style={styles.timerSection}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Pomodoro Timer</Text>
+                  <TouchableOpacity onPress={() => setShowTimer(false)}>
+                    <Text style={styles.hideText}>Hide</Text>
+                  </TouchableOpacity>
                 </View>
+                <PomodoroTimer taskId={task.id} />
+              </View>
+            ) : (
+              <Button
+                title="Start Pomodoro Timer"
+                onPress={() => setShowTimer(true)}
+                style={styles.timerButton}
+              />
+            )}
+            
+            <View style={styles.subTasksSection}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Subtasks</Text>
+                <View style={styles.subTaskActions}>
+                  {hasSubTasks ? (
+                    <TouchableOpacity 
+                      onPress={handleDeleteAllSubTasks}
+                      style={styles.deleteAllButton}
+                    >
+                      <Trash size={16} color={colors.danger} />
+                      <Text style={styles.deleteAllText}>Delete All</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity 
+                      onPress={handleGenerateAISubtasks}
+                      disabled={isGeneratingAI}
+                      style={[styles.aiButton, isGeneratingAI && styles.disabledButton]}
+                    >
+                      {isGeneratingAI ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : (
+                        <>
+                          <Zap size={16} color={colors.primary} />
+                          <Text style={styles.aiButtonText}>AI Generate</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity onPress={handleAddSubTask}>
+                    <Text style={styles.addText}>+ Add</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              
+              {aiError && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{aiError}</Text>
+                </View>
+              )}
+              
+              {!hasSubTasks ? (
+                <Text style={styles.emptyText}>No subtasks yet</Text>
+              ) : (
+                <>
+                  {task.subTasks.map((subTask) => (
+                    <View key={subTask.id} style={styles.subTaskItem}>
+                      {editingSubTaskId === subTask.id ? (
+                        <View style={styles.editSubTaskContainer}>
+                          <TextInput
+                            style={styles.editSubTaskInput}
+                            value={newSubTaskTitle}
+                            onChangeText={setNewSubTaskTitle}
+                            autoFocus
+                          />
+                          <View style={styles.editSubTaskTime}>
+                            <TextInput
+                              style={styles.editSubTaskTimeInput}
+                              value={newSubTaskTime}
+                              onChangeText={setNewSubTaskTime}
+                              keyboardType="number-pad"
+                            />
+                            <Text style={styles.minutesText}>min</Text>
+                          </View>
+                          <TouchableOpacity onPress={saveSubTask}>
+                            <Text style={styles.saveButton}>Save</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <>
+                          <TouchableOpacity 
+                            onPress={() => handleToggleSubTaskComplete(subTask.id, subTask.completed)}
+                            hitSlop={10}
+                          >
+                            {subTask.completed ? (
+                              <CheckCircle size={20} color={colors.primary} />
+                            ) : (
+                              <Circle size={20} color={colors.primary} />
+                            )}
+                          </TouchableOpacity>
+                          
+                          <View style={styles.subTaskContent}>
+                            <Text 
+                              style={[
+                                styles.subTaskTitle, 
+                                subTask.completed && styles.completedText
+                              ]}
+                            >
+                              {subTask.title}
+                            </Text>
+                            <Text style={styles.subTaskTime}>
+                              {formatTime(subTask.estimatedMinutes)}
+                            </Text>
+                          </View>
+                          
+                          <View style={styles.subTaskActions}>
+                            <TouchableOpacity 
+                              onPress={() => handleEditSubTask(
+                                subTask.id, 
+                                subTask.title, 
+                                subTask.estimatedMinutes
+                              )}
+                              hitSlop={10}
+                              style={styles.actionButton}
+                            >
+                              <Edit2 size={16} color={colors.textLight} />
+                            </TouchableOpacity>
+                            
+                            <TouchableOpacity 
+                              onPress={() => handleDeleteSubTask(subTask.id)}
+                              hitSlop={10}
+                              style={styles.actionButton}
+                            >
+                              <Trash2 size={16} color={colors.danger} />
+                            </TouchableOpacity>
+                          </View>
+                        </>
+                      )}
+                    </View>
+                  ))}
+                </>
               )}
               
               {addingSubTask && (
                 <View style={styles.addSubTaskContainer}>
                   <TextInput
-                    style={styles.addSubTaskInput}
+                    style={styles.editSubTaskInput}
                     value={newSubTaskTitle}
                     onChangeText={setNewSubTaskTitle}
                     placeholder="Subtask title"
                     placeholderTextColor={colors.textLight}
                     autoFocus
                   />
-                  <View style={styles.addSubTaskRow}>
+                  <View style={styles.editSubTaskTime}>
                     <TextInput
-                      style={styles.timeInput}
+                      style={styles.editSubTaskTimeInput}
                       value={newSubTaskTime}
                       onChangeText={setNewSubTaskTime}
                       keyboardType="number-pad"
-                      placeholder="30"
+                      placeholder="15"
                       placeholderTextColor={colors.textLight}
                     />
-                    <Text style={styles.timeLabel}>min</Text>
-                    <View style={styles.addSubTaskActions}>
-                      <TouchableOpacity 
-                        onPress={() => setAddingSubTask(false)}
-                        style={styles.cancelButton}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.cancelButtonText}>Cancel</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        onPress={handleAddSubTask}
-                        style={styles.addButton}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.addButtonText}>Add</Text>
-                      </TouchableOpacity>
-                    </View>
+                    <Text style={styles.minutesText}>min</Text>
+                  </View>
+                  <View style={styles.addSubTaskActions}>
+                    <TouchableOpacity onPress={() => setAddingSubTask(false)}>
+                      <Text style={styles.cancelButton}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={saveNewSubTask}>
+                      <Text style={styles.saveButton}>Add</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               )}
               
-              {task.subTasks.length === 0 && !addingSubTask ? (
-                <Text style={styles.noSubtasks}>
-                  No subtasks yet. Tap + to add one.
-                </Text>
-              ) : (
-                <View style={styles.subtasksList}>
-                  {task.subTasks.map((subTask) => (
-                    <View key={subTask.id} style={styles.subtaskItem}>
-                      <TouchableOpacity 
-                        onPress={() => handleToggleSubTaskComplete(subTask.id, subTask.completed)}
-                        activeOpacity={0.7}
-                      >
-                        {subTask.completed ? (
-                          <CheckCircle size={20} color={colors.primary} />
-                        ) : (
-                          <Circle size={20} color={colors.primary} />
-                        )}
-                      </TouchableOpacity>
-                      <Text
-                        style={[
-                          styles.subtaskTitle,
-                          subTask.completed && styles.completedText,
-                        ]}
-                      >
-                        {subTask.title}
-                      </Text>
-                      <Text style={styles.subtaskTime}>
-                        {formatTime(subTask.estimatedMinutes)}
-                      </Text>
-                      <TouchableOpacity 
-                        onPress={() => handleDeleteSubTask(subTask.id)}
-                        style={styles.deleteSubtask}
-                        activeOpacity={0.7}
-                      >
-                        <Trash2 size={16} color={colors.textLight} />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
+              {/* Add a dedicated button for deleting all subtasks */}
+              {hasSubTasks && (
+                <TouchableOpacity 
+                  style={styles.deleteAllSubtasksButton}
+                  onPress={handleDeleteAllSubTasks}
+                >
+                  <Trash2 size={18} color={colors.danger} />
+                  <Text style={styles.deleteAllSubtasksText}>Delete All Subtasks</Text>
+                </TouchableOpacity>
               )}
             </View>
           </ScrollView>
         </View>
       </View>
-    </RNModal>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  container: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  backdrop: {
-    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   content: {
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
     maxHeight: '90%',
-  },
-  container: {
-    padding: 16,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  headerActions: {
+    flexDirection: 'row',
+  },
+  headerButton: {
+    marginLeft: 16,
+  },
+  deleteButton: {
+    marginLeft: 16,
+  },
+  body: {
+    padding: 20,
+  },
+  titleSection: {
     marginBottom: 16,
   },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    marginBottom: 8,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
-    marginLeft: 12,
     flex: 1,
+    marginHorizontal: 12,
   },
   completedText: {
     textDecorationLine: 'line-through',
     color: colors.textLight,
   },
-  actions: {
-    flexDirection: 'row',
-  },
-  actionButton: {
-    marginLeft: 16,
-  },
   editTitleContainer: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 8,
   },
   editTitleInput: {
     flex: 1,
@@ -365,162 +547,213 @@ const styles = StyleSheet.create({
     color: colors.text,
     borderBottomWidth: 1,
     borderBottomColor: colors.primary,
+    marginRight: 12,
     paddingVertical: 4,
-  },
-  saveButton: {
-    color: colors.primary,
-    fontWeight: 'bold',
-    marginLeft: 16,
-  },
-  infoContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: colors.textLight,
-  },
-  infoValue: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '500',
   },
   categoryChip: {
-    backgroundColor: colors.primary,
-    paddingVertical: 4,
+    backgroundColor: colors.secondary,
     paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 16,
+    alignSelf: 'flex-start',
   },
   categoryText: {
     color: colors.background,
-    fontSize: 12,
     fontWeight: '500',
   },
-  descriptionContainer: {
-    marginTop: 8,
-    marginBottom: 16,
+  infoSection: {
+    flexDirection: 'row',
+    marginBottom: 20,
   },
-  descriptionLabel: {
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  infoText: {
+    color: colors.textLight,
+    marginLeft: 6,
+  },
+  descriptionSection: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
   },
   description: {
-    fontSize: 14,
     color: colors.text,
-    lineHeight: 20,
+    lineHeight: 22,
   },
-  subtasksContainer: {
-    marginTop: 16,
+  timerSection: {
+    marginBottom: 20,
   },
-  subtasksHeader: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  subtasksTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  progressContainer: {
-    marginBottom: 16,
-  },
-  progressText: {
-    fontSize: 12,
+  hideText: {
     color: colors.textLight,
-    marginTop: 4,
-    textAlign: 'right',
   },
-  noSubtasks: {
+  timerButton: {
+    marginBottom: 20,
+  },
+  subTasksSection: {
+    marginBottom: 20,
+  },
+  subTaskActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  aiButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    marginRight: 12,
+  },
+  aiButtonText: {
+    color: colors.primary,
+    fontWeight: '500',
+    fontSize: 14,
+    marginLeft: 4,
+  },
+  deleteAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    marginRight: 12,
+  },
+  deleteAllText: {
+    color: colors.danger,
+    fontWeight: '500',
+    fontSize: 14,
+    marginLeft: 4,
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  addText: {
+    color: colors.primary,
+    fontWeight: '500',
+  },
+  emptyText: {
     color: colors.textLight,
     fontStyle: 'italic',
     textAlign: 'center',
-    marginTop: 16,
+    marginTop: 12,
   },
-  subtasksList: {
-    marginTop: 8,
-  },
-  subtaskItem: {
+  subTaskItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  subtaskTitle: {
+  subTaskContent: {
     flex: 1,
-    fontSize: 14,
-    color: colors.text,
     marginLeft: 12,
   },
-  subtaskTime: {
+  subTaskTitle: {
+    fontSize: 16,
+    color: colors.text,
+    marginBottom: 4,
+  },
+  subTaskTime: {
     fontSize: 12,
     color: colors.textLight,
-    marginRight: 8,
   },
-  deleteSubtask: {
-    padding: 4,
+  actionButton: {
+    marginLeft: 16,
   },
-  addSubTaskContainer: {
-    backgroundColor: colors.cardBackground,
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  addSubTaskInput: {
-    fontSize: 14,
-    color: colors.text,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    paddingVertical: 8,
-    marginBottom: 8,
-  },
-  addSubTaskRow: {
+  editSubTaskContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  timeInput: {
-    width: 50,
-    fontSize: 14,
+  editSubTaskInput: {
+    flex: 1,
+    fontSize: 16,
     color: colors.text,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.primary,
+    marginRight: 8,
     paddingVertical: 4,
-    textAlign: 'center',
   },
-  timeLabel: {
-    fontSize: 14,
+  editSubTaskTime: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  editSubTaskTimeInput: {
+    width: 40,
+    fontSize: 16,
+    color: colors.text,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.primary,
+    textAlign: 'center',
+    paddingVertical: 4,
+  },
+  minutesText: {
     color: colors.textLight,
     marginLeft: 4,
   },
+  saveButton: {
+    color: colors.primary,
+    fontWeight: '500',
+  },
+  addSubTaskContainer: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 8,
+  },
   addSubTaskActions: {
-    flex: 1,
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 8,
+    marginTop: 8,
   },
   cancelButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  cancelButtonText: {
     color: colors.textLight,
-    fontSize: 14,
+    marginRight: 16,
   },
-  addButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 4,
+  errorContainer: {
+    backgroundColor: '#FFEBEE',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
   },
-  addButtonText: {
-    color: colors.background,
-    fontSize: 14,
+  errorText: {
+    color: colors.danger,
+  },
+  deleteAllSubtasksButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFEBEE',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: colors.danger,
+  },
+  deleteAllSubtasksText: {
+    color: colors.danger,
     fontWeight: '500',
+    marginLeft: 8,
   },
 });

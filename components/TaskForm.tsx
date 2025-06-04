@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TextInput, 
+  TouchableOpacity, 
+  Modal,
   ScrollView,
+  KeyboardAvoidingView,
   Platform,
-  Modal as RNModal,
+  ActivityIndicator
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { X, Clock, Calendar, Zap } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
+import Button from '@/components/Button';
 import { useTaskStore } from '@/store/taskStore';
+import { formatTime, estimateTaskTime } from '@/utils/helpers';
 import { generateTaskBreakdown } from '@/services/aiService';
 
 interface TaskFormProps {
@@ -20,17 +24,20 @@ interface TaskFormProps {
   onSuccess?: () => void;
 }
 
-const categories = ['Work', 'Personal', 'Study', 'Health', 'Home'];
-
 export default function TaskForm({ visible, onClose, onSuccess }: TaskFormProps) {
-  const { addTask } = useTaskStore();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [estimatedMinutes, setEstimatedMinutes] = useState(30);
-  const [category, setCategory] = useState<string>('');
+  const [category, setCategory] = useState('');
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [error, setError] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-
+  
+  const { addTask, addAIGeneratedSubTasks } = useTaskStore();
+  
+  const categories = [
+    'Work', 'Personal', 'Study', 'Health', 'Home', 'Other'
+  ];
+  
   const resetForm = () => {
     setTitle('');
     setDescription('');
@@ -38,185 +45,234 @@ export default function TaskForm({ visible, onClose, onSuccess }: TaskFormProps)
     setCategory('');
     setError('');
   };
-
-  const handleCategorySelect = (cat: string) => {
-    if (Platform.OS !== 'web') {
-      Haptics.selectionAsync();
-    }
-    setCategory(cat);
+  
+  const handleClose = () => {
+    resetForm();
+    onClose();
   };
-
-  const handleSubmit = async () => {
+  
+  const handleSubmit = () => {
     if (!title.trim()) {
-      if (Platform.OS !== 'web') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      }
       setError('Task title is required');
       return;
     }
-
-    if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
-
+    
     const taskId = addTask({
-      title: title.trim(),
-      description: description.trim(),
+      title,
+      description,
       estimatedMinutes,
       category: category || 'Other',
     });
-
-    if (description) {
-      setIsGenerating(true);
-      try {
-        const breakdown = await generateTaskBreakdown(title, description);
-        if (breakdown.subTasks.length > 0) {
-          useTaskStore.getState().addAIGeneratedSubTasks(taskId, breakdown.subTasks);
-        }
-      } catch (error) {
-        console.error('Failed to generate subtasks:', error);
-      } finally {
-        setIsGenerating(false);
-      }
-    }
-
+    
     resetForm();
     if (onSuccess) onSuccess();
     onClose();
   };
-
+  
+  const handleAIBreakdown = async () => {
+    if (!title.trim()) {
+      setError('Task title is required');
+      return;
+    }
+    
+    setIsGeneratingAI(true);
+    setError('');
+    
+    try {
+      const result = await generateTaskBreakdown(title, description);
+      
+      const taskId = addTask({
+        title,
+        description,
+        estimatedMinutes: result.totalEstimatedMinutes,
+        category: category || 'Other',
+      });
+      
+      addAIGeneratedSubTasks(
+        taskId,
+        result.subTasks
+      );
+      
+      resetForm();
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (err) {
+      console.error('AI breakdown error:', err);
+      setError('Failed to generate AI breakdown. Please try again.');
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+  
+  const handleEstimateTime = () => {
+    if (!title.trim()) {
+      setError('Task title is required');
+      return;
+    }
+    
+    const estimated = estimateTaskTime(title, description);
+    setEstimatedMinutes(estimated);
+  };
+  
+  const adjustTime = (amount: number) => {
+    setEstimatedMinutes(Math.max(5, estimatedMinutes + amount));
+  };
+  
   return (
-    <RNModal
+    <Modal
       visible={visible}
-      transparent
       animationType="slide"
-      onRequestClose={onClose}
+      transparent={true}
+      onRequestClose={handleClose}
     >
-      <View style={styles.overlay}>
-        <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={0.7} />
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <View style={styles.content}>
-          <ScrollView style={styles.container}>
-            <Text style={styles.title}>New Task</Text>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Title</Text>
-              <TextInput
-                style={styles.input}
-                value={title}
-                onChangeText={setTitle}
-                placeholder="Enter task title"
-                placeholderTextColor={colors.textLight}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Description (optional)</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={description}
-                onChangeText={setDescription}
-                placeholder="Enter task description"
-                placeholderTextColor={colors.textLight}
-                multiline
-                numberOfLines={4}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Estimated Time (minutes)</Text>
-              <TextInput
-                style={styles.input}
-                value={String(estimatedMinutes)}
-                onChangeText={(value) => setEstimatedMinutes(parseInt(value) || 30)}
-                keyboardType="number-pad"
-                placeholder="30"
-                placeholderTextColor={colors.textLight}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Category</Text>
-              <View style={styles.categoryContainer}>
-                {categories.map((cat) => (
-                  <TouchableOpacity
-                    key={cat}
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>New Task</Text>
+            <TouchableOpacity onPress={handleClose} hitSlop={10}>
+              <X size={24} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView style={styles.form}>
+            <Text style={styles.label}>Task Title</Text>
+            <TextInput
+              style={styles.input}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="What needs to be done?"
+              placeholderTextColor={colors.textLight}
+            />
+            
+            <Text style={styles.label}>Description (Optional)</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Add details about this task..."
+              placeholderTextColor={colors.textLight}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+            
+            <Text style={styles.label}>Category</Text>
+            <View style={styles.categoryContainer}>
+              {categories.map((cat) => (
+                <TouchableOpacity
+                  key={cat}
+                  style={[
+                    styles.categoryChip,
+                    category === cat && styles.selectedCategory,
+                  ]}
+                  onPress={() => setCategory(cat)}
+                >
+                  <Text
                     style={[
-                      styles.categoryChip,
-                      category === cat && styles.selectedCategory,
+                      styles.categoryText,
+                      category === cat && styles.selectedCategoryText,
                     ]}
-                    onPress={() => handleCategorySelect(cat)}
-                    activeOpacity={0.7}
                   >
-                    <Text
-                      style={[
-                        styles.categoryText,
-                        category === cat && styles.selectedCategoryText,
-                      ]}
-                    >
-                      {cat}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                    {cat}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            
+            <View style={styles.timeSection}>
+              <View style={styles.timeHeader}>
+                <Text style={styles.label}>Estimated Time</Text>
+                <TouchableOpacity 
+                  style={styles.estimateButton}
+                  onPress={handleEstimateTime}
+                >
+                  <Clock size={14} color={colors.primary} />
+                  <Text style={styles.estimateButtonText}>Auto Estimate</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.timeControls}>
+                <TouchableOpacity
+                  style={styles.timeButton}
+                  onPress={() => adjustTime(-5)}
+                >
+                  <Text style={styles.timeButtonText}>-5m</Text>
+                </TouchableOpacity>
+                
+                <View style={styles.timeDisplay}>
+                  <Text style={styles.timeText}>{formatTime(estimatedMinutes)}</Text>
+                </View>
+                
+                <TouchableOpacity
+                  style={styles.timeButton}
+                  onPress={() => adjustTime(5)}
+                >
+                  <Text style={styles.timeButtonText}>+5m</Text>
+                </TouchableOpacity>
               </View>
             </View>
-
+            
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity 
-                style={styles.cancelButton} 
-                onPress={onClose}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.submitButton, isGenerating && styles.disabledButton]}
-                onPress={handleSubmit}
-                disabled={isGenerating}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.submitButtonText}>
-                  {isGenerating ? 'Creating...' : 'Create Task'}
-                </Text>
-              </TouchableOpacity>
-            </View>
           </ScrollView>
+          
+          <View style={styles.footer}>
+            <Button
+              title="Create Task"
+              onPress={handleSubmit}
+              style={styles.submitButton}
+            />
+            
+            <Button
+              title="AI Breakdown"
+              onPress={handleAIBreakdown}
+              variant="outline"
+              style={styles.aiButton}
+              loading={isGeneratingAI}
+              icon={!isGeneratingAI && <Zap size={18} color={colors.primary} />}
+            />
+          </View>
         </View>
-      </View>
-    </RNModal>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  container: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  backdrop: {
-    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   content: {
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
     maxHeight: '90%',
   },
-  container: {
-    padding: 16,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  title: {
-    fontSize: 24,
+  headerTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 24,
   },
-  inputContainer: {
-    marginBottom: 16,
+  form: {
+    padding: 20,
+    maxHeight: '70%',
   },
   label: {
     fontSize: 16,
+    fontWeight: '500',
     color: colors.text,
     marginBottom: 8,
   },
@@ -226,65 +282,101 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 16,
   },
   textArea: {
-    height: 100,
-    textAlignVertical: 'top',
+    minHeight: 100,
   },
   categoryContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    marginBottom: 16,
   },
   categoryChip: {
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    paddingHorizontal: 16,
     borderRadius: 16,
     backgroundColor: colors.cardBackground,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   selectedCategory: {
     backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   categoryText: {
     color: colors.text,
+    fontSize: 14,
   },
   selectedCategoryText: {
     color: colors.background,
   },
-  errorText: {
-    color: colors.danger,
+  timeSection: {
     marginBottom: 16,
   },
-  buttonContainer: {
+  timeHeader: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  cancelButton: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 8,
+  estimateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  estimateButtonText: {
+    color: colors.primary,
+    marginLeft: 4,
+    fontSize: 14,
+  },
+  timeControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  timeButton: {
     backgroundColor: colors.cardBackground,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  timeButtonText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  timeDisplay: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  timeText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  footer: {
+    padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   submitButton: {
     flex: 1,
-    padding: 16,
-    borderRadius: 8,
-    backgroundColor: colors.primary,
+    marginRight: 8,
   },
-  disabledButton: {
-    opacity: 0.5,
+  aiButton: {
+    flex: 1,
+    marginLeft: 8,
   },
-  cancelButtonText: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  submitButtonText: {
-    color: colors.background,
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
+  errorText: {
+    color: colors.danger,
+    marginBottom: 16,
   },
 });
