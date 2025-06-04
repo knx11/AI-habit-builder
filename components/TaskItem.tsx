@@ -43,18 +43,18 @@ export default function TaskItem({ task, onPress, onEdit, onLongPress }: TaskIte
         swipeAnim.setValue(x);
       },
       onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx > 50) {
-          // Right swipe - complete
-          Animated.spring(swipeAnim, {
-            toValue: 0,
-            useNativeDriver: true,
-          }).start(() => toggleTaskCompletion());
-        } else if (gestureState.dx < -50) {
+        if (gestureState.dx < -50) {
           // Left swipe - show actions
           Animated.spring(swipeAnim, {
             toValue: -80,
             useNativeDriver: true,
           }).start();
+        } else if (gestureState.dx > 50) {
+          // Right swipe - complete
+          Animated.spring(swipeAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start(() => handleToggleComplete());
         } else {
           // Reset position
           Animated.spring(swipeAnim, {
@@ -66,7 +66,7 @@ export default function TaskItem({ task, onPress, onEdit, onLongPress }: TaskIte
     })
   ).current;
 
-  const toggleTaskCompletion = () => {
+  const handleToggleComplete = () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -80,6 +80,11 @@ export default function TaskItem({ task, onPress, onEdit, onLongPress }: TaskIte
     if (onEdit) {
       onEdit();
     }
+    // Reset swipe position
+    Animated.spring(swipeAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handleDeleteTask = () => {
@@ -92,13 +97,33 @@ export default function TaskItem({ task, onPress, onEdit, onLongPress }: TaskIte
       [
         {
           text: 'Cancel',
-          style: 'cancel'
+          style: 'cancel',
+          onPress: () => {
+            // Reset swipe position
+            Animated.spring(swipeAnim, {
+              toValue: 0,
+              useNativeDriver: true,
+            }).start();
+          }
         },
         {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
             deleteTask(task.id);
+            // Animate out before deletion
+            Animated.sequence([
+              Animated.timing(scaleAnim, {
+                toValue: 0.9,
+                duration: 100,
+                useNativeDriver: true,
+              }),
+              Animated.timing(opacityAnim, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+              }),
+            ]).start();
           }
         }
       ]
@@ -134,18 +159,6 @@ export default function TaskItem({ task, onPress, onEdit, onLongPress }: TaskIte
       ]}
       {...panResponder.panHandlers}
     >
-      {/* Checkmark indicator for right swipe */}
-      <Animated.View style={styles.checkmarkIndicator}>
-        <CheckCircle 
-          size={24} 
-          color={colors.primary}
-          style={{ opacity: swipeAnim.interpolate({
-            inputRange: [0, 50],
-            outputRange: [0, 1],
-          })}}
-        />
-      </Animated.View>
-
       {/* Action buttons for left swipe */}
       <View style={styles.actionButtons}>
         <TouchableOpacity 
@@ -171,7 +184,7 @@ export default function TaskItem({ task, onPress, onEdit, onLongPress }: TaskIte
       >
         <View style={styles.taskHeader}>
           <View style={styles.titleContainer}>
-            <TouchableOpacity onPress={toggleTaskCompletion}>
+            <TouchableOpacity onPress={handleToggleComplete}>
               {task.completed ? (
                 <CheckCircle size={24} color={colors.primary} />
               ) : (
@@ -220,13 +233,6 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
     position: 'relative',
-  },
-  checkmarkIndicator: {
-    position: 'absolute',
-    left: 16,
-    top: '50%',
-    transform: [{ translateY: -12 }],
-    zIndex: 1,
   },
   actionButtons: {
     position: 'absolute',
