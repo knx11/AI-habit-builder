@@ -8,14 +8,14 @@ import {
   AppStateStatus,
   Modal,
   Animated,
-  PanResponder,
-  Dimensions
+  ScrollView,
+  Dimensions,
+  Platform
 } from 'react-native';
 import { Play, Pause, RotateCcw, Coffee, X } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import * as Haptics from 'expo-haptics';
-import { Platform } from 'react-native';
 
 interface PomodoroTimerProps {
   taskId?: string;
@@ -46,11 +46,12 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const appState = useRef(AppState.currentState);
   const backgroundTimeRef = useRef<number | null>(null);
+  const hoursScrollViewRef = useRef<ScrollView>(null);
+  const minutesScrollViewRef = useRef<ScrollView>(null);
   
   const { width } = Dimensions.get('window');
-  const dialSize = width * 0.8;
-  const hoursAngle = useRef(new Animated.Value(0)).current;
-  const minutesAngle = useRef(new Animated.Value(0)).current;
+  const circleSize = width * 0.6;
+  const progressAnimation = useRef(new Animated.Value(0)).current;
   
   // Get the current timer duration based on state
   const getCurrentDuration = () => {
@@ -64,15 +65,16 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
     }
   };
   
-  // Format seconds to hh:mm
+  // Format seconds to hh:mm:ss
   const formatTime = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
     
     if (hours > 0) {
-      return `${hours}:${mins.toString().padStart(2, '0')}`;
+      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
-    return `${mins}:00`;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
   
   // Handle app state changes (background/foreground)
@@ -131,6 +133,18 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
     setTimeLeft(getCurrentDuration());
   }, [timerState]);
   
+  // Update progress animation when timeLeft changes
+  useEffect(() => {
+    const duration = getCurrentDuration();
+    const progress = 1 - (timeLeft / duration);
+    
+    Animated.timing(progressAnimation, {
+      toValue: progress,
+      duration: 500,
+      useNativeDriver: false,
+    }).start();
+  }, [timeLeft]);
+  
   const handleTimerComplete = () => {
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -178,9 +192,21 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
     setSelectedMinutes(Math.floor((timeLeft % 3600) / 60));
     setShowTimePicker(true);
     
-    // Set initial angles for the dials
-    hoursAngle.setValue((Math.floor(timeLeft / 3600) / 12) * 360);
-    minutesAngle.setValue((Math.floor((timeLeft % 3600) / 60) / 60) * 360);
+    // Schedule scrolling to the selected values after the modal is visible
+    setTimeout(() => {
+      if (hoursScrollViewRef.current) {
+        hoursScrollViewRef.current.scrollTo({ 
+          y: selectedHours * 50, 
+          animated: false 
+        });
+      }
+      if (minutesScrollViewRef.current) {
+        minutesScrollViewRef.current.scrollTo({ 
+          y: selectedMinutes * 50, 
+          animated: false 
+        });
+      }
+    }, 100);
   };
   
   const applySelectedTime = () => {
@@ -189,58 +215,37 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
     setShowTimePicker(false);
   };
   
-  // Create pan responder for hours dial
-  const hoursPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (evt, gestureState) => {
-        const { moveX, moveY, x0, y0 } = gestureState;
-        const centerX = x0;
-        const centerY = y0;
-        
-        // Calculate angle from center to touch point
-        const angle = Math.atan2(moveY - centerY, moveX - centerX) * (180 / Math.PI);
-        const normalizedAngle = (angle + 360) % 360;
-        
-        // Convert angle to hours (0-11)
-        const hours = Math.round((normalizedAngle / 360) * 12);
-        setSelectedHours(hours);
-        hoursAngle.setValue(normalizedAngle);
-        
-        if (Platform.OS !== 'web') {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        }
-      },
-    })
-  ).current;
+  const handleHourScroll = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    const hour = Math.round(offsetY / 50);
+    if (hour >= 0 && hour <= 23) {
+      setSelectedHours(hour);
+      if (Platform.OS !== 'web') {
+        Haptics.selectionAsync();
+      }
+    }
+  };
   
-  // Create pan responder for minutes dial
-  const minutesPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (evt, gestureState) => {
-        const { moveX, moveY, x0, y0 } = gestureState;
-        const centerX = x0;
-        const centerY = y0;
-        
-        // Calculate angle from center to touch point
-        const angle = Math.atan2(moveY - centerY, moveX - centerX) * (180 / Math.PI);
-        const normalizedAngle = (angle + 360) % 360;
-        
-        // Convert angle to minutes (0-59)
-        const minutes = Math.round((normalizedAngle / 360) * 60);
-        setSelectedMinutes(minutes);
-        minutesAngle.setValue(normalizedAngle);
-        
-        if (Platform.OS !== 'web') {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        }
-      },
-    })
-  ).current;
+  const handleMinuteScroll = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    const minute = Math.round(offsetY / 50);
+    if (minute >= 0 && minute <= 59) {
+      setSelectedMinutes(minute);
+      if (Platform.OS !== 'web') {
+        Haptics.selectionAsync();
+      }
+    }
+  };
   
-  // Calculate progress percentage
-  const progress = (timeLeft / getCurrentDuration()) * 100;
+  // Generate hours and minutes for the picker
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+  const minutes = Array.from({ length: 60 }, (_, i) => i);
+  
+  // Calculate progress percentage for the circle
+  const progressStrokeDashoffset = progressAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [2 * Math.PI * (circleSize / 2 - 10), 0],
+  });
   
   return (
     <View style={styles.container}>
@@ -288,15 +293,32 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
           onPress={openTimePicker}
           disabled={isActive}
         >
-          <View 
+          <Animated.View
             style={[
-              styles.timerProgress, 
-              { 
-                transform: [{ rotate: `${(100 - progress) * 3.6}deg` }],
-                opacity: progress / 100,
+              styles.progressCircle,
+              {
+                width: circleSize,
+                height: circleSize,
+                borderRadius: circleSize / 2,
+                borderColor: colors.primary,
+                transform: [{ rotate: '-90deg' }],
               }
-            ]} 
-          />
+            ]}
+          >
+            <Animated.View
+              style={[
+                styles.progressArc,
+                {
+                  width: circleSize,
+                  height: circleSize,
+                  borderRadius: circleSize / 2,
+                  borderColor: colors.primary,
+                  strokeDashoffset: progressStrokeDashoffset,
+                }
+              ]}
+            />
+          </Animated.View>
+          
           <View style={styles.timerInner}>
             <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
             <Text style={styles.sessionText}>
@@ -353,61 +375,83 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
               </TouchableOpacity>
             </View>
             
-            <View style={styles.timePickerContainer}>
-              <View style={styles.dialContainer}>
-                <Text style={styles.dialLabel}>Hours</Text>
-                <View 
-                  style={styles.dial}
-                  {...hoursPanResponder.panHandlers}
-                >
-                  <Animated.View
-                    style={[
-                      styles.dialHand,
-                      {
-                        transform: [
-                          { rotate: hoursAngle.interpolate({
-                              inputRange: [0, 360],
-                              outputRange: ['0deg', '360deg']
-                            })
-                          }
-                        ]
-                      }
-                    ]}
-                  />
-                  <View style={styles.dialCenter} />
-                  <Text style={styles.dialValue}>{selectedHours}</Text>
+            <View style={styles.pickerContainer}>
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Hours</Text>
+                <View style={styles.pickerWrapper}>
+                  <ScrollView
+                    ref={hoursScrollViewRef}
+                    showsVerticalScrollIndicator={false}
+                    snapToInterval={50}
+                    decelerationRate="fast"
+                    onMomentumScrollEnd={handleHourScroll}
+                    contentContainerStyle={styles.pickerScrollContent}
+                  >
+                    {/* Add empty items at the beginning for padding */}
+                    <View style={styles.pickerItem} />
+                    <View style={styles.pickerItem} />
+                    
+                    {hours.map((hour) => (
+                      <View key={`hour-${hour}`} style={styles.pickerItem}>
+                        <Text 
+                          style={[
+                            styles.pickerItemText,
+                            selectedHours === hour && styles.selectedPickerItemText
+                          ]}
+                        >
+                          {hour}
+                        </Text>
+                      </View>
+                    ))}
+                    
+                    {/* Add empty items at the end for padding */}
+                    <View style={styles.pickerItem} />
+                    <View style={styles.pickerItem} />
+                  </ScrollView>
+                  <View style={styles.pickerHighlight} />
                 </View>
               </View>
               
-              <View style={styles.dialContainer}>
-                <Text style={styles.dialLabel}>Minutes</Text>
-                <View 
-                  style={styles.dial}
-                  {...minutesPanResponder.panHandlers}
-                >
-                  <Animated.View
-                    style={[
-                      styles.dialHand,
-                      {
-                        transform: [
-                          { rotate: minutesAngle.interpolate({
-                              inputRange: [0, 360],
-                              outputRange: ['0deg', '360deg']
-                            })
-                          }
-                        ]
-                      }
-                    ]}
-                  />
-                  <View style={styles.dialCenter} />
-                  <Text style={styles.dialValue}>{selectedMinutes}</Text>
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Minutes</Text>
+                <View style={styles.pickerWrapper}>
+                  <ScrollView
+                    ref={minutesScrollViewRef}
+                    showsVerticalScrollIndicator={false}
+                    snapToInterval={50}
+                    decelerationRate="fast"
+                    onMomentumScrollEnd={handleMinuteScroll}
+                    contentContainerStyle={styles.pickerScrollContent}
+                  >
+                    {/* Add empty items at the beginning for padding */}
+                    <View style={styles.pickerItem} />
+                    <View style={styles.pickerItem} />
+                    
+                    {minutes.map((minute) => (
+                      <View key={`minute-${minute}`} style={styles.pickerItem}>
+                        <Text 
+                          style={[
+                            styles.pickerItemText,
+                            selectedMinutes === minute && styles.selectedPickerItemText
+                          ]}
+                        >
+                          {minute}
+                        </Text>
+                      </View>
+                    ))}
+                    
+                    {/* Add empty items at the end for padding */}
+                    <View style={styles.pickerItem} />
+                    <View style={styles.pickerItem} />
+                  </ScrollView>
+                  <View style={styles.pickerHighlight} />
                 </View>
               </View>
             </View>
             
             <View style={styles.timePreview}>
               <Text style={styles.timePreviewText}>
-                {selectedHours > 0 ? `${selectedHours}:${selectedMinutes.toString().padStart(2, '0')}` : `${selectedMinutes}:00`}
+                {`${selectedHours}:${selectedMinutes.toString().padStart(2, '0')}`}
               </Text>
             </View>
             
@@ -458,28 +502,25 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   timerCircle: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-    overflow: 'hidden',
   },
-  timerProgress: {
+  progressCircle: {
+    borderWidth: 10,
+    borderColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: colors.primary,
+  },
+  progressArc: {
+    position: 'absolute',
+    borderWidth: 10,
+    borderLeftColor: 'transparent',
+    borderBottomColor: 'transparent',
+    borderRightColor: 'transparent',
   },
   timerInner: {
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
@@ -545,50 +586,54 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
   },
-  timePickerContainer: {
+  pickerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginBottom: 20,
   },
-  dialContainer: {
+  pickerColumn: {
     alignItems: 'center',
+    width: '45%',
   },
-  dialLabel: {
+  pickerLabel: {
     fontSize: 16,
     color: colors.text,
     marginBottom: 10,
+    fontWeight: '500',
   },
-  dial: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 2,
-    borderColor: colors.border,
+  pickerWrapper: {
+    height: 150,
+    position: 'relative',
+    width: '100%',
+  },
+  pickerScrollContent: {
+    paddingVertical: 0,
+  },
+  pickerItem: {
+    height: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
   },
-  dialHand: {
-    position: 'absolute',
-    width: 2,
-    height: 50,
-    backgroundColor: colors.primary,
-    bottom: 60,
-    left: 59,
-    transformOrigin: 'bottom',
+  pickerItemText: {
+    fontSize: 20,
+    color: colors.textLight,
   },
-  dialCenter: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.primary,
-  },
-  dialValue: {
-    position: 'absolute',
-    bottom: 20,
-    fontSize: 18,
+  selectedPickerItemText: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
+  },
+  pickerHighlight: {
+    position: 'absolute',
+    top: '50%',
+    marginTop: -25,
+    width: '100%',
+    height: 50,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    pointerEvents: 'none',
   },
   timePreview: {
     alignItems: 'center',
