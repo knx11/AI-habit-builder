@@ -173,13 +173,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
     setAiError(null);
     
     try {
-      console.log("Generating AI subtasks for task:", task.title);
       const result = await generateTaskBreakdown(task.title, task.description);
-      console.log("AI subtasks generated:", result);
-      
-      if (!result || !result.subTasks || !Array.isArray(result.subTasks) || result.subTasks.length === 0) {
-        throw new Error("Invalid response from AI service");
-      }
       
       // Update the main task's estimated time
       updateTask(task.id, { 
@@ -193,7 +187,6 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
     } catch (error) {
       console.error('Error generating AI subtasks:', error);
       setAiError("Failed to generate subtasks. Please try again.");
-      Alert.alert('Error', 'Failed to generate subtasks. Please try again.');
     } finally {
       setIsGeneratingAI(false);
     }

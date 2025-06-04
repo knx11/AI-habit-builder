@@ -13,14 +13,21 @@ export const generateTaskBreakdown = async (
   taskDescription: string
 ): Promise<AITaskBreakdownResponse> => {
   try {
-    const API_KEY = process.env.EXPO_PUBLIC_GEMINI;
-    
-    if (!API_KEY) {
-      console.error("No API key found for Gemini");
-      throw new Error("API key is missing");
-    }
-    
-    const prompt = `Break down this task into smaller subtasks:
+    // Use the toolkit.rork.com endpoint instead of Gemini API directly
+    const response = await fetch('https://toolkit.rork.com/text/llm/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful task breakdown assistant. Break down tasks into smaller subtasks with time estimates.'
+          },
+          {
+            role: 'user',
+            content: `Break down this task into smaller subtasks:
 Task: ${taskTitle}
 Description: ${taskDescription || "No description provided"}
 
@@ -35,72 +42,46 @@ Format your response as a valid JSON object with this structure:
     { "title": "Subtask 2", "estimatedMinutes": 45 }
   ],
   "totalEstimatedMinutes": 75
-}`;
-
-    console.log("Sending request to Gemini API with prompt:", prompt);
-    
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: prompt }]
+}`
           }
-        ],
-        generationConfig: {
-          temperature: 0.2,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024,
-        }
+        ]
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API response error:', response.status, errorText);
-      throw new Error(`Failed to get AI response: ${response.status} ${response.statusText}`);
+      console.error('API response error:', response.status);
+      throw new Error(`Failed to get AI response: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log("Received response from Gemini API:", JSON.stringify(data, null, 2));
     
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
+    if (!data.completion) {
       console.error('Invalid response structure:', data);
       throw new Error('Invalid response structure from AI service');
     }
     
-    const textResponse = data.candidates[0].content.parts[0].text;
-    
-    if (!textResponse) {
-      console.error('Empty text response');
-      throw new Error('Empty response from AI service');
-    }
-    
-    // Extract JSON from the response
+    // Extract JSON from the completion text
+    const textResponse = data.completion;
     let jsonMatch = textResponse.match(/\{[\s\S]*\}/);
+    
     if (!jsonMatch) {
-      console.error('No JSON found in response:', textResponse);
-      throw new Error('No JSON found in response');
+      // If no JSON object is found, try to create a default breakdown
+      return createDefaultBreakdown(taskTitle, taskDescription);
     }
 
     let jsonResponse;
     try {
       jsonResponse = JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error('Error parsing JSON:', error, 'Raw match:', jsonMatch[0]);
-      throw new Error('Failed to parse JSON response');
+      console.error('Error parsing JSON:', error);
+      return createDefaultBreakdown(taskTitle, taskDescription);
     }
     
     // Validate the response structure
     if (!jsonResponse.subTasks || !Array.isArray(jsonResponse.subTasks) || 
         typeof jsonResponse.totalEstimatedMinutes !== 'number') {
       console.error('AI response missing required fields:', jsonResponse);
-      throw new Error('AI response missing required fields');
+      return createDefaultBreakdown(taskTitle, taskDescription);
     }
     
     return {
@@ -109,8 +90,39 @@ Format your response as a valid JSON object with this structure:
     };
   } catch (error) {
     console.error('Error generating task breakdown:', error);
-    throw error;
+    return createDefaultBreakdown(taskTitle, taskDescription);
   }
+};
+
+// Fallback function to create a default breakdown when AI fails
+const createDefaultBreakdown = (title: string, description: string): AITaskBreakdownResponse => {
+  const words = (title + ' ' + (description || '')).split(/\s+/).length;
+  const complexity = Math.min(Math.max(words / 10, 1), 5);
+  
+  // Create 2-4 subtasks based on the title
+  const subtaskCount = Math.max(2, Math.min(Math.floor(complexity) + 1, 4));
+  const totalTime = Math.max(30, Math.floor(complexity * 20));
+  const timePerTask = Math.floor(totalTime / subtaskCount);
+  
+  const subtasks = [];
+  
+  // Generate generic subtasks
+  subtasks.push({ title: "Plan and organize", estimatedMinutes: timePerTask });
+  
+  if (subtaskCount >= 3) {
+    subtasks.push({ title: "Research and gather information", estimatedMinutes: timePerTask });
+  }
+  
+  subtasks.push({ title: "Execute main task", estimatedMinutes: timePerTask });
+  
+  if (subtaskCount >= 4) {
+    subtasks.push({ title: "Review and finalize", estimatedMinutes: timePerTask });
+  }
+  
+  return {
+    subTasks: subtasks,
+    totalEstimatedMinutes: totalTime
+  };
 };
 
 export const getProductivityInsights = async (
@@ -120,12 +132,6 @@ export const getProductivityInsights = async (
   timeByCategory: Record<string, number>
 ): Promise<string> => {
   try {
-    const API_KEY = process.env.EXPO_PUBLIC_GEMINI;
-    
-    if (!API_KEY) {
-      return "Based on your recent activity, try to break larger tasks into smaller, more manageable pieces.";
-    }
-    
     const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
     const categoryBreakdown = Object.entries(timeByCategory)
       .map(([category, minutes]) => `${category}: ${minutes} minutes`)
@@ -136,41 +142,55 @@ export const getProductivityInsights = async (
 - Productivity score: ${productivityScore}%
 - Time spent by category: ${categoryBreakdown || "No category data available"}
 
-Please provide a concise analysis (2-3 sentences) of my productivity and one actionable suggestion to improve it. Respond in plain text without any formatting or code blocks.`;
+Please provide a concise analysis (2-3 sentences) of my productivity and one actionable suggestion to improve it.`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`, {
+    const response = await fetch('https://toolkit.rork.com/text/llm/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: [
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a productivity coach providing brief, actionable insights.'
+          },
           {
             role: 'user',
-            parts: [{ text: prompt }]
+            content: prompt
           }
-        ],
-        generationConfig: {
-          temperature: 0.3,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 256,
-        }
+        ]
       }),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to get AI insights: ' + response.statusText);
+      throw new Error('Failed to get AI insights: ' + response.status);
     }
 
     const data = await response.json();
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
-      return "Your productivity is on track. Consider setting specific time blocks for focused work to further improve your efficiency.";
+    if (!data.completion) {
+      return getDefaultInsights(completedTasks, totalTasks, productivityScore);
     }
     
-    return data.candidates[0].content.parts[0].text;
+    return data.completion;
   } catch (error) {
     console.error('Error getting productivity insights:', error);
-    return "Your productivity is on track. Consider setting specific time blocks for focused work to further improve your efficiency.";
+    return getDefaultInsights(completedTasks, totalTasks, productivityScore);
+  }
+};
+
+const getDefaultInsights = (completedTasks: number, totalTasks: number, productivityScore: number): string => {
+  if (totalTasks === 0) {
+    return "Add tasks to get personalized productivity insights.";
+  }
+  
+  const completionRate = (completedTasks / totalTasks) * 100;
+  
+  if (completionRate >= 80) {
+    return "Great job completing most of your tasks! Consider challenging yourself with more complex tasks to further develop your skills.";
+  } else if (completionRate >= 50) {
+    return "You're making good progress. Try breaking down your remaining tasks into smaller, more manageable subtasks to increase completion rate.";
+  } else {
+    return "Your task completion rate is lower than ideal. Focus on prioritizing essential tasks and consider using the Pomodoro technique to improve focus.";
   }
 };

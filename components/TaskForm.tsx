@@ -97,6 +97,7 @@ export default function TaskForm({ visible, onClose, onSuccess }: TaskFormProps)
       if (onSuccess) onSuccess();
       onClose();
     } catch (err) {
+      console.error('AI breakdown error:', err);
       setError('Failed to generate AI breakdown. Please try again.');
     } finally {
       setIsGeneratingAI(false);
