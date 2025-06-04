@@ -25,23 +25,23 @@ interface PomodoroTimerProps {
 
 type TimerState = 'work' | 'shortBreak' | 'longBreak';
 
-// Preset durations (in seconds)
+// Preset durations (in minutes)
 const PRESET_DURATIONS = {
-  work: 25 * 60,
-  shortBreak: 5 * 60,
-  longBreak: 15 * 60,
+  work: 25,
+  shortBreak: 5,
+  longBreak: 15,
   sessionsBeforeLongBreak: 4
 };
 
 export default function PomodoroTimer({ taskId, subTaskId, onComplete }: PomodoroTimerProps) {
   const { pomodoroSettings } = useTaskStore();
   const [timerState, setTimerState] = useState<TimerState>('work');
-  const [timeLeft, setTimeLeft] = useState(PRESET_DURATIONS.work);
+  const [timeLeft, setTimeLeft] = useState(PRESET_DURATIONS.work * 60); // in seconds
   const [isActive, setIsActive] = useState(false);
   const [sessions, setSessions] = useState(0);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [selectedMinutes, setSelectedMinutes] = useState(Math.floor(timeLeft / 60));
-  const [selectedSeconds, setSelectedSeconds] = useState(timeLeft % 60);
+  const [selectedHours, setSelectedHours] = useState(Math.floor(timeLeft / 3600));
+  const [selectedMinutes, setSelectedMinutes] = useState(Math.floor((timeLeft % 3600) / 60));
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const appState = useRef(AppState.currentState);
@@ -49,26 +49,30 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
   
   const { width } = Dimensions.get('window');
   const dialSize = width * 0.8;
+  const hoursAngle = useRef(new Animated.Value(0)).current;
   const minutesAngle = useRef(new Animated.Value(0)).current;
-  const secondsAngle = useRef(new Animated.Value(0)).current;
   
   // Get the current timer duration based on state
   const getCurrentDuration = () => {
     switch (timerState) {
       case 'work':
-        return PRESET_DURATIONS.work;
+        return PRESET_DURATIONS.work * 60;
       case 'shortBreak':
-        return PRESET_DURATIONS.shortBreak;
+        return PRESET_DURATIONS.shortBreak * 60;
       case 'longBreak':
-        return PRESET_DURATIONS.longBreak;
+        return PRESET_DURATIONS.longBreak * 60;
     }
   };
   
-  // Format seconds to mm:ss
+  // Format seconds to hh:mm
   const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+      return `${hours}:${mins.toString().padStart(2, '0')}`;
+    }
+    return `${mins}:00`;
   };
   
   // Handle app state changes (background/foreground)
@@ -170,20 +174,45 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
   const openTimePicker = () => {
     if (isActive) return; // Don't allow changing time while timer is running
     
-    setSelectedMinutes(Math.floor(timeLeft / 60));
-    setSelectedSeconds(timeLeft % 60);
+    setSelectedHours(Math.floor(timeLeft / 3600));
+    setSelectedMinutes(Math.floor((timeLeft % 3600) / 60));
     setShowTimePicker(true);
     
     // Set initial angles for the dials
-    minutesAngle.setValue((Math.floor(timeLeft / 60) / 60) * 360);
-    secondsAngle.setValue((timeLeft % 60 / 60) * 360);
+    hoursAngle.setValue((Math.floor(timeLeft / 3600) / 12) * 360);
+    minutesAngle.setValue((Math.floor((timeLeft % 3600) / 60) / 60) * 360);
   };
   
   const applySelectedTime = () => {
-    const newTimeInSeconds = (selectedMinutes * 60) + selectedSeconds;
-    setTimeLeft(newTimeInSeconds);
+    const newTimeInSeconds = (selectedHours * 3600) + (selectedMinutes * 60);
+    setTimeLeft(newTimeInSeconds > 0 ? newTimeInSeconds : 60); // Minimum 1 minute
     setShowTimePicker(false);
   };
+  
+  // Create pan responder for hours dial
+  const hoursPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderMove: (evt, gestureState) => {
+        const { moveX, moveY, x0, y0 } = gestureState;
+        const centerX = x0;
+        const centerY = y0;
+        
+        // Calculate angle from center to touch point
+        const angle = Math.atan2(moveY - centerY, moveX - centerX) * (180 / Math.PI);
+        const normalizedAngle = (angle + 360) % 360;
+        
+        // Convert angle to hours (0-11)
+        const hours = Math.round((normalizedAngle / 360) * 12);
+        setSelectedHours(hours);
+        hoursAngle.setValue(normalizedAngle);
+        
+        if (Platform.OS !== 'web') {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+      },
+    })
+  ).current;
   
   // Create pan responder for minutes dial
   const minutesPanResponder = useRef(
@@ -202,31 +231,6 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
         const minutes = Math.round((normalizedAngle / 360) * 60);
         setSelectedMinutes(minutes);
         minutesAngle.setValue(normalizedAngle);
-        
-        if (Platform.OS !== 'web') {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        }
-      },
-    })
-  ).current;
-  
-  // Create pan responder for seconds dial
-  const secondsPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (evt, gestureState) => {
-        const { moveX, moveY, x0, y0 } = gestureState;
-        const centerX = x0;
-        const centerY = y0;
-        
-        // Calculate angle from center to touch point
-        const angle = Math.atan2(moveY - centerY, moveX - centerX) * (180 / Math.PI);
-        const normalizedAngle = (angle + 360) % 360;
-        
-        // Convert angle to seconds (0-59)
-        const seconds = Math.round((normalizedAngle / 360) * 60);
-        setSelectedSeconds(seconds);
-        secondsAngle.setValue(normalizedAngle);
         
         if (Platform.OS !== 'web') {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -351,6 +355,31 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
             
             <View style={styles.timePickerContainer}>
               <View style={styles.dialContainer}>
+                <Text style={styles.dialLabel}>Hours</Text>
+                <View 
+                  style={styles.dial}
+                  {...hoursPanResponder.panHandlers}
+                >
+                  <Animated.View
+                    style={[
+                      styles.dialHand,
+                      {
+                        transform: [
+                          { rotate: hoursAngle.interpolate({
+                              inputRange: [0, 360],
+                              outputRange: ['0deg', '360deg']
+                            })
+                          }
+                        ]
+                      }
+                    ]}
+                  />
+                  <View style={styles.dialCenter} />
+                  <Text style={styles.dialValue}>{selectedHours}</Text>
+                </View>
+              </View>
+              
+              <View style={styles.dialContainer}>
                 <Text style={styles.dialLabel}>Minutes</Text>
                 <View 
                   style={styles.dial}
@@ -374,36 +403,11 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
                   <Text style={styles.dialValue}>{selectedMinutes}</Text>
                 </View>
               </View>
-              
-              <View style={styles.dialContainer}>
-                <Text style={styles.dialLabel}>Seconds</Text>
-                <View 
-                  style={styles.dial}
-                  {...secondsPanResponder.panHandlers}
-                >
-                  <Animated.View
-                    style={[
-                      styles.dialHand,
-                      {
-                        transform: [
-                          { rotate: secondsAngle.interpolate({
-                              inputRange: [0, 360],
-                              outputRange: ['0deg', '360deg']
-                            })
-                          }
-                        ]
-                      }
-                    ]}
-                  />
-                  <View style={styles.dialCenter} />
-                  <Text style={styles.dialValue}>{selectedSeconds}</Text>
-                </View>
-              </View>
             </View>
             
             <View style={styles.timePreview}>
               <Text style={styles.timePreviewText}>
-                {selectedMinutes.toString().padStart(2, '0')}:{selectedSeconds.toString().padStart(2, '0')}
+                {selectedHours > 0 ? `${selectedHours}:${selectedMinutes.toString().padStart(2, '0')}` : `${selectedMinutes}:00`}
               </Text>
             </View>
             

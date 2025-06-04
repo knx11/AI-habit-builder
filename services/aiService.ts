@@ -13,6 +13,10 @@ export const generateTaskBreakdown = async (
   taskDescription: string
 ): Promise<AITaskBreakdownResponse> => {
   try {
+    // Add a timeout to the fetch request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    
     // Use the toolkit.rork.com endpoint instead of Gemini API directly
     const response = await fetch('https://toolkit.rork.com/text/llm/', {
       method: 'POST',
@@ -46,9 +50,10 @@ Format your response as a valid JSON object with this structure:
           }
         ]
       }),
-      // Add timeout to prevent hanging requests
-      signal: AbortSignal.timeout(15000) // 15 second timeout
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       console.error('API response error:', response.status);
@@ -139,6 +144,10 @@ export const getProductivityInsights = async (
     const categoryBreakdown = Object.entries(timeByCategory)
       .map(([category, minutes]) => `${category}: ${minutes} minutes`)
       .join(", ");
+    
+    // Add a timeout to the fetch request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
     const prompt = `I'm looking for productivity insights based on my recent activity. Here's my data:
 - Completed ${completedTasks} out of ${totalTasks} tasks (${completionRate.toFixed(1)}% completion rate)
@@ -164,9 +173,10 @@ Please provide a concise analysis (2-3 sentences) of my productivity and one act
           }
         ]
       }),
-      // Add timeout to prevent hanging requests
-      signal: AbortSignal.timeout(10000) // 10 second timeout
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error('Failed to get AI insights: ' + response.status);
