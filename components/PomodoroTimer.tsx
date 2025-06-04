@@ -1,16 +1,259 @@
-// Update the styles section at the bottom of the file:
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { Play, Pause, RotateCcw, Coffee } from 'lucide-react-native';
+import { colors } from '@/constants/colors';
+import { useTaskStore } from '@/store/taskStore';
+import * as Haptics from 'expo-haptics';
+
+interface PomodoroTimerProps {
+  taskId?: string;
+}
+
+type TimerState = 'work' | 'shortBreak' | 'longBreak';
+
+export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
+  const { pomodoroSettings } = useTaskStore();
+  const [timerState, setTimerState] = useState<TimerState>('work');
+  const [timeLeft, setTimeLeft] = useState(pomodoroSettings.workDuration * 60);
+  const [isRunning, setIsRunning] = useState(false);
+  const [currentSession, setCurrentSession] = useState(1);
+  const [progress, setProgress] = useState(0);
+
+  const getDuration = useCallback(() => {
+    switch (timerState) {
+      case 'work':
+        return pomodoroSettings.workDuration * 60;
+      case 'shortBreak':
+        return pomodoroSettings.shortBreakDuration * 60;
+      case 'longBreak':
+        return pomodoroSettings.longBreakDuration * 60;
+    }
+  }, [pomodoroSettings, timerState]);
+
+  useEffect(() => {
+    setTimeLeft(getDuration());
+  }, [timerState, getDuration]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (isRunning) {
+      interval = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            handleTimerComplete();
+            return 0;
+          }
+          return prev - 1;
+        });
+
+        setProgress((prev) => {
+          const duration = getDuration();
+          return ((duration - (timeLeft - 1)) / duration) * 100;
+        });
+      }, 1000);
+    }
+
+    return () => clearInterval(interval);
+  }, [isRunning, timeLeft]);
+
+  const handleTimerComplete = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    
+    setIsRunning(false);
+    
+    if (timerState === 'work') {
+      if (currentSession % pomodoroSettings.sessionsBeforeLongBreak === 0) {
+        setTimerState('longBreak');
+      } else {
+        setTimerState('shortBreak');
+      }
+    } else {
+      setTimerState('work');
+      if (timerState === 'longBreak') {
+        setCurrentSession(1);
+      } else {
+        setCurrentSession((prev) => prev + 1);
+      }
+    }
+  };
+
+  const toggleTimer = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setIsRunning(!isRunning);
+  };
+
+  const resetTimer = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    setIsRunning(false);
+    setTimeLeft(getDuration());
+    setProgress(0);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getStateColor = (state: TimerState) => {
+    switch (state) {
+      case 'work':
+        return colors.primary;
+      case 'shortBreak':
+        return colors.secondary;
+      case 'longBreak':
+        return colors.accent;
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.timerStatesContainer}>
+        <TouchableOpacity
+          style={[
+            styles.stateButton,
+            timerState === 'work' && { backgroundColor: colors.primary },
+          ]}
+          onPress={() => {
+            setTimerState('work');
+            resetTimer();
+          }}
+        >
+          <Text
+            style={[
+              styles.stateText,
+              timerState === 'work' && styles.activeStateText,
+            ]}
+          >
+            Work
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.stateButton,
+            timerState === 'shortBreak' && { backgroundColor: colors.secondary },
+          ]}
+          onPress={() => {
+            setTimerState('shortBreak');
+            resetTimer();
+          }}
+        >
+          <Text
+            style={[
+              styles.stateText,
+              timerState === 'shortBreak' && styles.activeStateText,
+            ]}
+          >
+            Short Break
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.stateButton,
+            timerState === 'longBreak' && { backgroundColor: colors.accent },
+          ]}
+          onPress={() => {
+            setTimerState('longBreak');
+            resetTimer();
+          }}
+        >
+          <Text
+            style={[
+              styles.stateText,
+              timerState === 'longBreak' && styles.activeStateText,
+            ]}
+          >
+            Long Break
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.timerContainer}>
+        <TouchableOpacity
+          onPress={toggleTimer}
+          activeOpacity={0.8}
+          style={styles.timerCircle}
+        >
+          <View
+            style={[
+              styles.progressCircle,
+              {
+                width: 240,
+                height: 240,
+                borderRadius: 120,
+                borderColor: getStateColor(timerState),
+              },
+            ]}
+          />
+          {progress > 0 && (
+            <View
+              style={[
+                styles.progressArc,
+                {
+                  width: 240,
+                  height: 240,
+                  borderRadius: 120,
+                  transform: [{ rotate: `${progress * 3.6}deg` }],
+                  borderTopColor: getStateColor(timerState),
+                },
+              ]}
+            />
+          )}
+          <View style={styles.timerInner}>
+            <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
+            <Text style={styles.sessionText}>Session {currentSession}</Text>
+            <Text style={styles.tapHint}>Tap to {isRunning ? 'pause' : 'start'}</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.controls}>
+        <TouchableOpacity onPress={resetTimer} style={styles.controlButton}>
+          <RotateCcw size={24} color={colors.text} />
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={toggleTimer} style={styles.playButton}>
+          {isRunning ? (
+            <Pause size={32} color={colors.background} />
+          ) : (
+            <Play size={32} color={colors.background} />
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => {
+            setTimerState(timerState === 'work' ? 'shortBreak' : 'work');
+            resetTimer();
+          }}
+          style={styles.controlButton}
+        >
+          <Coffee size={24} color={colors.text} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
     backgroundColor: colors.cardBackground,
     borderRadius: 16,
+    padding: 16,
     marginBottom: 16,
   },
   timerStatesContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 32, // Increased from 24
+    marginBottom: 32,
     paddingHorizontal: 8,
   },
   stateButton: {
@@ -34,58 +277,77 @@ const styles = StyleSheet.create({
   timerContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 32, // Increased from 24
-    marginTop: 24, // Increased from 12
-    paddingVertical: 20, // Added padding
+    marginVertical: 32,
   },
   timerCircle: {
+    width: 240,
+    height: 240,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
   },
   progressCircle: {
-    borderWidth: 10,
-    borderColor: colors.border,
+    position: 'absolute',
+    borderWidth: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'absolute',
   },
   progressArc: {
     position: 'absolute',
-    borderWidth: 10,
+    borderWidth: 8,
     borderLeftColor: 'transparent',
     borderBottomColor: 'transparent',
     borderRightColor: 'transparent',
   },
   timerInner: {
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 1,
-    paddingVertical: 20, // Added padding
   },
   timerText: {
-    fontSize: 40,
+    fontSize: 48,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 12, // Added margin
+    marginBottom: 8,
   },
   sessionText: {
-    fontSize: 14,
+    fontSize: 16,
     color: colors.textLight,
-    marginBottom: 8, // Added margin
+    marginBottom: 4,
   },
   tapHint: {
     fontSize: 12,
     color: colors.textLight,
-    marginTop: 8,
     fontStyle: 'italic',
   },
   controls: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    marginTop: 20, // Increased from 12
+    paddingHorizontal: 32,
+    marginTop: 32,
   },
-  // ... rest of the styles remain the same
+  controlButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.cardBackground,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  playButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
 });
