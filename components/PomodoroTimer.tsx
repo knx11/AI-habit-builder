@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Play, Pause, RotateCcw, Coffee } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, Platform } from 'react-native';
+import { Play, Pause, RotateCcw, Coffee, X } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import * as Haptics from 'expo-haptics';
@@ -18,6 +18,9 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   const [isRunning, setIsRunning] = useState(false);
   const [currentSession, setCurrentSession] = useState(1);
   const [progress, setProgress] = useState(0);
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
+  const [selectedHours, setSelectedHours] = useState(0);
+  const [selectedMinutes, setSelectedMinutes] = useState(25);
 
   const getDuration = useCallback(() => {
     switch (timerState) {
@@ -113,6 +116,18 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
     }
   };
 
+  const handleAdjustTime = () => {
+    const totalSeconds = (selectedHours * 60 * 60) + (selectedMinutes * 60);
+    setTimeLeft(totalSeconds);
+    setShowAdjustModal(false);
+    setIsRunning(false);
+    setProgress(0);
+  };
+
+  const generateNumbers = (start: number, end: number) => {
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.timerStatesContainer}>
@@ -179,7 +194,7 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
 
       <View style={styles.timerContainer}>
         <TouchableOpacity
-          onPress={toggleTimer}
+          onPress={() => setShowAdjustModal(true)}
           activeOpacity={0.8}
           style={styles.timerCircle}
         >
@@ -211,7 +226,7 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
           <View style={styles.timerInner}>
             <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
             <Text style={styles.sessionText}>Session {currentSession}</Text>
-            <Text style={styles.tapHint}>Tap to {isRunning ? 'pause' : 'start'}</Text>
+            <Text style={styles.tapHint}>Tap to adjust time</Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -239,6 +254,92 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
           <Coffee size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={showAdjustModal}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Adjust Timer</Text>
+              <TouchableOpacity 
+                onPress={() => setShowAdjustModal(false)}
+                style={styles.closeButton}
+              >
+                <X size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.pickerContainer}>
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Hours</Text>
+                <ScrollView 
+                  style={styles.picker}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {generateNumbers(0, 23).map((num) => (
+                    <TouchableOpacity
+                      key={num}
+                      style={[
+                        styles.pickerItem,
+                        selectedHours === num && styles.selectedPickerItem,
+                      ]}
+                      onPress={() => setSelectedHours(num)}
+                    >
+                      <Text style={[
+                        styles.pickerItemText,
+                        selectedHours === num && styles.selectedPickerItemText,
+                      ]}>
+                        {num.toString().padStart(2, '0')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Minutes</Text>
+                <ScrollView 
+                  style={styles.picker}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {generateNumbers(0, 59).map((num) => (
+                    <TouchableOpacity
+                      key={num}
+                      style={[
+                        styles.pickerItem,
+                        selectedMinutes === num && styles.selectedPickerItem,
+                      ]}
+                      onPress={() => setSelectedMinutes(num)}
+                    >
+                      <Text style={[
+                        styles.pickerItemText,
+                        selectedMinutes === num && styles.selectedPickerItemText,
+                      ]}>
+                        {num.toString().padStart(2, '0')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+
+            <Text style={styles.selectedTime}>
+              {selectedHours.toString().padStart(2, '0')}:
+              {selectedMinutes.toString().padStart(2, '0')}
+            </Text>
+
+            <TouchableOpacity 
+              style={styles.applyButton}
+              onPress={handleAdjustTime}
+            >
+              <Text style={styles.applyButtonText}>Apply</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -261,9 +362,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     marginHorizontal: 4,
-  },
-  activeState: {
-    backgroundColor: colors.primary,
   },
   stateText: {
     fontSize: 14,
@@ -349,5 +447,85 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: 20,
+    width: '80%',
+    maxWidth: 400,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  closeButton: {
+    padding: 4,
+  },
+  pickerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  pickerColumn: {
+    flex: 1,
+    marginHorizontal: 10,
+  },
+  pickerLabel: {
+    fontSize: 16,
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  picker: {
+    height: 200,
+  },
+  pickerItem: {
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedPickerItem: {
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+  },
+  pickerItemText: {
+    fontSize: 20,
+    color: colors.text,
+  },
+  selectedPickerItemText: {
+    color: colors.background,
+    fontWeight: 'bold',
+  },
+  selectedTime: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  applyButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  applyButtonText: {
+    color: colors.background,
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
