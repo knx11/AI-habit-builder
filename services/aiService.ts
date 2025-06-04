@@ -1,7 +1,6 @@
 import { Task, SubTask } from '@/types/task';
 
-// Get API key from environment variables
-const API_KEY = process.env.EXPO_PUBLIC_GEMENI || 'AIzaSyDvYxEd5bXSPaxQQTXIjfmyF9jxyysIbEg';
+const API_KEY = process.env.EXPO_PUBLIC_GEMENI;
 
 interface AITaskBreakdownResponse {
   subTasks: Array<{
@@ -33,8 +32,7 @@ Format your response as a valid JSON object with this structure:
   "totalEstimatedMinutes": 75
 }`;
 
-    // Use Google's Gemini API directly with the provided API key
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' + API_KEY, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -62,25 +60,13 @@ Format your response as a valid JSON object with this structure:
     const data = await response.json();
     const textResponse = data.candidates[0].content.parts[0].text;
     
-    // Extract JSON from the response - handle different formats
-    let jsonResponse;
-    try {
-      // First try to parse the entire response as JSON
-      jsonResponse = JSON.parse(textResponse);
-    } catch (e) {
-      // If that fails, try to extract JSON from markdown code blocks or regular text
-      const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          jsonResponse = JSON.parse(jsonMatch[0]);
-        } catch (e2) {
-          console.error('Failed to parse extracted JSON:', e2);
-          throw new Error('Invalid JSON format in AI response');
-        }
-      } else {
-        throw new Error('Could not find JSON in AI response');
-      }
+    // Extract JSON from the response
+    let jsonMatch = textResponse.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('No JSON found in response');
     }
+
+    let jsonResponse = JSON.parse(jsonMatch[0]);
     
     // Validate the response structure
     if (!jsonResponse.subTasks || !Array.isArray(jsonResponse.subTasks) || 
@@ -94,6 +80,6 @@ Format your response as a valid JSON object with this structure:
     };
   } catch (error) {
     console.error('Error generating task breakdown:', error);
-    throw error; // Remove fallback to force error handling
+    throw error;
   }
 };

@@ -25,19 +25,16 @@ export default {
   web: {
     favicon: "./assets/favicon.png"
   },
-  extra: {
-    eas: {
-      projectId: "your-project-id"
-    }
-  },
   plugins: [
     "expo-router"
   ],
   experiments: {
     typedRoutes: true
   },
-  // Add environment variables
   extra: {
-    EXPO_PUBLIC_GEMENI: process.env.EXPO_PUBLIC_GEMENI || "AIzaSyDvYxEd5bXSPaxQQTXIjfmyF9jxyysIbEg"
+    eas: {
+      projectId: "your-project-id"
+    },
+    EXPO_PUBLIC_GEMENI: "AIzaSyDvYxEd5bXSPaxQQTXIjfmyF9jxyysIbEgi"
   }
 };
