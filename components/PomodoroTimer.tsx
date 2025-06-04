@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, ScrollView, Modal, Dimensions } from 'react-native';
 import { Play, Pause, RotateCcw, Coffee } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
@@ -11,6 +11,10 @@ interface PomodoroTimerProps {
 
 type TimerState = 'work' | 'shortBreak' | 'longBreak';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const ITEM_HEIGHT = 50;
+const VISIBLE_ITEMS = 5;
+
 export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   const { pomodoroSettings } = useTaskStore();
   const [timerState, setTimerState] = useState<TimerState>('work');
@@ -18,6 +22,15 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   const [isRunning, setIsRunning] = useState(false);
   const [currentSession, setCurrentSession] = useState(1);
   const [progress, setProgress] = useState(0);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  
+  // Time picker state
+  const [selectedMinutes, setSelectedMinutes] = useState(Math.floor(timeLeft / 60));
+  const [selectedSeconds, setSelectedSeconds] = useState(timeLeft % 60);
+  
+  // Refs for scroll views
+  const minutesScrollRef = useRef<ScrollView>(null);
+  const secondsScrollRef = useRef<ScrollView>(null);
 
   const getDuration = useCallback(() => {
     switch (timerState) {
@@ -112,6 +125,53 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
         return colors.accent;
     }
   };
+  
+  const openTimePicker = () => {
+    if (isRunning) return; // Don't allow time adjustment while timer is running
+    
+    setSelectedMinutes(Math.floor(timeLeft / 60));
+    setSelectedSeconds(timeLeft % 60);
+    setShowTimePicker(true);
+    
+    // Scroll to the current values
+    setTimeout(() => {
+      minutesScrollRef.current?.scrollTo({ 
+        y: selectedMinutes * ITEM_HEIGHT, 
+        animated: false 
+      });
+      secondsScrollRef.current?.scrollTo({ 
+        y: selectedSeconds * ITEM_HEIGHT, 
+        animated: false 
+      });
+    }, 100);
+  };
+  
+  const applyTimeSelection = () => {
+    const newTimeInSeconds = (selectedMinutes * 60) + selectedSeconds;
+    setTimeLeft(newTimeInSeconds);
+    setProgress(0);
+    setShowTimePicker(false);
+    
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  };
+  
+  const handleMinuteScroll = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    const index = Math.round(offsetY / ITEM_HEIGHT);
+    setSelectedMinutes(index);
+  };
+  
+  const handleSecondScroll = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    const index = Math.round(offsetY / ITEM_HEIGHT);
+    setSelectedSeconds(index);
+  };
+  
+  // Generate arrays for minutes and seconds
+  const minutes = Array.from({ length: 60 }, (_, i) => i);
+  const seconds = Array.from({ length: 60 }, (_, i) => i);
 
   return (
     <View style={styles.container}>
@@ -179,7 +239,7 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
 
       <View style={styles.timerContainer}>
         <TouchableOpacity
-          onPress={toggleTimer}
+          onPress={isRunning ? toggleTimer : openTimePicker}
           activeOpacity={0.8}
           style={styles.timerCircle}
         >
@@ -211,7 +271,9 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
           <View style={styles.timerInner}>
             <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
             <Text style={styles.sessionText}>Session {currentSession}</Text>
-            <Text style={styles.tapHint}>Tap to {isRunning ? 'pause' : 'start'}</Text>
+            <Text style={styles.tapHint}>
+              {isRunning ? 'Tap to pause' : 'Tap to adjust time'}
+            </Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -239,6 +301,102 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
           <Coffee size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
+      
+      {/* Time Picker Modal */}
+      <Modal
+        visible={showTimePicker}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowTimePicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.pickerContainer}>
+            <Text style={styles.pickerTitle}>Adjust Timer</Text>
+            
+            <View style={styles.pickerContent}>
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Minutes</Text>
+                <View style={styles.pickerScrollContainer}>
+                  <View style={styles.pickerHighlight} />
+                  <ScrollView
+                    ref={minutesScrollRef}
+                    showsVerticalScrollIndicator={false}
+                    snapToInterval={ITEM_HEIGHT}
+                    decelerationRate="fast"
+                    onMomentumScrollEnd={handleMinuteScroll}
+                    contentContainerStyle={[
+                      styles.pickerScrollContent,
+                      { paddingVertical: ITEM_HEIGHT * Math.floor(VISIBLE_ITEMS / 2) }
+                    ]}
+                  >
+                    {minutes.map((min) => (
+                      <View key={`min-${min}`} style={styles.pickerItem}>
+                        <Text
+                          style={[
+                            styles.pickerItemText,
+                            selectedMinutes === min && styles.pickerItemSelected,
+                          ]}
+                        >
+                          {min.toString().padStart(2, '0')}
+                        </Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+              
+              <Text style={styles.pickerSeparator}>:</Text>
+              
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Seconds</Text>
+                <View style={styles.pickerScrollContainer}>
+                  <View style={styles.pickerHighlight} />
+                  <ScrollView
+                    ref={secondsScrollRef}
+                    showsVerticalScrollIndicator={false}
+                    snapToInterval={ITEM_HEIGHT}
+                    decelerationRate="fast"
+                    onMomentumScrollEnd={handleSecondScroll}
+                    contentContainerStyle={[
+                      styles.pickerScrollContent,
+                      { paddingVertical: ITEM_HEIGHT * Math.floor(VISIBLE_ITEMS / 2) }
+                    ]}
+                  >
+                    {seconds.map((sec) => (
+                      <View key={`sec-${sec}`} style={styles.pickerItem}>
+                        <Text
+                          style={[
+                            styles.pickerItemText,
+                            selectedSeconds === sec && styles.pickerItemSelected,
+                          ]}
+                        >
+                          {sec.toString().padStart(2, '0')}
+                        </Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+            </View>
+            
+            <View style={styles.pickerActions}>
+              <TouchableOpacity
+                style={styles.pickerButton}
+                onPress={() => setShowTimePicker(false)}
+              >
+                <Text style={styles.pickerCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.pickerButton, styles.pickerConfirmButton]}
+                onPress={applyTimeSelection}
+              >
+                <Text style={styles.pickerConfirmText}>Set</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -349,5 +507,101 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  // Time Picker Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pickerContainer: {
+    width: SCREEN_WIDTH * 0.85,
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+  },
+  pickerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 20,
+  },
+  pickerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  pickerColumn: {
+    alignItems: 'center',
+    width: 80,
+  },
+  pickerLabel: {
+    fontSize: 14,
+    color: colors.textLight,
+    marginBottom: 8,
+  },
+  pickerScrollContainer: {
+    height: ITEM_HEIGHT * VISIBLE_ITEMS,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  pickerHighlight: {
+    position: 'absolute',
+    top: ITEM_HEIGHT * 2,
+    left: 0,
+    right: 0,
+    height: ITEM_HEIGHT,
+    backgroundColor: colors.border,
+    opacity: 0.3,
+    borderRadius: 8,
+    zIndex: 1,
+  },
+  pickerScrollContent: {
+    paddingHorizontal: 10,
+  },
+  pickerItem: {
+    height: ITEM_HEIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pickerItemText: {
+    fontSize: 22,
+    color: colors.text,
+  },
+  pickerItemSelected: {
+    color: colors.primary,
+    fontWeight: 'bold',
+  },
+  pickerSeparator: {
+    fontSize: 30,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginHorizontal: 10,
+  },
+  pickerActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 10,
+  },
+  pickerButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  pickerConfirmButton: {
+    backgroundColor: colors.primary,
+  },
+  pickerCancelText: {
+    fontSize: 16,
+    color: colors.textLight,
+  },
+  pickerConfirmText: {
+    fontSize: 16,
+    color: colors.background,
+    fontWeight: '600',
   },
 });
