@@ -257,7 +257,7 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
   
   return (
     <View style={styles.container}>
-      <View style={styles.timerStates}>
+      <View style={styles.timerStatesContainer}>
         <TouchableOpacity
           style={[styles.stateButton, timerState === 'work' && styles.activeState]}
           onPress={() => {
@@ -483,15 +483,17 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 16,
   },
-  timerStates: {
+  timerStatesContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     marginBottom: 24,
+    paddingHorizontal: 8,
   },
   stateButton: {
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
+    marginHorizontal: 4,
   },
   activeState: {
     backgroundColor: colors.primary,
@@ -500,6 +502,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: colors.text,
+    textAlign: 'center',
   },
   activeStateText: {
     color: colors.background,
@@ -508,6 +511,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
+    marginTop: 12,
   },
   timerCircle: {
     justifyContent: 'center',
@@ -553,6 +557,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 24,
+    marginTop: 12,
   },
   controlButton: {
     width: 48,
