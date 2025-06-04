@@ -93,7 +93,7 @@ export default function TaskForm({ visible, onClose, onSuccess }: TaskFormProps)
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <TouchableOpacity style={styles.backdrop} onPress={onClose} />
+        <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={0.7} />
         <View style={styles.content}>
           <ScrollView style={styles.container}>
             <Text style={styles.title}>New Task</Text>
@@ -145,6 +145,7 @@ export default function TaskForm({ visible, onClose, onSuccess }: TaskFormProps)
                       category === cat && styles.selectedCategory,
                     ]}
                     onPress={() => handleCategorySelect(cat)}
+                    activeOpacity={0.7}
                   >
                     <Text
                       style={[
