@@ -184,6 +184,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
       
     } catch (error) {
       console.error('Error generating AI subtasks:', error);
+      Alert.alert('Error', 'Failed to generate subtasks. Please try again.');
     } finally {
       setIsGeneratingAI(false);
     }

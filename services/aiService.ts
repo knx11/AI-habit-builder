@@ -62,17 +62,36 @@ Format your response as a valid JSON object with this structure:
     const data = await response.json();
     const textResponse = data.candidates[0].content.parts[0].text;
     
-    // Extract JSON from the response
-    const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsedResponse = JSON.parse(jsonMatch[0]);
-      return {
-        subTasks: parsedResponse.subTasks,
-        totalEstimatedMinutes: parsedResponse.totalEstimatedMinutes,
-      };
+    // Extract JSON from the response - handle different formats
+    let jsonResponse;
+    try {
+      // First try to parse the entire response as JSON
+      jsonResponse = JSON.parse(textResponse);
+    } catch (e) {
+      // If that fails, try to extract JSON from markdown code blocks or regular text
+      const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          jsonResponse = JSON.parse(jsonMatch[0]);
+        } catch (e2) {
+          console.error('Failed to parse extracted JSON:', e2);
+          throw new Error('Invalid JSON format in AI response');
+        }
+      } else {
+        throw new Error('Could not find JSON in AI response');
+      }
     }
     
-    throw new Error('Failed to parse AI response');
+    // Validate the response structure
+    if (!jsonResponse.subTasks || !Array.isArray(jsonResponse.subTasks) || 
+        typeof jsonResponse.totalEstimatedMinutes !== 'number') {
+      throw new Error('AI response missing required fields');
+    }
+    
+    return {
+      subTasks: jsonResponse.subTasks,
+      totalEstimatedMinutes: jsonResponse.totalEstimatedMinutes,
+    };
   } catch (error) {
     console.error('Error generating task breakdown:', error);
     // Fallback to a simple breakdown if AI fails
