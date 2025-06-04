@@ -7,12 +7,12 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  Modal as RNModal,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import { generateTaskBreakdown } from '@/services/aiService';
-import { Modal } from '@/components/Modal';
 
 interface TaskFormProps {
   visible: boolean;
@@ -86,93 +86,122 @@ export default function TaskForm({ visible, onClose, onSuccess }: TaskFormProps)
   };
 
   return (
-    <Modal visible={visible} onClose={onClose}>
-      <ScrollView style={styles.container}>
-        <Text style={styles.title}>New Task</Text>
+    <RNModal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={styles.overlay}>
+        <TouchableOpacity style={styles.backdrop} onPress={onClose} />
+        <View style={styles.content}>
+          <ScrollView style={styles.container}>
+            <Text style={styles.title}>New Task</Text>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Title</Text>
-          <TextInput
-            style={styles.input}
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Enter task title"
-            placeholderTextColor={colors.textLight}
-          />
-        </View>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Title</Text>
+              <TextInput
+                style={styles.input}
+                value={title}
+                onChangeText={setTitle}
+                placeholder="Enter task title"
+                placeholderTextColor={colors.textLight}
+              />
+            </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Description (optional)</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Enter task description"
-            placeholderTextColor={colors.textLight}
-            multiline
-            numberOfLines={4}
-          />
-        </View>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Description (optional)</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={description}
+                onChangeText={setDescription}
+                placeholder="Enter task description"
+                placeholderTextColor={colors.textLight}
+                multiline
+                numberOfLines={4}
+              />
+            </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Estimated Time (minutes)</Text>
-          <TextInput
-            style={styles.input}
-            value={String(estimatedMinutes)}
-            onChangeText={(value) => setEstimatedMinutes(parseInt(value) || 30)}
-            keyboardType="number-pad"
-            placeholder="30"
-            placeholderTextColor={colors.textLight}
-          />
-        </View>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Estimated Time (minutes)</Text>
+              <TextInput
+                style={styles.input}
+                value={String(estimatedMinutes)}
+                onChangeText={(value) => setEstimatedMinutes(parseInt(value) || 30)}
+                keyboardType="number-pad"
+                placeholder="30"
+                placeholderTextColor={colors.textLight}
+              />
+            </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Category</Text>
-          <View style={styles.categoryContainer}>
-            {categories.map((cat) => (
-              <TouchableOpacity
-                key={cat}
-                style={[
-                  styles.categoryChip,
-                  category === cat && styles.selectedCategory,
-                ]}
-                onPress={() => handleCategorySelect(cat)}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Category</Text>
+              <View style={styles.categoryContainer}>
+                {categories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[
+                      styles.categoryChip,
+                      category === cat && styles.selectedCategory,
+                    ]}
+                    onPress={() => handleCategorySelect(cat)}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryText,
+                        category === cat && styles.selectedCategoryText,
+                      ]}
+                    >
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity 
+                style={styles.cancelButton} 
+                onPress={onClose}
+                activeOpacity={0.7}
               >
-                <Text
-                  style={[
-                    styles.categoryText,
-                    category === cat && styles.selectedCategoryText,
-                  ]}
-                >
-                  {cat}
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.submitButton, isGenerating && styles.disabledButton]}
+                onPress={handleSubmit}
+                disabled={isGenerating}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.submitButtonText}>
+                  {isGenerating ? 'Creating...' : 'Create Task'}
                 </Text>
               </TouchableOpacity>
-            ))}
-          </View>
+            </View>
+          </ScrollView>
         </View>
-
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.submitButton, isGenerating && styles.disabledButton]}
-            onPress={handleSubmit}
-            disabled={isGenerating}
-          >
-            <Text style={styles.submitButtonText}>
-              {isGenerating ? 'Creating...' : 'Create Task'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </Modal>
+      </View>
+    </RNModal>
   );
 }
 
 const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  backdrop: {
+    flex: 1,
+  },
+  content: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '90%',
+  },
   container: {
     padding: 16,
   },

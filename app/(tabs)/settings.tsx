@@ -91,6 +91,7 @@ export default function SettingsScreen() {
             <TouchableOpacity
               onPress={() => handlePomodoroSettingChange('workDuration', pomodoroSettings.workDuration + 5)}
               style={styles.button}
+              activeOpacity={0.7}
             >
               <Text style={styles.buttonText}>{pomodoroSettings.workDuration}</Text>
             </TouchableOpacity>
@@ -100,6 +101,7 @@ export default function SettingsScreen() {
             <TouchableOpacity
               onPress={() => handlePomodoroSettingChange('shortBreakDuration', pomodoroSettings.shortBreakDuration + 1)}
               style={styles.button}
+              activeOpacity={0.7}
             >
               <Text style={styles.buttonText}>{pomodoroSettings.shortBreakDuration}</Text>
             </TouchableOpacity>
@@ -109,6 +111,7 @@ export default function SettingsScreen() {
             <TouchableOpacity
               onPress={() => handlePomodoroSettingChange('longBreakDuration', pomodoroSettings.longBreakDuration + 5)}
               style={styles.button}
+              activeOpacity={0.7}
             >
               <Text style={styles.buttonText}>{pomodoroSettings.longBreakDuration}</Text>
             </TouchableOpacity>
@@ -118,6 +121,7 @@ export default function SettingsScreen() {
             <TouchableOpacity
               onPress={() => handlePomodoroSettingChange('sessionsBeforeLongBreak', pomodoroSettings.sessionsBeforeLongBreak + 1)}
               style={styles.button}
+              activeOpacity={0.7}
             >
               <Text style={styles.buttonText}>{pomodoroSettings.sessionsBeforeLongBreak}</Text>
             </TouchableOpacity>

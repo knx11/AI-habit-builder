@@ -45,6 +45,7 @@ export default function TasksScreen() {
             <TouchableOpacity 
               style={styles.addButton}
               onPress={() => setShowTaskForm(true)}
+              activeOpacity={0.7}
             >
               <Plus size={24} color={colors.primary} />
             </TouchableOpacity>
@@ -56,6 +57,7 @@ export default function TasksScreen() {
         <TouchableOpacity
           style={[styles.filterButton, filter === 'all' && styles.activeFilter]}
           onPress={() => setFilter('all')}
+          activeOpacity={0.7}
         >
           <Text
             style={[
@@ -70,6 +72,7 @@ export default function TasksScreen() {
         <TouchableOpacity
           style={[styles.filterButton, filter === 'active' && styles.activeFilter]}
           onPress={() => setFilter('active')}
+          activeOpacity={0.7}
         >
           <Text
             style={[
@@ -87,6 +90,7 @@ export default function TasksScreen() {
             filter === 'completed' && styles.activeFilter,
           ]}
           onPress={() => setFilter('completed')}
+          activeOpacity={0.7}
         >
           <Text
             style={[
@@ -125,6 +129,7 @@ export default function TasksScreen() {
       <TouchableOpacity 
         style={styles.floatingButton}
         onPress={() => setShowTaskForm(true)}
+        activeOpacity={0.7}
       >
         <Plus size={24} color={colors.background} />
       </TouchableOpacity>

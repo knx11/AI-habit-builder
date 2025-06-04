@@ -114,10 +114,18 @@ export default function PomodoroTimer() {
       </View>
 
       <View style={styles.controls}>
-        <TouchableOpacity style={styles.button} onPress={toggleTimer}>
+        <TouchableOpacity 
+          style={styles.button} 
+          onPress={toggleTimer}
+          activeOpacity={0.7}
+        >
           <Text style={styles.buttonText}>{isRunning ? 'Pause' : 'Start'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={resetTimer}>
+        <TouchableOpacity 
+          style={styles.button} 
+          onPress={resetTimer}
+          activeOpacity={0.7}
+        >
           <Text style={styles.buttonText}>Reset</Text>
         </TouchableOpacity>
       </View>
