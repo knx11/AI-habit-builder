@@ -307,7 +307,7 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
         </TouchableOpacity>
       </View>
       
-      {/* Time Picker Modal - Updated to Hours and Minutes */}
+      {/* Time Picker Modal - Hours and Minutes only */}
       <Modal
         visible={showTimePicker}
         transparent={true}
