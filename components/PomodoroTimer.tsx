@@ -24,13 +24,13 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   const [progress, setProgress] = useState(0);
   const [showTimePicker, setShowTimePicker] = useState(false);
   
-  // Time picker state
-  const [selectedMinutes, setSelectedMinutes] = useState(Math.floor(timeLeft / 60));
-  const [selectedSeconds, setSelectedSeconds] = useState(timeLeft % 60);
+  // Time picker state - now using hours and minutes
+  const [selectedHours, setSelectedHours] = useState(Math.floor(timeLeft / 3600));
+  const [selectedMinutes, setSelectedMinutes] = useState(Math.floor((timeLeft % 3600) / 60));
   
   // Refs for scroll views
+  const hoursScrollRef = useRef<ScrollView>(null);
   const minutesScrollRef = useRef<ScrollView>(null);
-  const secondsScrollRef = useRef<ScrollView>(null);
 
   const getDuration = useCallback(() => {
     switch (timerState) {
@@ -110,8 +110,13 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   };
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -129,25 +134,25 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   const openTimePicker = () => {
     if (isRunning) return; // Don't allow time adjustment while timer is running
     
-    setSelectedMinutes(Math.floor(timeLeft / 60));
-    setSelectedSeconds(timeLeft % 60);
+    setSelectedHours(Math.floor(timeLeft / 3600));
+    setSelectedMinutes(Math.floor((timeLeft % 3600) / 60));
     setShowTimePicker(true);
     
     // Scroll to the current values
     setTimeout(() => {
-      minutesScrollRef.current?.scrollTo({ 
-        y: selectedMinutes * ITEM_HEIGHT, 
+      hoursScrollRef.current?.scrollTo({ 
+        y: selectedHours * ITEM_HEIGHT, 
         animated: false 
       });
-      secondsScrollRef.current?.scrollTo({ 
-        y: selectedSeconds * ITEM_HEIGHT, 
+      minutesScrollRef.current?.scrollTo({ 
+        y: selectedMinutes * ITEM_HEIGHT, 
         animated: false 
       });
     }, 100);
   };
   
   const applyTimeSelection = () => {
-    const newTimeInSeconds = (selectedMinutes * 60) + selectedSeconds;
+    const newTimeInSeconds = (selectedHours * 3600) + (selectedMinutes * 60);
     setTimeLeft(newTimeInSeconds);
     setProgress(0);
     setShowTimePicker(false);
@@ -157,21 +162,21 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
     }
   };
   
+  const handleHourScroll = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    const index = Math.round(offsetY / ITEM_HEIGHT);
+    setSelectedHours(index);
+  };
+  
   const handleMinuteScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     const index = Math.round(offsetY / ITEM_HEIGHT);
     setSelectedMinutes(index);
   };
   
-  const handleSecondScroll = (event: any) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    const index = Math.round(offsetY / ITEM_HEIGHT);
-    setSelectedSeconds(index);
-  };
-  
-  // Generate arrays for minutes and seconds
-  const minutes = Array.from({ length: 60 }, (_, i) => i);
-  const seconds = Array.from({ length: 60 }, (_, i) => i);
+  // Generate arrays for hours and minutes
+  const hours = Array.from({ length: 10 }, (_, i) => i); // 0-9 hours
+  const minutes = Array.from({ length: 60 }, (_, i) => i); // 0-59 minutes
 
   return (
     <View style={styles.container}>
@@ -302,7 +307,7 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
         </TouchableOpacity>
       </View>
       
-      {/* Time Picker Modal */}
+      {/* Time Picker Modal - Updated to Hours and Minutes */}
       <Modal
         visible={showTimePicker}
         transparent={true}
@@ -314,6 +319,39 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
             <Text style={styles.pickerTitle}>Adjust Timer</Text>
             
             <View style={styles.pickerContent}>
+              <View style={styles.pickerColumn}>
+                <Text style={styles.pickerLabel}>Hours</Text>
+                <View style={styles.pickerScrollContainer}>
+                  <View style={styles.pickerHighlight} />
+                  <ScrollView
+                    ref={hoursScrollRef}
+                    showsVerticalScrollIndicator={false}
+                    snapToInterval={ITEM_HEIGHT}
+                    decelerationRate="fast"
+                    onMomentumScrollEnd={handleHourScroll}
+                    contentContainerStyle={[
+                      styles.pickerScrollContent,
+                      { paddingVertical: ITEM_HEIGHT * Math.floor(VISIBLE_ITEMS / 2) }
+                    ]}
+                  >
+                    {hours.map((hour) => (
+                      <View key={`hour-${hour}`} style={styles.pickerItem}>
+                        <Text
+                          style={[
+                            styles.pickerItemText,
+                            selectedHours === hour && styles.pickerItemSelected,
+                          ]}
+                        >
+                          {hour.toString().padStart(2, '0')}
+                        </Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+              
+              <Text style={styles.pickerSeparator}>:</Text>
+              
               <View style={styles.pickerColumn}>
                 <Text style={styles.pickerLabel}>Minutes</Text>
                 <View style={styles.pickerScrollContainer}>
@@ -338,39 +376,6 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
                           ]}
                         >
                           {min.toString().padStart(2, '0')}
-                        </Text>
-                      </View>
-                    ))}
-                  </ScrollView>
-                </View>
-              </View>
-              
-              <Text style={styles.pickerSeparator}>:</Text>
-              
-              <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Seconds</Text>
-                <View style={styles.pickerScrollContainer}>
-                  <View style={styles.pickerHighlight} />
-                  <ScrollView
-                    ref={secondsScrollRef}
-                    showsVerticalScrollIndicator={false}
-                    snapToInterval={ITEM_HEIGHT}
-                    decelerationRate="fast"
-                    onMomentumScrollEnd={handleSecondScroll}
-                    contentContainerStyle={[
-                      styles.pickerScrollContent,
-                      { paddingVertical: ITEM_HEIGHT * Math.floor(VISIBLE_ITEMS / 2) }
-                    ]}
-                  >
-                    {seconds.map((sec) => (
-                      <View key={`sec-${sec}`} style={styles.pickerItem}>
-                        <Text
-                          style={[
-                            styles.pickerItemText,
-                            selectedSeconds === sec && styles.pickerItemSelected,
-                          ]}
-                        >
-                          {sec.toString().padStart(2, '0')}
                         </Text>
                       </View>
                     ))}
