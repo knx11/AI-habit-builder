@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, AppState, AppStateStatus } from 'react-native';
-import { Play, Pause, RotateCcw, Coffee } from 'lucide-react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  AppState, 
+  AppStateStatus,
+  Modal,
+  Animated,
+  PanResponder,
+  Dimensions
+} from 'react-native';
+import { Play, Pause, RotateCcw, Coffee, X } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import * as Haptics from 'expo-haptics';
@@ -14,30 +25,47 @@ interface PomodoroTimerProps {
 
 type TimerState = 'work' | 'shortBreak' | 'longBreak';
 
+// Preset durations (in seconds)
+const PRESET_DURATIONS = {
+  work: 25 * 60,
+  shortBreak: 5 * 60,
+  longBreak: 15 * 60,
+  sessionsBeforeLongBreak: 4
+};
+
 export default function PomodoroTimer({ taskId, subTaskId, onComplete }: PomodoroTimerProps) {
   const { pomodoroSettings } = useTaskStore();
   const [timerState, setTimerState] = useState<TimerState>('work');
-  const [timeLeft, setTimeLeft] = useState(pomodoroSettings.workDuration * 60);
+  const [timeLeft, setTimeLeft] = useState(PRESET_DURATIONS.work);
   const [isActive, setIsActive] = useState(false);
   const [sessions, setSessions] = useState(0);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [selectedMinutes, setSelectedMinutes] = useState(Math.floor(timeLeft / 60));
+  const [selectedSeconds, setSelectedSeconds] = useState(timeLeft % 60);
+  
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const appState = useRef(AppState.currentState);
   const backgroundTimeRef = useRef<number | null>(null);
+  
+  const { width } = Dimensions.get('window');
+  const dialSize = width * 0.8;
+  const minutesAngle = useRef(new Animated.Value(0)).current;
+  const secondsAngle = useRef(new Animated.Value(0)).current;
   
   // Get the current timer duration based on state
   const getCurrentDuration = () => {
     switch (timerState) {
       case 'work':
-        return pomodoroSettings.workDuration * 60;
+        return PRESET_DURATIONS.work;
       case 'shortBreak':
-        return pomodoroSettings.shortBreakDuration * 60;
+        return PRESET_DURATIONS.shortBreak;
       case 'longBreak':
-        return pomodoroSettings.longBreakDuration * 60;
+        return PRESET_DURATIONS.longBreak;
     }
   };
   
   // Format seconds to mm:ss
-  const formatTime = (seconds: number) => {
+  const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
@@ -97,7 +125,7 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
   // Reset timer when timer state changes
   useEffect(() => {
     setTimeLeft(getCurrentDuration());
-  }, [timerState, pomodoroSettings]);
+  }, [timerState]);
   
   const handleTimerComplete = () => {
     if (Platform.OS !== 'web') {
@@ -108,7 +136,7 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
       const newSessions = sessions + 1;
       setSessions(newSessions);
       
-      if (newSessions % pomodoroSettings.sessionsBeforeLongBreak === 0) {
+      if (newSessions % PRESET_DURATIONS.sessionsBeforeLongBreak === 0) {
         setTimerState('longBreak');
       } else {
         setTimerState('shortBreak');
@@ -138,6 +166,74 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
     setIsActive(false);
     setTimeLeft(getCurrentDuration());
   };
+  
+  const openTimePicker = () => {
+    if (isActive) return; // Don't allow changing time while timer is running
+    
+    setSelectedMinutes(Math.floor(timeLeft / 60));
+    setSelectedSeconds(timeLeft % 60);
+    setShowTimePicker(true);
+    
+    // Set initial angles for the dials
+    minutesAngle.setValue((Math.floor(timeLeft / 60) / 60) * 360);
+    secondsAngle.setValue((timeLeft % 60 / 60) * 360);
+  };
+  
+  const applySelectedTime = () => {
+    const newTimeInSeconds = (selectedMinutes * 60) + selectedSeconds;
+    setTimeLeft(newTimeInSeconds);
+    setShowTimePicker(false);
+  };
+  
+  // Create pan responder for minutes dial
+  const minutesPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderMove: (evt, gestureState) => {
+        const { moveX, moveY, x0, y0 } = gestureState;
+        const centerX = x0;
+        const centerY = y0;
+        
+        // Calculate angle from center to touch point
+        const angle = Math.atan2(moveY - centerY, moveX - centerX) * (180 / Math.PI);
+        const normalizedAngle = (angle + 360) % 360;
+        
+        // Convert angle to minutes (0-59)
+        const minutes = Math.round((normalizedAngle / 360) * 60);
+        setSelectedMinutes(minutes);
+        minutesAngle.setValue(normalizedAngle);
+        
+        if (Platform.OS !== 'web') {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+      },
+    })
+  ).current;
+  
+  // Create pan responder for seconds dial
+  const secondsPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderMove: (evt, gestureState) => {
+        const { moveX, moveY, x0, y0 } = gestureState;
+        const centerX = x0;
+        const centerY = y0;
+        
+        // Calculate angle from center to touch point
+        const angle = Math.atan2(moveY - centerY, moveX - centerX) * (180 / Math.PI);
+        const normalizedAngle = (angle + 360) % 360;
+        
+        // Convert angle to seconds (0-59)
+        const seconds = Math.round((normalizedAngle / 360) * 60);
+        setSelectedSeconds(seconds);
+        secondsAngle.setValue(normalizedAngle);
+        
+        if (Platform.OS !== 'web') {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+      },
+    })
+  ).current;
   
   // Calculate progress percentage
   const progress = (timeLeft / getCurrentDuration()) * 100;
@@ -183,7 +279,11 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
       </View>
       
       <View style={styles.timerContainer}>
-        <View style={styles.timerCircle}>
+        <TouchableOpacity 
+          style={styles.timerCircle}
+          onPress={openTimePicker}
+          disabled={isActive}
+        >
           <View 
             style={[
               styles.timerProgress, 
@@ -198,8 +298,11 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
             <Text style={styles.sessionText}>
               {timerState === 'work' ? `Session ${sessions + 1}` : 'Break Time'}
             </Text>
+            {!isActive && (
+              <Text style={styles.tapHint}>Tap to adjust</Text>
+            )}
           </View>
-        </View>
+        </TouchableOpacity>
       </View>
       
       <View style={styles.controls}>
@@ -229,6 +332,90 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
           )}
         </TouchableOpacity>
       </View>
+      
+      {/* Time Picker Modal */}
+      <Modal
+        visible={showTimePicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowTimePicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Adjust Timer</Text>
+              <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                <X size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.timePickerContainer}>
+              <View style={styles.dialContainer}>
+                <Text style={styles.dialLabel}>Minutes</Text>
+                <View 
+                  style={styles.dial}
+                  {...minutesPanResponder.panHandlers}
+                >
+                  <Animated.View
+                    style={[
+                      styles.dialHand,
+                      {
+                        transform: [
+                          { rotate: minutesAngle.interpolate({
+                              inputRange: [0, 360],
+                              outputRange: ['0deg', '360deg']
+                            })
+                          }
+                        ]
+                      }
+                    ]}
+                  />
+                  <View style={styles.dialCenter} />
+                  <Text style={styles.dialValue}>{selectedMinutes}</Text>
+                </View>
+              </View>
+              
+              <View style={styles.dialContainer}>
+                <Text style={styles.dialLabel}>Seconds</Text>
+                <View 
+                  style={styles.dial}
+                  {...secondsPanResponder.panHandlers}
+                >
+                  <Animated.View
+                    style={[
+                      styles.dialHand,
+                      {
+                        transform: [
+                          { rotate: secondsAngle.interpolate({
+                              inputRange: [0, 360],
+                              outputRange: ['0deg', '360deg']
+                            })
+                          }
+                        ]
+                      }
+                    ]}
+                  />
+                  <View style={styles.dialCenter} />
+                  <Text style={styles.dialValue}>{selectedSeconds}</Text>
+                </View>
+              </View>
+            </View>
+            
+            <View style={styles.timePreview}>
+              <Text style={styles.timePreviewText}>
+                {selectedMinutes.toString().padStart(2, '0')}:{selectedSeconds.toString().padStart(2, '0')}
+              </Text>
+            </View>
+            
+            <TouchableOpacity 
+              style={styles.applyButton}
+              onPress={applySelectedTime}
+            >
+              <Text style={styles.applyButtonText}>Apply</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -303,6 +490,12 @@ const styles = StyleSheet.create({
     color: colors.textLight,
     marginTop: 8,
   },
+  tapHint: {
+    fontSize: 12,
+    color: colors.textLight,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
   controls: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -323,5 +516,94 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.primary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  timePickerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+  },
+  dialContainer: {
+    alignItems: 'center',
+  },
+  dialLabel: {
+    fontSize: 16,
+    color: colors.text,
+    marginBottom: 10,
+  },
+  dial: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 2,
+    borderColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  dialHand: {
+    position: 'absolute',
+    width: 2,
+    height: 50,
+    backgroundColor: colors.primary,
+    bottom: 60,
+    left: 59,
+    transformOrigin: 'bottom',
+  },
+  dialCenter: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.primary,
+  },
+  dialValue: {
+    position: 'absolute',
+    bottom: 20,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  timePreview: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  timePreviewText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  applyButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  applyButtonText: {
+    color: colors.background,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
