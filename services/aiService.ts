@@ -32,6 +32,7 @@ Format your response as a valid JSON object with this structure:
   "totalEstimatedMinutes": 75
 }`;
 
+    console.log("Sending request to Gemini API with API_KEY:", API_KEY ? "Key is set" : "Key is not set");
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`, {
       method: 'POST',
       headers: {
@@ -58,6 +59,7 @@ Format your response as a valid JSON object with this structure:
     }
 
     const data = await response.json();
+    console.log("Received response from Gemini API:", JSON.stringify(data, null, 2));
     const textResponse = data.candidates[0].content.parts[0].text;
     
     // Extract JSON from the response

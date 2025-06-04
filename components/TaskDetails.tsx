@@ -112,6 +112,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
             if (Platform.OS !== 'web') {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             }
+            console.log(`Deleting all subtasks for task ${task.id}`);
             deleteAllSubTasks(task.id);
           },
         },
@@ -171,7 +172,9 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
     setIsGeneratingAI(true);
     
     try {
+      console.log("Generating AI subtasks for task:", task.title);
       const result = await generateTaskBreakdown(task.title, task.description);
+      console.log("AI subtasks generated:", result);
       
       // Update the main task's estimated time
       updateTask(task.id, { 
