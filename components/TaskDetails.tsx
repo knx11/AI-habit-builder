@@ -318,7 +318,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Subtasks</Text>
                 <View style={styles.subTaskActions}>
-                  {task.subTasks.length > 0 && (
+                  {task.subTasks.length > 0 ? (
                     <TouchableOpacity 
                       onPress={handleDeleteAllSubTasks}
                       style={styles.deleteAllButton}
@@ -326,21 +326,22 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                       <Trash size={16} color={colors.danger} />
                       <Text style={styles.deleteAllText}>Delete All</Text>
                     </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity 
+                      onPress={handleGenerateAISubtasks}
+                      disabled={isGeneratingAI}
+                      style={[styles.aiButton, isGeneratingAI && styles.disabledButton]}
+                    >
+                      {isGeneratingAI ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : (
+                        <>
+                          <Zap size={16} color={colors.primary} />
+                          <Text style={styles.aiButtonText}>AI Generate</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
                   )}
-                  <TouchableOpacity 
-                    onPress={handleGenerateAISubtasks}
-                    disabled={isGeneratingAI}
-                    style={[styles.aiButton, isGeneratingAI && styles.disabledButton]}
-                  >
-                    {isGeneratingAI ? (
-                      <ActivityIndicator size="small" color={colors.primary} />
-                    ) : (
-                      <>
-                        <Zap size={16} color={colors.primary} />
-                        <Text style={styles.aiButtonText}>AI Generate</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
                   <TouchableOpacity onPress={handleAddSubTask}>
                     <Text style={styles.addText}>+ Add</Text>
                   </TouchableOpacity>
@@ -356,81 +357,92 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
               {task.subTasks.length === 0 ? (
                 <Text style={styles.emptyText}>No subtasks yet</Text>
               ) : (
-                task.subTasks.map((subTask) => (
-                  <View key={subTask.id} style={styles.subTaskItem}>
-                    {editingSubTaskId === subTask.id ? (
-                      <View style={styles.editSubTaskContainer}>
-                        <TextInput
-                          style={styles.editSubTaskInput}
-                          value={newSubTaskTitle}
-                          onChangeText={setNewSubTaskTitle}
-                          autoFocus
-                        />
-                        <View style={styles.editSubTaskTime}>
+                <>
+                  {task.subTasks.map((subTask) => (
+                    <View key={subTask.id} style={styles.subTaskItem}>
+                      {editingSubTaskId === subTask.id ? (
+                        <View style={styles.editSubTaskContainer}>
                           <TextInput
-                            style={styles.editSubTaskTimeInput}
-                            value={newSubTaskTime}
-                            onChangeText={setNewSubTaskTime}
-                            keyboardType="number-pad"
+                            style={styles.editSubTaskInput}
+                            value={newSubTaskTitle}
+                            onChangeText={setNewSubTaskTitle}
+                            autoFocus
                           />
-                          <Text style={styles.minutesText}>min</Text>
+                          <View style={styles.editSubTaskTime}>
+                            <TextInput
+                              style={styles.editSubTaskTimeInput}
+                              value={newSubTaskTime}
+                              onChangeText={setNewSubTaskTime}
+                              keyboardType="number-pad"
+                            />
+                            <Text style={styles.minutesText}>min</Text>
+                          </View>
+                          <TouchableOpacity onPress={saveSubTask}>
+                            <Text style={styles.saveButton}>Save</Text>
+                          </TouchableOpacity>
                         </View>
-                        <TouchableOpacity onPress={saveSubTask}>
-                          <Text style={styles.saveButton}>Save</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
-                      <>
-                        <TouchableOpacity 
-                          onPress={() => handleToggleSubTaskComplete(subTask.id, subTask.completed)}
-                          hitSlop={10}
-                        >
-                          {subTask.completed ? (
-                            <CheckCircle size={20} color={colors.primary} />
-                          ) : (
-                            <Circle size={20} color={colors.primary} />
-                          )}
-                        </TouchableOpacity>
-                        
-                        <View style={styles.subTaskContent}>
-                          <Text 
-                            style={[
-                              styles.subTaskTitle, 
-                              subTask.completed && styles.completedText
-                            ]}
-                          >
-                            {subTask.title}
-                          </Text>
-                          <Text style={styles.subTaskTime}>
-                            {formatTime(subTask.estimatedMinutes)}
-                          </Text>
-                        </View>
-                        
-                        <View style={styles.subTaskActions}>
+                      ) : (
+                        <>
                           <TouchableOpacity 
-                            onPress={() => handleEditSubTask(
-                              subTask.id, 
-                              subTask.title, 
-                              subTask.estimatedMinutes
-                            )}
+                            onPress={() => handleToggleSubTaskComplete(subTask.id, subTask.completed)}
                             hitSlop={10}
-                            style={styles.actionButton}
                           >
-                            <Edit2 size={16} color={colors.textLight} />
+                            {subTask.completed ? (
+                              <CheckCircle size={20} color={colors.primary} />
+                            ) : (
+                              <Circle size={20} color={colors.primary} />
+                            )}
                           </TouchableOpacity>
                           
-                          <TouchableOpacity 
-                            onPress={() => handleDeleteSubTask(subTask.id)}
-                            hitSlop={10}
-                            style={styles.actionButton}
-                          >
-                            <Trash2 size={16} color={colors.danger} />
-                          </TouchableOpacity>
-                        </View>
-                      </>
-                    )}
-                  </View>
-                ))
+                          <View style={styles.subTaskContent}>
+                            <Text 
+                              style={[
+                                styles.subTaskTitle, 
+                                subTask.completed && styles.completedText
+                              ]}
+                            >
+                              {subTask.title}
+                            </Text>
+                            <Text style={styles.subTaskTime}>
+                              {formatTime(subTask.estimatedMinutes)}
+                            </Text>
+                          </View>
+                          
+                          <View style={styles.subTaskActions}>
+                            <TouchableOpacity 
+                              onPress={() => handleEditSubTask(
+                                subTask.id, 
+                                subTask.title, 
+                                subTask.estimatedMinutes
+                              )}
+                              hitSlop={10}
+                              style={styles.actionButton}
+                            >
+                              <Edit2 size={16} color={colors.textLight} />
+                            </TouchableOpacity>
+                            
+                            <TouchableOpacity 
+                              onPress={() => handleDeleteSubTask(subTask.id)}
+                              hitSlop={10}
+                              style={styles.actionButton}
+                            >
+                              <Trash2 size={16} color={colors.danger} />
+                            </TouchableOpacity>
+                          </View>
+                        </>
+                      )}
+                    </View>
+                  ))}
+                  
+                  {/* Add a dedicated Delete All button at the bottom for better visibility */}
+                  <TouchableOpacity 
+                    style={styles.deleteAllSubtasksButton}
+                    onPress={handleDeleteAllSubTasks}
+                  >
+                    <Trash2 size={18} color={colors.danger} />
+                    <Text style={styles.deleteAllSubtasksText}>Delete All Subtasks</Text>
+                  </TouchableOpacity>
+                </>
               )}
               
               {addingSubTask && (
@@ -727,5 +739,22 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: colors.danger,
+  },
+  deleteAllSubtasksButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFEBEE',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: colors.danger,
+  },
+  deleteAllSubtasksText: {
+    color: colors.danger,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 });
