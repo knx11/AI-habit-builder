@@ -111,7 +111,11 @@ export default function TasksScreen() {
           data={filteredTasks}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <TaskItem task={item} onPress={() => handleTaskPress(item.id)} />
+            <TaskItem 
+              task={item} 
+              onPress={() => handleTaskPress(item.id)}
+              onLongPress={() => handleTaskPress(item.id)}
+            />
           )}
           contentContainerStyle={styles.listContent}
         />

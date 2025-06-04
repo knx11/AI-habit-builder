@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
   },
   timerStatesContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     marginBottom: 24,
     paddingHorizontal: 8,
   },

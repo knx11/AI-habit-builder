@@ -46,7 +46,11 @@ export default function TimerScreen() {
             data={activeTasks}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <TaskItem task={item} onPress={() => handleTaskPress(item.id)} />
+              <TaskItem 
+                task={item} 
+                onPress={() => handleTaskPress(item.id)}
+                onLongPress={() => handleTaskPress(item.id)}
+              />
             )}
             contentContainerStyle={styles.listContent}
           />
