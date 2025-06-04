@@ -60,6 +60,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
   const [newSubTaskTime, setNewSubTaskTime] = useState('');
   const [addingSubTask, setAddingSubTask] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   
   const task = tasks.find((t) => t.id === taskId);
   
@@ -112,7 +113,6 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
             if (Platform.OS !== 'web') {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             }
-            console.log(`Deleting all subtasks for task ${task.id}`);
             deleteAllSubTasks(task.id);
           },
         },
@@ -170,11 +170,16 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
     }
     
     setIsGeneratingAI(true);
+    setAiError(null);
     
     try {
       console.log("Generating AI subtasks for task:", task.title);
       const result = await generateTaskBreakdown(task.title, task.description);
       console.log("AI subtasks generated:", result);
+      
+      if (!result || !result.subTasks || !Array.isArray(result.subTasks) || result.subTasks.length === 0) {
+        throw new Error("Invalid response from AI service");
+      }
       
       // Update the main task's estimated time
       updateTask(task.id, { 
@@ -187,6 +192,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
       
     } catch (error) {
       console.error('Error generating AI subtasks:', error);
+      setAiError("Failed to generate subtasks. Please try again.");
       Alert.alert('Error', 'Failed to generate subtasks. Please try again.');
     } finally {
       setIsGeneratingAI(false);
@@ -347,6 +353,12 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                   </TouchableOpacity>
                 </View>
               </View>
+              
+              {aiError && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{aiError}</Text>
+                </View>
+              )}
               
               {task.subTasks.length === 0 ? (
                 <Text style={styles.emptyText}>No subtasks yet</Text>
@@ -713,5 +725,14 @@ const styles = StyleSheet.create({
   cancelButton: {
     color: colors.textLight,
     marginRight: 16,
+  },
+  errorContainer: {
+    backgroundColor: '#FFEBEE',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  errorText: {
+    color: colors.danger,
   },
 });
