@@ -100,9 +100,21 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   };
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatDisplayTime = (hours: number, minutes: number) => {
+    if (hours === 0) {
+      return `${minutes} minutes`;
+    }
+    return `${hours}:${minutes.toString().padStart(2, '0')}`;
   };
 
   const getStateColor = (state: TimerState) => {
@@ -127,6 +139,29 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   const generateNumbers = (start: number, end: number) => {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   };
+
+  const renderPickerItem = (value: number, isSelected: boolean) => (
+    <TouchableOpacity
+      key={value}
+      style={[
+        styles.pickerItem,
+        isSelected && styles.selectedPickerItem,
+      ]}
+      onPress={() => {
+        if (Platform.OS !== 'web') {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+      }}
+    >
+      <Text style={[
+        styles.pickerItemText,
+        isSelected && styles.selectedPickerItemText,
+        { opacity: isSelected ? 1 : 0.3 }
+      ]}>
+        {value.toString().padStart(2, '0')}
+      </Text>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
@@ -278,7 +313,11 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
                 <ScrollView 
                   style={styles.picker}
                   showsVerticalScrollIndicator={false}
+                  contentContainerStyle={styles.pickerContent}
+                  snapToInterval={50}
+                  decelerationRate="fast"
                 >
+                  <View style={styles.pickerPadding} />
                   {generateNumbers(0, 23).map((num) => (
                     <TouchableOpacity
                       key={num}
@@ -286,16 +325,23 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
                         styles.pickerItem,
                         selectedHours === num && styles.selectedPickerItem,
                       ]}
-                      onPress={() => setSelectedHours(num)}
+                      onPress={() => {
+                        setSelectedHours(num);
+                        if (Platform.OS !== 'web') {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        }
+                      }}
                     >
                       <Text style={[
                         styles.pickerItemText,
                         selectedHours === num && styles.selectedPickerItemText,
+                        { opacity: Math.abs(selectedHours - num) <= 2 ? 1 - Math.abs(selectedHours - num) * 0.3 : 0.1 }
                       ]}>
                         {num.toString().padStart(2, '0')}
                       </Text>
                     </TouchableOpacity>
                   ))}
+                  <View style={styles.pickerPadding} />
                 </ScrollView>
               </View>
 
@@ -304,7 +350,11 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
                 <ScrollView 
                   style={styles.picker}
                   showsVerticalScrollIndicator={false}
+                  contentContainerStyle={styles.pickerContent}
+                  snapToInterval={50}
+                  decelerationRate="fast"
                 >
+                  <View style={styles.pickerPadding} />
                   {generateNumbers(0, 59).map((num) => (
                     <TouchableOpacity
                       key={num}
@@ -312,23 +362,29 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
                         styles.pickerItem,
                         selectedMinutes === num && styles.selectedPickerItem,
                       ]}
-                      onPress={() => setSelectedMinutes(num)}
+                      onPress={() => {
+                        setSelectedMinutes(num);
+                        if (Platform.OS !== 'web') {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        }
+                      }}
                     >
                       <Text style={[
                         styles.pickerItemText,
                         selectedMinutes === num && styles.selectedPickerItemText,
+                        { opacity: Math.abs(selectedMinutes - num) <= 2 ? 1 - Math.abs(selectedMinutes - num) * 0.3 : 0.1 }
                       ]}>
                         {num.toString().padStart(2, '0')}
                       </Text>
                     </TouchableOpacity>
                   ))}
+                  <View style={styles.pickerPadding} />
                 </ScrollView>
               </View>
             </View>
 
             <Text style={styles.selectedTime}>
-              {selectedHours.toString().padStart(2, '0')}:
-              {selectedMinutes.toString().padStart(2, '0')}
+              {formatDisplayTime(selectedHours, selectedMinutes)}
             </Text>
 
             <TouchableOpacity 
@@ -460,11 +516,13 @@ const styles = StyleSheet.create({
     padding: 20,
     width: '80%',
     maxWidth: 400,
+    alignItems: 'center',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    width: '100%',
     marginBottom: 20,
   },
   modalTitle: {
@@ -477,26 +535,35 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    width: '100%',
     marginBottom: 20,
   },
   pickerColumn: {
-    flex: 1,
+    alignItems: 'center',
     marginHorizontal: 10,
+    flex: 1,
   },
   pickerLabel: {
     fontSize: 16,
     color: colors.text,
-    textAlign: 'center',
     marginBottom: 10,
   },
   picker: {
-    height: 200,
+    height: 150,
+    width: '100%',
+  },
+  pickerContent: {
+    paddingHorizontal: 20,
+  },
+  pickerPadding: {
+    height: 50,
   },
   pickerItem: {
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
+    width: '100%',
   },
   selectedPickerItem: {
     backgroundColor: colors.primary,
@@ -505,6 +572,7 @@ const styles = StyleSheet.create({
   pickerItemText: {
     fontSize: 20,
     color: colors.text,
+    fontWeight: '500',
   },
   selectedPickerItemText: {
     color: colors.background,
@@ -514,13 +582,13 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: 'bold',
     color: colors.text,
-    textAlign: 'center',
     marginBottom: 20,
   },
   applyButton: {
     backgroundColor: colors.primary,
     borderRadius: 12,
     padding: 16,
+    width: '100%',
     alignItems: 'center',
   },
   applyButtonText: {
