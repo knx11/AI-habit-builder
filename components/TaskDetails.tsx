@@ -8,7 +8,8 @@ import {
   Modal,
   TextInput,
   Platform,
-  ActivityIndicator
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 import { 
   X, 
@@ -19,7 +20,8 @@ import {
   Trash2, 
   Edit2,
   Share2,
-  Zap
+  Zap,
+  Trash
 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { Task } from '@/types/task';
@@ -46,7 +48,8 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
     updateSubTask,
     deleteSubTask,
     addSubTask,
-    addAIGeneratedSubTasks
+    addAIGeneratedSubTasks,
+    deleteAllSubTasks
   } = useTaskStore();
   
   const [showTimer, setShowTimer] = useState(false);
@@ -91,6 +94,29 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
     deleteSubTask(task.id, subTaskId);
+  };
+  
+  const handleDeleteAllSubTasks = () => {
+    Alert.alert(
+      'Delete All Subtasks',
+      'Are you sure you want to delete all subtasks for this task? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            if (Platform.OS !== 'web') {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            }
+            deleteAllSubTasks(task.id);
+          },
+        },
+      ]
+    );
   };
   
   const handleEditTitle = () => {
@@ -289,6 +315,15 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Subtasks</Text>
                 <View style={styles.subTaskActions}>
+                  {task.subTasks.length > 0 && (
+                    <TouchableOpacity 
+                      onPress={handleDeleteAllSubTasks}
+                      style={styles.deleteAllButton}
+                    >
+                      <Trash size={16} color={colors.danger} />
+                      <Text style={styles.deleteAllText}>Delete All</Text>
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity 
                     onPress={handleGenerateAISubtasks}
                     disabled={isGeneratingAI}
@@ -567,6 +602,23 @@ const styles = StyleSheet.create({
   },
   aiButtonText: {
     color: colors.primary,
+    fontWeight: '500',
+    fontSize: 14,
+    marginLeft: 4,
+  },
+  deleteAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    marginRight: 12,
+  },
+  deleteAllText: {
+    color: colors.danger,
     fontWeight: '500',
     fontSize: 14,
     marginLeft: 4,

@@ -21,6 +21,7 @@ interface TaskState {
   updateSubTask: (taskId: string, subTaskId: string, updates: Partial<Omit<SubTask, 'id'>>) => void;
   completeSubTask: (taskId: string, subTaskId: string, completed: boolean) => void;
   deleteSubTask: (taskId: string, subTaskId: string) => void;
+  deleteAllSubTasks: (taskId: string) => void;
   
   // Time tracking
   addTimeBlock: (timeBlock: Omit<TimeBlock, 'duration'>) => void;
@@ -152,6 +153,19 @@ export const useTaskStore = create<TaskState>()(
                   subTasks: task.subTasks.filter(
                     (subTask) => subTask.id !== subTaskId
                   ),
+                }
+              : task
+          ),
+        }));
+      },
+      
+      deleteAllSubTasks: (taskId) => {
+        set((state) => ({
+          tasks: state.tasks.map((task) =>
+            task.id === taskId
+              ? {
+                  ...task,
+                  subTasks: [],
                 }
               : task
           ),

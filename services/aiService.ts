@@ -1,7 +1,7 @@
 import { Task, SubTask } from '@/types/task';
 
-// API key for Google Gemini
-const API_KEY = 'AIzaSyDvYxEd5bXSPaxQQTXIjfmyF9jxyysIbEg';
+// Get API key from environment variables
+const API_KEY = process.env.EXPO_PUBLIC_GEMENI || 'AIzaSyDvYxEd5bXSPaxQQTXIjfmyF9jxyysIbEg';
 
 interface AITaskBreakdownResponse {
   subTasks: Array<{
