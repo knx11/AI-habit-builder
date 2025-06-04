@@ -98,6 +98,10 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
   };
   
   const handleDeleteAllSubTasks = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    }
+    
     Alert.alert(
       'Delete All Subtasks',
       'Are you sure you want to delete all subtasks for this task? This action cannot be undone.',
@@ -110,10 +114,11 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            if (Platform.OS !== 'web') {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            }
             deleteAllSubTasks(task.id);
+            // Provide feedback that deletion was successful
+            if (Platform.OS !== 'web') {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }
           },
         },
       ]
