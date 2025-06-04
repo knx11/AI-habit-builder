@@ -10,7 +10,7 @@ import {
   PanResponder,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { CheckCircle, Circle, Edit2, Trash2 } from 'lucide-react-native';
+import { CheckCircle, Circle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { Task } from '@/types/task';
 import { useTaskStore } from '@/store/taskStore';
@@ -20,12 +20,11 @@ import ProgressBar from './ProgressBar';
 interface TaskItemProps {
   task: Task;
   onPress: () => void;
-  onEdit?: () => void;
   onLongPress?: () => void;
 }
 
-export default function TaskItem({ task, onPress, onEdit, onLongPress }: TaskItemProps) {
-  const { completeTask, deleteTask } = useTaskStore();
+export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) {
+  const { completeTask } = useTaskStore();
   
   // Animation values
   const swipeAnim = useRef(new Animated.Value(0)).current;
@@ -43,13 +42,7 @@ export default function TaskItem({ task, onPress, onEdit, onLongPress }: TaskIte
         swipeAnim.setValue(x);
       },
       onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx < -50) {
-          // Left swipe - show actions
-          Animated.spring(swipeAnim, {
-            toValue: -80,
-            useNativeDriver: true,
-          }).start();
-        } else if (gestureState.dx > 50) {
+        if (gestureState.dx > 50) {
           // Right swipe - complete
           Animated.spring(swipeAnim, {
             toValue: 0,
@@ -71,63 +64,6 @@ export default function TaskItem({ task, onPress, onEdit, onLongPress }: TaskIte
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     completeTask(task.id, !task.completed);
-  };
-
-  const handleEditTask = () => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    if (onEdit) {
-      onEdit();
-    }
-    // Reset swipe position
-    Animated.spring(swipeAnim, {
-      toValue: 0,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handleDeleteTask = () => {
-    if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    }
-    Alert.alert(
-      'Delete Task',
-      'Are you sure you want to delete this task?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-          onPress: () => {
-            // Reset swipe position
-            Animated.spring(swipeAnim, {
-              toValue: 0,
-              useNativeDriver: true,
-            }).start();
-          }
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            deleteTask(task.id);
-            // Animate out before deletion
-            Animated.sequence([
-              Animated.timing(scaleAnim, {
-                toValue: 0.9,
-                duration: 100,
-                useNativeDriver: true,
-              }),
-              Animated.timing(opacityAnim, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: true,
-              }),
-            ]).start();
-          }
-        }
-      ]
-    );
   };
 
   // Animation for task completion
@@ -159,22 +95,6 @@ export default function TaskItem({ task, onPress, onEdit, onLongPress }: TaskIte
       ]}
       {...panResponder.panHandlers}
     >
-      {/* Action buttons for left swipe */}
-      <View style={styles.actionButtons}>
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.editButton]}
-          onPress={handleEditTask}
-        >
-          <Edit2 size={20} color={colors.background} />
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.deleteButton]}
-          onPress={handleDeleteTask}
-        >
-          <Trash2 size={20} color={colors.background} />
-        </TouchableOpacity>
-      </View>
-
       {/* Main task content */}
       <TouchableOpacity 
         onPress={onPress}
@@ -233,30 +153,6 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
     position: 'relative',
-  },
-  actionButtons: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    zIndex: 1,
-  },
-  actionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 4,
-  },
-  editButton: {
-    backgroundColor: colors.secondary,
-  },
-  deleteButton: {
-    backgroundColor: colors.danger,
   },
   taskContent: {
     padding: 16,
