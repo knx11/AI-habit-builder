@@ -114,7 +114,9 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
+            // Call the deleteAllSubTasks function with the task ID
             deleteAllSubTasks(task.id);
+            
             // Provide feedback that deletion was successful
             if (Platform.OS !== 'web') {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -441,17 +443,6 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                       )}
                     </View>
                   ))}
-                  
-                  {/* Only show this button if there are multiple subtasks */}
-                  {task.subTasks.length > 1 && (
-                    <TouchableOpacity 
-                      style={styles.deleteAllSubtasksButton}
-                      onPress={handleDeleteAllSubTasks}
-                    >
-                      <Trash2 size={18} color={colors.danger} />
-                      <Text style={styles.deleteAllSubtasksText}>Delete All Subtasks</Text>
-                    </TouchableOpacity>
-                  )}
                 </>
               )}
               
@@ -485,6 +476,17 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                     </TouchableOpacity>
                   </View>
                 </View>
+              )}
+              
+              {/* Add a dedicated button for deleting all subtasks */}
+              {hasSubTasks && (
+                <TouchableOpacity 
+                  style={styles.deleteAllSubtasksButton}
+                  onPress={handleDeleteAllSubTasks}
+                >
+                  <Trash2 size={18} color={colors.danger} />
+                  <Text style={styles.deleteAllSubtasksText}>Delete All Subtasks</Text>
+                </TouchableOpacity>
               )}
             </View>
           </ScrollView>
