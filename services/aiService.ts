@@ -17,21 +17,22 @@ export const generateTaskBreakdown = async (
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
     
-    // Use the toolkit.rork.com endpoint instead of Gemini API directly
-    const response = await fetch('https://toolkit.rork.com/text/llm/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a helpful task breakdown assistant. Break down tasks into smaller subtasks with time estimates.'
-          },
-          {
-            role: 'user',
-            content: `Break down this task into smaller subtasks:
+    try {
+      // Use the toolkit.rork.com endpoint instead of Gemini API directly
+      const response = await fetch('https://toolkit.rork.com/text/llm/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful task breakdown assistant. Break down tasks into smaller subtasks with time estimates.'
+            },
+            {
+              role: 'user',
+              content: `Break down this task into smaller subtasks:
 Task: ${taskTitle}
 Description: ${taskDescription || "No description provided"}
 
@@ -47,54 +48,59 @@ Format your response as a valid JSON object with this structure:
   ],
   "totalEstimatedMinutes": 75
 }`
-          }
-        ]
-      }),
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
+            }
+          ]
+        }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      console.error('API response error:', response.status);
-      throw new Error(`Failed to get AI response: ${response.status}`);
-    }
+      if (!response.ok) {
+        console.error('API response error:', response.status);
+        throw new Error(`Failed to get AI response: ${response.status}`);
+      }
 
-    const data = await response.json();
-    
-    if (!data.completion) {
-      console.error('Invalid response structure:', data);
-      throw new Error('Invalid response structure from AI service');
-    }
-    
-    // Extract JSON from the completion text
-    const textResponse = data.completion;
-    let jsonMatch = textResponse.match(/\{[\s\S]*\}/);
-    
-    if (!jsonMatch) {
-      // If no JSON object is found, try to create a default breakdown
-      return createDefaultBreakdown(taskTitle, taskDescription);
-    }
+      const data = await response.json();
+      
+      if (!data.completion) {
+        console.error('Invalid response structure:', data);
+        throw new Error('Invalid response structure from AI service');
+      }
+      
+      // Extract JSON from the completion text
+      const textResponse = data.completion;
+      let jsonMatch = textResponse.match(/\{[\s\S]*\}/);
+      
+      if (!jsonMatch) {
+        // If no JSON object is found, try to create a default breakdown
+        return createDefaultBreakdown(taskTitle, taskDescription);
+      }
 
-    let jsonResponse;
-    try {
-      jsonResponse = JSON.parse(jsonMatch[0]);
+      let jsonResponse;
+      try {
+        jsonResponse = JSON.parse(jsonMatch[0]);
+      } catch (error) {
+        console.error('Error parsing JSON:', error);
+        return createDefaultBreakdown(taskTitle, taskDescription);
+      }
+      
+      // Validate the response structure
+      if (!jsonResponse.subTasks || !Array.isArray(jsonResponse.subTasks) || 
+          typeof jsonResponse.totalEstimatedMinutes !== 'number') {
+        console.error('AI response missing required fields:', jsonResponse);
+        return createDefaultBreakdown(taskTitle, taskDescription);
+      }
+      
+      return {
+        subTasks: jsonResponse.subTasks,
+        totalEstimatedMinutes: jsonResponse.totalEstimatedMinutes,
+      };
     } catch (error) {
-      console.error('Error parsing JSON:', error);
+      clearTimeout(timeoutId);
+      console.error('Network error:', error);
       return createDefaultBreakdown(taskTitle, taskDescription);
     }
-    
-    // Validate the response structure
-    if (!jsonResponse.subTasks || !Array.isArray(jsonResponse.subTasks) || 
-        typeof jsonResponse.totalEstimatedMinutes !== 'number') {
-      console.error('AI response missing required fields:', jsonResponse);
-      return createDefaultBreakdown(taskTitle, taskDescription);
-    }
-    
-    return {
-      subTasks: jsonResponse.subTasks,
-      totalEstimatedMinutes: jsonResponse.totalEstimatedMinutes,
-    };
   } catch (error) {
     console.error('Error generating task breakdown:', error);
     // Always return a valid response even if the network request fails
@@ -156,38 +162,44 @@ export const getProductivityInsights = async (
 
 Please provide a concise analysis (2-3 sentences) of my productivity and one actionable suggestion to improve it.`;
 
-    const response = await fetch('https://toolkit.rork.com/text/llm/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a productivity coach providing brief, actionable insights.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
-      }),
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
+    try {
+      const response = await fetch('https://toolkit.rork.com/text/llm/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a productivity coach providing brief, actionable insights.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ]
+        }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      throw new Error('Failed to get AI insights: ' + response.status);
-    }
+      if (!response.ok) {
+        throw new Error('Failed to get AI insights: ' + response.status);
+      }
 
-    const data = await response.json();
-    if (!data.completion) {
+      const data = await response.json();
+      if (!data.completion) {
+        return getDefaultInsights(completedTasks, totalTasks, productivityScore);
+      }
+      
+      return data.completion;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      console.error('Network error getting insights:', error);
       return getDefaultInsights(completedTasks, totalTasks, productivityScore);
     }
-    
-    return data.completion;
   } catch (error) {
     console.error('Error getting productivity insights:', error);
     return getDefaultInsights(completedTasks, totalTasks, productivityScore);

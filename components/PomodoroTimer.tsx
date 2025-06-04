@@ -65,7 +65,7 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
     }
   };
   
-  // Format seconds to hh:mm:ss
+  // Format seconds to display time properly
   const formatTime = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -246,6 +246,14 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
     inputRange: [0, 1],
     outputRange: [2 * Math.PI * (circleSize / 2 - 10), 0],
   });
+  
+  // Format time for display in the preview
+  const formatTimePreview = (hours: number, minutes: number): string => {
+    if (hours === 0) {
+      return `${minutes} min`;
+    }
+    return `${hours}:${minutes.toString().padStart(2, '0')}`;
+  };
   
   return (
     <View style={styles.container}>
@@ -451,7 +459,7 @@ export default function PomodoroTimer({ taskId, subTaskId, onComplete }: Pomodor
             
             <View style={styles.timePreview}>
               <Text style={styles.timePreviewText}>
-                {`${selectedHours}:${selectedMinutes.toString().padStart(2, '0')}`}
+                {formatTimePreview(selectedHours, selectedMinutes)}
               </Text>
             </View>
             
