@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,35 +9,194 @@ import {
   Platform,
   Dimensions
 } from 'react-native';
-import { X } from 'lucide-react-native';
+import { X, Play, Pause, RotateCcw } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { colors } from '@/constants/colors';
+import { useTaskStore } from '@/store/taskStore';
 
 interface PomodoroTimerProps {
   taskId?: string;
 }
 
 export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
+  const { pomodoroSettings } = useTaskStore();
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [selectedHours, setSelectedHours] = useState(0);
   const [selectedMinutes, setSelectedMinutes] = useState(25);
+  const [isRunning, setIsRunning] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(25 * 60); // in seconds
+  const [timerMode, setTimerMode] = useState<'work' | 'shortBreak' | 'longBreak'>('work');
+  const [sessionsCompleted, setSessionsCompleted] = useState(0);
+  
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  useEffect(() => {
+    // Initialize timer with pomodoro settings
+    if (timerMode === 'work') {
+      setTimeRemaining(pomodoroSettings.workDuration * 60);
+    } else if (timerMode === 'shortBreak') {
+      setTimeRemaining(pomodoroSettings.shortBreakDuration * 60);
+    } else {
+      setTimeRemaining(pomodoroSettings.longBreakDuration * 60);
+    }
+    
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [timerMode, pomodoroSettings]);
+  
+  const startTimer = () => {
+    if (isRunning) return;
+    
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    
+    setIsRunning(true);
+    timerRef.current = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev <= 1) {
+          handleTimerComplete();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+  
+  const pauseTimer = () => {
+    if (!isRunning) return;
+    
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    
+    setIsRunning(false);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+  
+  const resetTimer = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    }
+    
+    pauseTimer();
+    
+    if (timerMode === 'work') {
+      setTimeRemaining(pomodoroSettings.workDuration * 60);
+    } else if (timerMode === 'shortBreak') {
+      setTimeRemaining(pomodoroSettings.shortBreakDuration * 60);
+    } else {
+      setTimeRemaining(pomodoroSettings.longBreakDuration * 60);
+    }
+  };
+  
+  const handleTimerComplete = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    
+    pauseTimer();
+    
+    if (timerMode === 'work') {
+      setSessionsCompleted(prev => prev + 1);
+      
+      if (sessionsCompleted + 1 >= pomodoroSettings.sessionsBeforeLongBreak) {
+        setTimerMode('longBreak');
+        setTimeRemaining(pomodoroSettings.longBreakDuration * 60);
+        setSessionsCompleted(0);
+      } else {
+        setTimerMode('shortBreak');
+        setTimeRemaining(pomodoroSettings.shortBreakDuration * 60);
+      }
+    } else {
+      setTimerMode('work');
+      setTimeRemaining(pomodoroSettings.workDuration * 60);
+    }
+  };
   
   const handleAdjustTime = () => {
-    // Handle time adjustment
+    // Convert hours and minutes to seconds
+    const totalSeconds = (selectedHours * 60 * 60) + (selectedMinutes * 60);
+    setTimeRemaining(totalSeconds);
     setShowAdjustModal(false);
+    
+    // Reset the timer state
+    pauseTimer();
+    setTimerMode('work');
   };
-
+  
+  // Format time for display
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+    
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+  
   return (
     <View style={styles.container}>
-      {/* Timer UI here */}
-      <TouchableOpacity onPress={() => setShowAdjustModal(true)}>
-        <Text>Open Timer Adjustment</Text>
-      </TouchableOpacity>
-
+      <View style={styles.timerCard}>
+        <View style={styles.timerHeader}>
+          <Text style={styles.timerLabel}>
+            {timerMode === 'work' ? 'Work Session' : 
+             timerMode === 'shortBreak' ? 'Short Break' : 'Long Break'}
+          </Text>
+          <Text style={styles.sessionCounter}>
+            Session {sessionsCompleted + 1}/{pomodoroSettings.sessionsBeforeLongBreak}
+          </Text>
+        </View>
+        
+        <TouchableOpacity 
+          style={styles.timeDisplay}
+          onPress={() => setShowAdjustModal(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.timeText}>{formatTime(timeRemaining)}</Text>
+        </TouchableOpacity>
+        
+        <View style={styles.controls}>
+          <TouchableOpacity 
+            style={[styles.controlButton, styles.resetButton]}
+            onPress={resetTimer}
+          >
+            <RotateCcw size={24} color={colors.text} />
+          </TouchableOpacity>
+          
+          {isRunning ? (
+            <TouchableOpacity 
+              style={[styles.controlButton, styles.pauseButton]}
+              onPress={pauseTimer}
+            >
+              <Pause size={28} color={colors.background} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              style={[styles.controlButton, styles.playButton]}
+              onPress={startTimer}
+            >
+              <Play size={28} color={colors.background} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+      
+      {/* Time Adjustment Modal */}
       <Modal
         visible={showAdjustModal}
         transparent={true}
         animationType="fade"
+        onRequestClose={() => setShowAdjustModal(false)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -152,6 +311,68 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  timerCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  timerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  timerLabel: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  sessionCounter: {
+    fontSize: 14,
+    color: colors.textLight,
+  },
+  timeDisplay: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+  },
+  timeText: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: colors.primary,
+    fontVariant: ['tabular-nums'],
+  },
+  controls: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  controlButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 8,
+  },
+  resetButton: {
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  playButton: {
+    backgroundColor: colors.primary,
+  },
+  pauseButton: {
+    backgroundColor: colors.primary,
+  },
+  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
