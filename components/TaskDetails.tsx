@@ -102,29 +102,16 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     }
     
-    Alert.alert(
-      'Delete All Subtasks',
-      'Are you sure you want to delete all subtasks for this task? This action cannot be undone.',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            // Call the deleteAllSubTasks function with the task ID
-            deleteAllSubTasks(task.id);
-            
-            // Provide feedback that deletion was successful
-            if (Platform.OS !== 'web') {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            }
-          },
-        },
-      ]
-    );
+    // Direct implementation without using Alert for better compatibility
+    if (task.subTasks.length > 0) {
+      // Call the deleteAllSubTasks function directly
+      deleteAllSubTasks(task.id);
+      
+      // Provide feedback that deletion was successful
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    }
   };
   
   const handleEditTitle = () => {

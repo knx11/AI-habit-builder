@@ -34,7 +34,7 @@ export default {
   extra: {
     eas: {
       projectId: "your-project-id"
-    },
-    EXPO_PUBLIC_GEMINI: "AIzaSyDvYxEd5bXSPaxQQTXIjfmyF9jxyysIbEgi"
-  }
-};
+    }
+  },
+  sdkVersion: "53.0.0"
+}
