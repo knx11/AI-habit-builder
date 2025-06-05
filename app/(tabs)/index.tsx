@@ -6,8 +6,9 @@ import {
   FlatList, 
   TouchableOpacity, 
   SafeAreaView,
-  Animated,
-  PanResponder
+  Alert,
+  Platform,
+  Dimensions
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { Plus, Filter, ArrowUpDown } from 'lucide-react-native';
@@ -17,6 +18,7 @@ import TaskItem from '@/components/TaskItem';
 import TaskForm from '@/components/TaskForm';
 import TaskDetails from '@/components/TaskDetails';
 import { Task } from '@/types/task';
+import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 
 export default function TasksScreen() {
   const { tasks, reorderTasks, autoAssignPriorities } = useTaskStore();
@@ -24,15 +26,27 @@ export default function TasksScreen() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [isReordering, setIsReordering] = useState(false);
-  const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+  const [sortBy, setSortBy] = useState<'order' | 'priority'>('order');
   
-  // Sort tasks by order property first, then by creation date
+  // Sort tasks by priority or order
   const sortedTasks = [...tasks].sort((a, b) => {
-    // First sort by order
+    if (sortBy === 'priority') {
+      // Sort by priority (high -> medium -> low -> optional)
+      const priorityOrder = { high: 0, medium: 1, low: 2, optional: 3 };
+      const aPriority = a.priority ? priorityOrder[a.priority] : 4;
+      const bPriority = b.priority ? priorityOrder[b.priority] : 4;
+      
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority;
+      }
+    }
+    
+    // Then sort by order property
     if ((a.order || 0) !== (b.order || 0)) {
       return (a.order || 0) - (b.order || 0);
     }
-    // Then by creation date (newest first)
+    
+    // Finally sort by creation date (newest first)
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
   
@@ -63,25 +77,36 @@ export default function TasksScreen() {
     }
   };
   
-  const handleReorderComplete = (orderedIds: string[]) => {
-    reorderTasks(orderedIds);
-    setIsReordering(false);
+  const toggleSortMode = () => {
+    setSortBy(sortBy === 'order' ? 'priority' : 'order');
+    if (Platform.OS !== 'web') {
+      Alert.alert(
+        'Sorting Tasks',
+        `Tasks are now sorted by ${sortBy === 'order' ? 'priority' : 'order'}`
+      );
+    }
   };
   
-  // Function to handle drag and drop reordering
-  const onMoveTask = (dragIndex: number, dropIndex: number) => {
-    const newTasks = [...filteredTasks];
-    const draggedTask = newTasks[dragIndex];
-    
-    // Remove the dragged task
-    newTasks.splice(dragIndex, 1);
-    
-    // Insert at the new position
-    newTasks.splice(dropIndex, 0, draggedTask);
-    
+  const handleDragEnd = ({ data }: { data: Task[] }) => {
     // Update the order in the store
-    const newTaskIds = newTasks.map(task => task.id);
+    const newTaskIds = data.map(task => task.id);
     reorderTasks(newTaskIds);
+  };
+  
+  const renderItem = ({ item, drag, isActive }: RenderItemParams<Task>) => {
+    return (
+      <TouchableOpacity
+        onLongPress={isReordering ? drag : undefined}
+        disabled={!isReordering}
+        style={[isActive && styles.draggingItem]}
+      >
+        <TaskItem 
+          task={item} 
+          onPress={() => handleTaskPress(item.id)}
+          onLongPress={() => handleTaskPress(item.id)}
+        />
+      </TouchableOpacity>
+    );
   };
   
   return (
@@ -91,6 +116,12 @@ export default function TasksScreen() {
           headerTitle: 'My Tasks',
           headerRight: () => (
             <View style={styles.headerButtons}>
+              <TouchableOpacity 
+                style={styles.headerButton}
+                onPress={toggleSortMode}
+              >
+                <Filter size={24} color={colors.text} />
+              </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.headerButton}
                 onPress={toggleReorderMode}
@@ -177,18 +208,28 @@ export default function TasksScreen() {
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={filteredTasks}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => (
-            <TaskItem 
-              task={item} 
-              onPress={() => handleTaskPress(item.id)}
-              onLongPress={() => handleTaskPress(item.id)}
-            />
-          )}
-          contentContainerStyle={styles.listContent}
-        />
+        isReordering ? (
+          <DraggableFlatList
+            data={filteredTasks}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            onDragEnd={handleDragEnd}
+            contentContainerStyle={styles.listContent}
+          />
+        ) : (
+          <FlatList
+            data={filteredTasks}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TaskItem 
+                task={item} 
+                onPress={() => handleTaskPress(item.id)}
+                onLongPress={() => handleTaskPress(item.id)}
+              />
+            )}
+            contentContainerStyle={styles.listContent}
+          />
+        )
       )}
       
       {/* Floating Action Button for adding tasks */}
@@ -310,5 +351,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  draggingItem: {
+    opacity: 0.7,
+    transform: [{ scale: 1.05 }],
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 10,
   },
 });

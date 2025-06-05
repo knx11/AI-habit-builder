@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import { 
   View, 
   Text, 
@@ -6,7 +6,6 @@ import {
   TouchableOpacity, 
   Platform,
   Animated,
-  PanResponder,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { CheckCircle, Circle } from 'lucide-react-native';
@@ -24,44 +23,6 @@ interface TaskItemProps {
 
 export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) {
   const { completeTask } = useTaskStore();
-  
-  // Animation values
-  const swipeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const opacityAnim = useRef(new Animated.Value(1)).current;
-  
-  // Gesture handling
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dx) > 5;
-      },
-      onPanResponderMove: (_, gestureState) => {
-        // Only allow left swipe (negative dx)
-        if (gestureState.dx < 0) {
-          // Limit the swipe range
-          const x = Math.max(gestureState.dx, -100);
-          swipeAnim.setValue(x);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx < -50) {
-          // Left swipe - reveal buttons
-          Animated.spring(swipeAnim, {
-            toValue: -100,
-            useNativeDriver: true,
-          }).start();
-        } else {
-          // Reset position
-          Animated.spring(swipeAnim, {
-            toValue: 0,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    })
-  ).current;
 
   const handleToggleComplete = () => {
     if (Platform.OS !== 'web') {
@@ -69,21 +30,6 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
     }
     completeTask(task.id, !task.completed);
   };
-
-  // Animation for task completion
-  useEffect(() => {
-    Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: task.completed ? 0.95 : 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [task.completed]);
 
   // Get priority color
   const getPriorityColor = () => {
@@ -111,19 +57,7 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
         ]} 
       />
       
-      <Animated.View 
-        style={[
-          styles.container,
-          {
-            transform: [
-              { translateX: swipeAnim },
-              { scale: scaleAnim }
-            ],
-            opacity: opacityAnim
-          }
-        ]}
-        {...panResponder.panHandlers}
-      >
+      <View style={styles.container}>
         {/* Main task content */}
         <TouchableOpacity 
           onPress={onPress}
@@ -167,7 +101,7 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
             </View>
           )}
         </TouchableOpacity>
-      </Animated.View>
+      </View>
     </View>
   );
 }
