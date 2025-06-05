@@ -1,39 +1,87 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  FlatList, 
+  TouchableOpacity, 
+  SafeAreaView,
+  Animated,
+  PanResponder
+} from 'react-native';
 import { Stack } from 'expo-router';
-import { Plus, Filter } from 'lucide-react-native';
+import { Plus, Filter, ArrowUpDown } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import TaskItem from '@/components/TaskItem';
 import TaskForm from '@/components/TaskForm';
 import TaskDetails from '@/components/TaskDetails';
+import { Task } from '@/types/task';
 
 export default function TasksScreen() {
-  const { tasks } = useTaskStore();
+  const { tasks, reorderTasks, autoAssignPriorities } = useTaskStore();
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [isReordering, setIsReordering] = useState(false);
+  const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   
-  const filteredTasks = tasks.filter((task) => {
+  // Sort tasks by order property first, then by creation date
+  const sortedTasks = [...tasks].sort((a, b) => {
+    // First sort by order
+    if ((a.order || 0) !== (b.order || 0)) {
+      return (a.order || 0) - (b.order || 0);
+    }
+    // Then by creation date (newest first)
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+  
+  const filteredTasks = sortedTasks.filter((task) => {
     if (filter === 'all') return true;
     if (filter === 'active') return !task.completed;
     if (filter === 'completed') return task.completed;
     return true;
-  }).sort((a, b) => {
-    // Sort by completed status (incomplete first)
-    if (a.completed !== b.completed) {
-      return a.completed ? 1 : -1;
-    }
-    // Then sort by creation date (newest first)
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
   
   const handleTaskPress = (taskId: string) => {
+    if (isReordering) {
+      // In reordering mode, don't open task details
+      return;
+    }
     setSelectedTaskId(taskId);
   };
   
   const handleCloseTaskDetails = () => {
     setSelectedTaskId(null);
+  };
+  
+  const toggleReorderMode = () => {
+    setIsReordering(!isReordering);
+    if (!isReordering) {
+      // When entering reorder mode, auto-assign priorities
+      autoAssignPriorities();
+    }
+  };
+  
+  const handleReorderComplete = (orderedIds: string[]) => {
+    reorderTasks(orderedIds);
+    setIsReordering(false);
+  };
+  
+  // Function to handle drag and drop reordering
+  const onMoveTask = (dragIndex: number, dropIndex: number) => {
+    const newTasks = [...filteredTasks];
+    const draggedTask = newTasks[dragIndex];
+    
+    // Remove the dragged task
+    newTasks.splice(dragIndex, 1);
+    
+    // Insert at the new position
+    newTasks.splice(dropIndex, 0, draggedTask);
+    
+    // Update the order in the store
+    const newTaskIds = newTasks.map(task => task.id);
+    reorderTasks(newTaskIds);
   };
   
   return (
@@ -42,12 +90,20 @@ export default function TasksScreen() {
         options={{
           headerTitle: 'My Tasks',
           headerRight: () => (
-            <TouchableOpacity 
-              style={styles.addButton}
-              onPress={() => setShowTaskForm(true)}
-            >
-              <Plus size={24} color={colors.primary} />
-            </TouchableOpacity>
+            <View style={styles.headerButtons}>
+              <TouchableOpacity 
+                style={styles.headerButton}
+                onPress={toggleReorderMode}
+              >
+                <ArrowUpDown size={24} color={isReordering ? colors.primary : colors.text} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.addButton}
+                onPress={() => setShowTaskForm(true)}
+              >
+                <Plus size={24} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
           ),
         }}
       />
@@ -99,6 +155,20 @@ export default function TasksScreen() {
         </TouchableOpacity>
       </View>
       
+      {isReordering && (
+        <View style={styles.reorderingBanner}>
+          <Text style={styles.reorderingText}>
+            Drag and drop to reorder tasks
+          </Text>
+          <TouchableOpacity 
+            style={styles.doneButton}
+            onPress={() => setIsReordering(false)}
+          >
+            <Text style={styles.doneButtonText}>Done</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      
       {filteredTasks.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyTitle}>No tasks yet</Text>
@@ -110,7 +180,7 @@ export default function TasksScreen() {
         <FlatList
           data={filteredTasks}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
+          renderItem={({ item, index }) => (
             <TaskItem 
               task={item} 
               onPress={() => handleTaskPress(item.id)}
@@ -148,6 +218,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerButton: {
+    marginRight: 16,
+  },
   addButton: {
     marginRight: 16,
   },
@@ -173,6 +250,29 @@ const styles = StyleSheet.create({
   },
   activeFilterText: {
     color: colors.background,
+  },
+  reorderingBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  reorderingText: {
+    color: colors.text,
+    fontWeight: '500',
+  },
+  doneButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+  },
+  doneButtonText: {
+    color: colors.background,
+    fontWeight: '500',
   },
   listContent: {
     padding: 16,

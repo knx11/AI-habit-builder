@@ -21,15 +21,16 @@ import {
   Edit2,
   Share2, 
   Zap,
-  Trash
+  Trash,
+  AlertTriangle
 } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 import { colors } from '@/constants/colors';
-import { Task } from '@/types/task';
+import { Task, TaskPriority } from '@/types/task';
 import { useTaskStore } from '@/store/taskStore';
 import { formatTime, formatDate } from '@/utils/helpers';
 import Button from '@/components/Button';
 import PomodoroTimer from '@/components/PomodoroTimer';
-import * as Haptics from 'expo-haptics';
 import { generateTaskBreakdown } from '@/services/aiService';
 
 interface TaskDetailsProps {
@@ -49,7 +50,8 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
     deleteSubTask,
     addSubTask,
     addAIGeneratedSubTasks,
-    deleteAllSubTasks
+    deleteAllSubTasks,
+    assignPriority
   } = useTaskStore();
   
   const [showTimer, setShowTimer] = useState(false);
@@ -58,6 +60,8 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
   const [newTitle, setNewTitle] = useState('');
   const [newSubTaskTitle, setNewSubTaskTitle] = useState('');
   const [newSubTaskTime, setNewSubTaskTime] = useState('');
+  const [editingTime, setEditingTime] = useState(false);
+  const [newEstimatedTime, setNewEstimatedTime] = useState('');
   const [addingSubTask, setAddingSubTask] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -67,6 +71,13 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
   if (!task) {
     return null;
   }
+  
+  const priorities: { value: TaskPriority; label: string; color: string }[] = [
+    { value: 'high', label: 'High', color: '#3498db' }, // Blue
+    { value: 'medium', label: 'Medium', color: '#f1c40f' }, // Yellow
+    { value: 'low', label: 'Low', color: '#2ecc71' }, // Green
+    { value: 'optional', label: 'Optional', color: '#bdc3c7' }, // Light Gray
+  ];
   
   const handleToggleComplete = () => {
     if (Platform.OS !== 'web') {
@@ -126,6 +137,19 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
     setEditingTitle(false);
   };
   
+  const handleEditTime = () => {
+    setNewEstimatedTime(task.estimatedMinutes.toString());
+    setEditingTime(true);
+  };
+  
+  const saveTime = () => {
+    const time = parseInt(newEstimatedTime);
+    if (!isNaN(time) && time > 0) {
+      updateTask(task.id, { estimatedMinutes: time });
+    }
+    setEditingTime(false);
+  };
+  
   const handleEditSubTask = (subTaskId: string, title: string, estimatedMinutes: number) => {
     setEditingSubTaskId(subTaskId);
     setNewSubTaskTitle(title);
@@ -156,6 +180,13 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
       });
     }
     setAddingSubTask(false);
+  };
+  
+  const handleChangePriority = (priority: TaskPriority) => {
+    assignPriority(task.id, priority);
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
   };
   
   const handleGenerateAISubtasks = async () => {
@@ -197,6 +228,12 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
   
   // Check if the task has subtasks
   const hasSubTasks = task.subTasks && task.subTasks.length > 0;
+  
+  // Get priority color
+  const getPriorityColor = () => {
+    const priority = priorities.find(p => p.value === task.priority);
+    return priority ? priority.color : colors.border;
+  };
   
   return (
     <Modal
@@ -263,19 +300,82 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                 </View>
               )}
               
-              {task.category && (
-                <View style={styles.categoryChip}>
-                  <Text style={styles.categoryText}>{task.category}</Text>
-                </View>
-              )}
+              <View style={styles.metadataContainer}>
+                {task.category && (
+                  <View style={styles.categoryChip}>
+                    <Text style={styles.categoryText}>{task.category}</Text>
+                  </View>
+                )}
+                
+                {task.priority && (
+                  <View 
+                    style={[
+                      styles.priorityChip,
+                      { backgroundColor: getPriorityColor() }
+                    ]}
+                  >
+                    <Text style={styles.priorityText}>
+                      {priorities.find(p => p.value === task.priority)?.label || 'Medium'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+            
+            <View style={styles.prioritySection}>
+              <Text style={styles.sectionTitle}>Priority</Text>
+              <View style={styles.priorityButtons}>
+                {priorities.map((p) => (
+                  <TouchableOpacity
+                    key={p.value}
+                    style={[
+                      styles.priorityButton,
+                      { borderColor: p.color },
+                      task.priority === p.value && { backgroundColor: p.color }
+                    ]}
+                    onPress={() => handleChangePriority(p.value)}
+                  >
+                    <Text 
+                      style={[
+                        styles.priorityButtonText,
+                        { color: p.color },
+                        task.priority === p.value && { color: '#fff' }
+                      ]}
+                    >
+                      {p.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
             
             <View style={styles.infoSection}>
               <View style={styles.infoItem}>
                 <Clock size={16} color={colors.textLight} />
-                <Text style={styles.infoText}>
-                  Estimated: {formatTime(task.estimatedMinutes)}
-                </Text>
+                {editingTime ? (
+                  <View style={styles.editTimeContainer}>
+                    <TextInput
+                      style={styles.editTimeInput}
+                      value={newEstimatedTime}
+                      onChangeText={setNewEstimatedTime}
+                      keyboardType="number-pad"
+                      autoFocus
+                    />
+                    <Text style={styles.minutesLabel}>minutes</Text>
+                    <TouchableOpacity onPress={saveTime}>
+                      <Text style={styles.saveButton}>Save</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.timeContainer}>
+                    <Text style={styles.infoText}>
+                      Estimated: {formatTime(task.estimatedMinutes)}
+                    </Text>
+                    <TouchableOpacity onPress={handleEditTime}>
+                      <Edit2 size={14} color={colors.textLight} />
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
               
               <View style={styles.infoItem}>
@@ -347,6 +447,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
               
               {aiError && (
                 <View style={styles.errorContainer}>
+                  <AlertTriangle size={16} color={colors.danger} />
                   <Text style={styles.errorText}>{aiError}</Text>
                 </View>
               )}
@@ -464,17 +565,6 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                   </View>
                 </View>
               )}
-              
-              {/* Add a dedicated button for deleting all subtasks */}
-              {hasSubTasks && (
-                <TouchableOpacity 
-                  style={styles.deleteAllSubtasksButton}
-                  onPress={handleDeleteAllSubTasks}
-                >
-                  <Trash2 size={18} color={colors.danger} />
-                  <Text style={styles.deleteAllSubtasksText}>Delete All Subtasks</Text>
-                </TouchableOpacity>
-              )}
             </View>
           </ScrollView>
         </View>
@@ -550,29 +640,89 @@ const styles = StyleSheet.create({
     marginRight: 12,
     paddingVertical: 4,
   },
+  metadataContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
   categoryChip: {
     backgroundColor: colors.secondary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    alignSelf: 'flex-start',
+    marginRight: 8,
+    marginBottom: 8,
   },
   categoryText: {
     color: colors.background,
     fontWeight: '500',
   },
-  infoSection: {
+  priorityChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  priorityText: {
+    color: colors.background,
+    fontWeight: '500',
+  },
+  prioritySection: {
+    marginBottom: 20,
+  },
+  priorityButtons: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  priorityButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+  },
+  priorityButtonText: {
+    fontWeight: '500',
+  },
+  infoSection: {
     marginBottom: 20,
   },
   infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
+    marginBottom: 8,
+  },
+  timeContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginLeft: 6,
+  },
+  editTimeContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 6,
+  },
+  editTimeInput: {
+    width: 50,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.primary,
+    paddingVertical: 4,
+    marginRight: 8,
+    color: colors.text,
+    fontSize: 16,
+  },
+  minutesLabel: {
+    color: colors.textLight,
+    marginRight: 12,
   },
   infoText: {
     color: colors.textLight,
     marginLeft: 6,
+    flex: 1,
   },
   descriptionSection: {
     marginBottom: 20,
@@ -731,6 +881,8 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFEBEE',
     padding: 10,
     borderRadius: 8,
@@ -738,22 +890,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: colors.danger,
-  },
-  deleteAllSubtasksButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFEBEE',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: colors.danger,
-  },
-  deleteAllSubtasksText: {
-    color: colors.danger,
-    fontWeight: '500',
     marginLeft: 8,
   },
 });

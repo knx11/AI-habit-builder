@@ -6,6 +6,8 @@ export interface SubTask {
   actualMinutes?: number;
 }
 
+export type TaskPriority = 'high' | 'medium' | 'low' | 'optional';
+
 export interface Task {
   id: string;
   title: string;
@@ -18,6 +20,8 @@ export interface Task {
   actualMinutes?: number;
   subTasks: SubTask[];
   aiGenerated: boolean;
+  priority?: TaskPriority;
+  order?: number;
 }
 
 export interface TimeBlock {

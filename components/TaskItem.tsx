@@ -5,7 +5,6 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   Platform,
-  Alert,
   Animated,
   PanResponder,
 } from 'react-native';
@@ -35,19 +34,24 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dx) > 5;
+      },
       onPanResponderMove: (_, gestureState) => {
-        // Limit the swipe range
-        const x = Math.min(Math.max(gestureState.dx, -100), 100);
-        swipeAnim.setValue(x);
+        // Only allow left swipe (negative dx)
+        if (gestureState.dx < 0) {
+          // Limit the swipe range
+          const x = Math.max(gestureState.dx, -100);
+          swipeAnim.setValue(x);
+        }
       },
       onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx > 50) {
-          // Right swipe - complete
+        if (gestureState.dx < -50) {
+          // Left swipe - reveal buttons
           Animated.spring(swipeAnim, {
-            toValue: 0,
+            toValue: -100,
             useNativeDriver: true,
-          }).start(() => handleToggleComplete());
+          }).start();
         } else {
           // Reset position
           Animated.spring(swipeAnim, {
@@ -81,72 +85,111 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
     ]).start();
   }, [task.completed]);
 
-  return (
-    <Animated.View 
-      style={[
-        styles.container,
-        {
-          transform: [
-            { translateX: swipeAnim },
-            { scale: scaleAnim }
-          ],
-          opacity: opacityAnim
-        }
-      ]}
-      {...panResponder.panHandlers}
-    >
-      {/* Main task content */}
-      <TouchableOpacity 
-        onPress={onPress}
-        onLongPress={onLongPress}
-        activeOpacity={0.7}
-        style={styles.taskContent}
-      >
-        <View style={styles.taskHeader}>
-          <View style={styles.titleContainer}>
-            <TouchableOpacity onPress={handleToggleComplete}>
-              {task.completed ? (
-                <CheckCircle size={24} color={colors.primary} />
-              ) : (
-                <Circle size={24} color={colors.primary} />
-              )}
-            </TouchableOpacity>
-            <Text 
-              style={[
-                styles.title,
-                task.completed && styles.completedText
-              ]}
-              numberOfLines={1}
-            >
-              {task.title}
-            </Text>
-          </View>
-          <Text style={styles.time}>{formatTime(task.estimatedMinutes)}</Text>
-        </View>
+  // Get priority color
+  const getPriorityColor = () => {
+    switch (task.priority) {
+      case 'high':
+        return '#3498db'; // Blue
+      case 'medium':
+        return '#f1c40f'; // Yellow
+      case 'low':
+        return '#2ecc71'; // Green
+      case 'optional':
+        return '#bdc3c7'; // Light Gray
+      default:
+        return colors.border; // Default
+    }
+  };
 
-        {task.subTasks.length > 0 && (
-          <View style={styles.progressContainer}>
-            <ProgressBar 
-              progress={task.subTasks.filter(st => st.completed).length / task.subTasks.length * 100}
-              height={3}
-              backgroundColor={colors.border}
-              progressColor={task.completed ? colors.primary : colors.secondary}
-            />
-            <Text style={styles.subtaskCount}>
-              {task.subTasks.filter(st => st.completed).length}/{task.subTasks.length} subtasks
-            </Text>
+  return (
+    <View style={styles.itemContainer}>
+      {/* Priority indicator */}
+      <View 
+        style={[
+          styles.priorityIndicator, 
+          { backgroundColor: getPriorityColor() }
+        ]} 
+      />
+      
+      <Animated.View 
+        style={[
+          styles.container,
+          {
+            transform: [
+              { translateX: swipeAnim },
+              { scale: scaleAnim }
+            ],
+            opacity: opacityAnim
+          }
+        ]}
+        {...panResponder.panHandlers}
+      >
+        {/* Main task content */}
+        <TouchableOpacity 
+          onPress={onPress}
+          onLongPress={onLongPress}
+          activeOpacity={0.7}
+          style={styles.taskContent}
+        >
+          <View style={styles.taskHeader}>
+            <View style={styles.titleContainer}>
+              <TouchableOpacity onPress={handleToggleComplete}>
+                {task.completed ? (
+                  <CheckCircle size={24} color={colors.primary} />
+                ) : (
+                  <Circle size={24} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+              <Text 
+                style={[
+                  styles.title,
+                  task.completed && styles.completedText
+                ]}
+                numberOfLines={1}
+              >
+                {task.title}
+              </Text>
+            </View>
+            <Text style={styles.time}>{formatTime(task.estimatedMinutes)}</Text>
           </View>
-        )}
-      </TouchableOpacity>
-    </Animated.View>
+
+          {task.subTasks.length > 0 && (
+            <View style={styles.progressContainer}>
+              <ProgressBar 
+                progress={task.subTasks.filter(st => st.completed).length / task.subTasks.length * 100}
+                height={3}
+                backgroundColor={colors.border}
+                progressColor={task.completed ? colors.primary : colors.secondary}
+              />
+              <Text style={styles.subtaskCount}>
+                {task.subTasks.filter(st => st.completed).length}/{task.subTasks.length} subtasks
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  itemContainer: {
+    position: 'relative',
+    marginBottom: 12,
+  },
+  priorityIndicator: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
+    zIndex: 1,
+  },
   container: {
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
-    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

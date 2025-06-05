@@ -11,12 +11,13 @@ import {
   Platform,
   ActivityIndicator
 } from 'react-native';
-import { X, Clock, Calendar, Zap } from 'lucide-react-native';
+import { X, Clock, Calendar, Zap, AlertCircle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import Button from '@/components/Button';
 import { useTaskStore } from '@/store/taskStore';
 import { formatTime, estimateTaskTime } from '@/utils/helpers';
 import { generateTaskBreakdown } from '@/services/aiService';
+import { TaskPriority } from '@/types/task';
 
 interface TaskFormProps {
   visible: boolean;
@@ -29,6 +30,7 @@ export default function TaskForm({ visible, onClose, onSuccess }: TaskFormProps)
   const [description, setDescription] = useState('');
   const [estimatedMinutes, setEstimatedMinutes] = useState(30);
   const [category, setCategory] = useState('');
+  const [priority, setPriority] = useState<TaskPriority>('medium');
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [error, setError] = useState('');
   
@@ -38,11 +40,19 @@ export default function TaskForm({ visible, onClose, onSuccess }: TaskFormProps)
     'Work', 'Personal', 'Study', 'Health', 'Home', 'Other'
   ];
   
+  const priorities: { value: TaskPriority; label: string; color: string }[] = [
+    { value: 'high', label: 'High', color: '#3498db' }, // Blue
+    { value: 'medium', label: 'Medium', color: '#f1c40f' }, // Yellow
+    { value: 'low', label: 'Low', color: '#2ecc71' }, // Green
+    { value: 'optional', label: 'Optional', color: '#bdc3c7' }, // Light Gray
+  ];
+  
   const resetForm = () => {
     setTitle('');
     setDescription('');
     setEstimatedMinutes(30);
     setCategory('');
+    setPriority('medium');
     setError('');
   };
   
@@ -62,6 +72,7 @@ export default function TaskForm({ visible, onClose, onSuccess }: TaskFormProps)
       description,
       estimatedMinutes,
       category: category || 'Other',
+      priority,
     });
     
     resetForm();
@@ -86,6 +97,7 @@ export default function TaskForm({ visible, onClose, onSuccess }: TaskFormProps)
         description,
         estimatedMinutes: result.totalEstimatedMinutes,
         category: category || 'Other',
+        priority,
       });
       
       addAIGeneratedSubTasks(
@@ -182,6 +194,32 @@ export default function TaskForm({ visible, onClose, onSuccess }: TaskFormProps)
               ))}
             </View>
             
+            <Text style={styles.label}>Priority</Text>
+            <View style={styles.priorityContainer}>
+              {priorities.map((p) => (
+                <TouchableOpacity
+                  key={p.value}
+                  style={[
+                    styles.priorityChip,
+                    priority === p.value && styles.selectedPriority,
+                    { borderColor: p.color },
+                    priority === p.value && { backgroundColor: p.color },
+                  ]}
+                  onPress={() => setPriority(p.value)}
+                >
+                  <Text
+                    style={[
+                      styles.priorityText,
+                      { color: p.color },
+                      priority === p.value && styles.selectedPriorityText,
+                    ]}
+                  >
+                    {p.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            
             <View style={styles.timeSection}>
               <View style={styles.timeHeader}>
                 <Text style={styles.label}>Estimated Time</Text>
@@ -215,7 +253,12 @@ export default function TaskForm({ visible, onClose, onSuccess }: TaskFormProps)
               </View>
             </View>
             
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            {error ? (
+              <View style={styles.errorContainer}>
+                <AlertCircle size={16} color={colors.danger} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
           </ScrollView>
           
           <View style={styles.footer}>
@@ -315,6 +358,30 @@ const styles = StyleSheet.create({
   selectedCategoryText: {
     color: colors.background,
   },
+  priorityContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 16,
+  },
+  priorityChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: colors.cardBackground,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+  },
+  selectedPriority: {
+    borderColor: 'transparent',
+  },
+  priorityText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  selectedPriorityText: {
+    color: colors.background,
+  },
   timeSection: {
     marginBottom: 16,
   },
@@ -375,8 +442,16 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
   },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFEBEE',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
   errorText: {
     color: colors.danger,
-    marginBottom: 16,
+    marginLeft: 8,
   },
 });

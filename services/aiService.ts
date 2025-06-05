@@ -1,4 +1,4 @@
-import { Task, SubTask } from '@/types/task';
+import { Task, SubTask, TaskPriority } from '@/types/task';
 
 interface AITaskBreakdownResponse {
   subTasks: Array<{
@@ -6,6 +6,7 @@ interface AITaskBreakdownResponse {
     estimatedMinutes: number;
   }>;
   totalEstimatedMinutes: number;
+  suggestedPriority?: TaskPriority;
 }
 
 export const generateTaskBreakdown = async (
@@ -28,7 +29,7 @@ export const generateTaskBreakdown = async (
           messages: [
             {
               role: 'system',
-              content: 'You are a helpful task breakdown assistant. Break down tasks into smaller subtasks with time estimates.'
+              content: 'You are a helpful task breakdown assistant. Break down tasks into smaller subtasks with time estimates and suggest a priority level.'
             },
             {
               role: 'user',
@@ -39,6 +40,7 @@ Description: ${taskDescription || "No description provided"}
 Please provide a JSON response with:
 1. A list of subtasks with titles and estimated time in minutes
 2. A total estimated time for the entire task
+3. A suggested priority level (high, medium, low, or optional)
 
 Format your response as a valid JSON object with this structure:
 {
@@ -46,7 +48,8 @@ Format your response as a valid JSON object with this structure:
     { "title": "Subtask 1", "estimatedMinutes": 30 },
     { "title": "Subtask 2", "estimatedMinutes": 45 }
   ],
-  "totalEstimatedMinutes": 75
+  "totalEstimatedMinutes": 75,
+  "suggestedPriority": "high"
 }`
             }
           ]
@@ -95,6 +98,7 @@ Format your response as a valid JSON object with this structure:
       return {
         subTasks: jsonResponse.subTasks,
         totalEstimatedMinutes: jsonResponse.totalEstimatedMinutes,
+        suggestedPriority: jsonResponse.suggestedPriority || determinePriority(taskTitle, taskDescription),
       };
     } catch (error) {
       clearTimeout(timeoutId);
@@ -106,6 +110,55 @@ Format your response as a valid JSON object with this structure:
     // Always return a valid response even if the network request fails
     return createDefaultBreakdown(taskTitle, taskDescription);
   }
+};
+
+// Determine priority based on task content
+const determinePriority = (title: string, description: string): TaskPriority => {
+  const combinedText = (title + ' ' + (description || '')).toLowerCase();
+  
+  // Check for high priority indicators
+  if (
+    combinedText.includes('urgent') ||
+    combinedText.includes('asap') ||
+    combinedText.includes('deadline') ||
+    combinedText.includes('important') ||
+    combinedText.includes('critical')
+  ) {
+    return 'high';
+  }
+  
+  // Check for medium priority indicators
+  if (
+    combinedText.includes('soon') ||
+    combinedText.includes('this week') ||
+    combinedText.includes('meeting') ||
+    combinedText.includes('report')
+  ) {
+    return 'medium';
+  }
+  
+  // Check for low priority indicators
+  if (
+    combinedText.includes('when possible') ||
+    combinedText.includes('eventually') ||
+    combinedText.includes('routine') ||
+    combinedText.includes('regular')
+  ) {
+    return 'low';
+  }
+  
+  // Check for optional indicators
+  if (
+    combinedText.includes('optional') ||
+    combinedText.includes('if time') ||
+    combinedText.includes('nice to have') ||
+    combinedText.includes('consider')
+  ) {
+    return 'optional';
+  }
+  
+  // Default to medium priority
+  return 'medium';
 };
 
 // Improved fallback function to create a default breakdown when AI fails
@@ -135,7 +188,8 @@ const createDefaultBreakdown = (title: string, description: string): AITaskBreak
   
   return {
     subTasks: subtasks,
-    totalEstimatedMinutes: totalTime
+    totalEstimatedMinutes: totalTime,
+    suggestedPriority: determinePriority(title, description)
   };
 };
 

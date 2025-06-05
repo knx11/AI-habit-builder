@@ -1,4 +1,4 @@
-import { Task, DailyStats } from '@/types/task';
+import { Task, DailyStats, TaskPriority } from '@/types/task';
 import { generateUniqueId } from './helpers';
 import { format, subDays } from 'date-fns';
 
@@ -15,6 +15,8 @@ export const generateMockTasks = (): Task[] => {
       category: 'Work',
       estimatedMinutes: 120,
       actualMinutes: 135,
+      priority: 'high',
+      order: 1,
       subTasks: [
         {
           id: generateUniqueId(),
@@ -49,6 +51,8 @@ export const generateMockTasks = (): Task[] => {
       category: 'Personal',
       estimatedMinutes: 60,
       actualMinutes: 75,
+      priority: 'medium',
+      order: 2,
       subTasks: [
         {
           id: generateUniqueId(),
@@ -82,6 +86,8 @@ export const generateMockTasks = (): Task[] => {
       completed: false,
       category: 'Work',
       estimatedMinutes: 90,
+      priority: 'high',
+      order: 3,
       subTasks: [
         {
           id: generateUniqueId(),
@@ -112,6 +118,8 @@ export const generateMockTasks = (): Task[] => {
       completed: false,
       category: 'Health',
       estimatedMinutes: 30,
+      priority: 'low',
+      order: 4,
       subTasks: [
         {
           id: generateUniqueId(),
@@ -132,6 +140,19 @@ export const generateMockTasks = (): Task[] => {
           estimatedMinutes: 10,
         },
       ],
+      aiGenerated: false,
+    },
+    {
+      id: generateUniqueId(),
+      title: 'Read a book chapter',
+      description: 'Continue reading the current book',
+      createdAt: now.toISOString(),
+      completed: false,
+      category: 'Personal',
+      estimatedMinutes: 45,
+      priority: 'optional',
+      order: 5,
+      subTasks: [],
       aiGenerated: false,
     },
   ];
