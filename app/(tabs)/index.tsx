@@ -131,10 +131,11 @@ export default function TasksScreen() {
           headerRight: () => (
             <View style={styles.headerButtons}>
               <TouchableOpacity 
-                style={styles.headerButton}
+                style={[styles.headerButton, styles.autoRankButton]}
                 onPress={handleAutoRankAndSort}
               >
-                <ListFilter size={24} color={colors.text} />
+                <ListFilter size={20} color={colors.background} />
+                <Text style={styles.autoRankText}>Auto Rank</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.headerButton}
@@ -204,6 +205,26 @@ export default function TasksScreen() {
             Completed
           </Text>
         </TouchableOpacity>
+      </View>
+      
+      <View style={styles.priorityLegend}>
+        <Text style={styles.legendTitle}>Priority:</Text>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendColor, { backgroundColor: '#3498db' }]} />
+          <Text style={styles.legendText}>High</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendColor, { backgroundColor: '#f1c40f' }]} />
+          <Text style={styles.legendText}>Medium</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendColor, { backgroundColor: '#2ecc71' }]} />
+          <Text style={styles.legendText}>Low</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendColor, { backgroundColor: '#bdc3c7' }]} />
+          <Text style={styles.legendText}>Optional</Text>
+        </View>
       </View>
       
       {isReordering && (
@@ -286,6 +307,20 @@ const styles = StyleSheet.create({
   headerButton: {
     marginRight: 16,
   },
+  autoRankButton: {
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+  },
+  autoRankText: {
+    color: colors.background,
+    fontWeight: '500',
+    fontSize: 14,
+    marginLeft: 4,
+  },
   addButton: {
     marginRight: 16,
   },
@@ -311,6 +346,35 @@ const styles = StyleSheet.create({
   },
   activeFilterText: {
     color: colors.background,
+  },
+  priorityLegend: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: colors.cardBackground,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  legendTitle: {
+    fontSize: 12,
+    color: colors.textLight,
+    marginRight: 8,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  legendColor: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 4,
+  },
+  legendText: {
+    fontSize: 12,
+    color: colors.textLight,
   },
   reorderingBanner: {
     flexDirection: 'row',

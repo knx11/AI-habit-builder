@@ -11,4 +11,10 @@ export const colors = {
   warning: '#FFC107',
   cardBackground: '#F8F9FA',
   border: '#E0E0E0',
+  
+  // Priority colors
+  priorityHigh: '#3498db',    // Blue
+  priorityMedium: '#f1c40f',  // Yellow
+  priorityLow: '#2ecc71',     // Green
+  priorityOptional: '#bdc3c7', // Light Gray
 };
