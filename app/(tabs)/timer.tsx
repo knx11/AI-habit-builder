@@ -6,7 +6,6 @@ import { useTaskStore } from '@/store/taskStore';
 import PomodoroTimer from '@/components/PomodoroTimer';
 import TaskItem from '@/components/TaskItem';
 import TaskDetails from '@/components/TaskDetails';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function TimerScreen() {
   const { tasks, pomodoroSettings, updatePomodoroSettings } = useTaskStore();

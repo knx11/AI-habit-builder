@@ -26,10 +26,11 @@ interface TaskStore {
   updatePomodoroSettings: (settings: PomodoroSettings) => void;
   addAIGeneratedSubTasks: (taskId: string, subTasks: Array<{ title: string; estimatedMinutes: number }>) => void;
   
-  // New functions for task ordering and priority
+  // Functions for task ordering and priority
   reorderTasks: (taskIds: string[]) => void;
   assignPriority: (taskId: string, priority: TaskPriority) => void;
   autoAssignPriorities: () => void;
+  sortTasksByPriority: () => void;
 }
 
 const defaultPomodoroSettings: PomodoroSettings = {
@@ -235,7 +236,7 @@ export const useTaskStore = create<TaskStore>()(
         }));
       },
       
-      // New function to reorder tasks
+      // Function to reorder tasks
       reorderTasks: (taskIds) => {
         set((state) => {
           const updatedTasks = [...state.tasks];
@@ -310,6 +311,28 @@ export const useTaskStore = create<TaskStore>()(
             
             return { ...task, priority };
           });
+          
+          return { tasks: updatedTasks };
+        });
+      },
+      
+      // Sort tasks by priority
+      sortTasksByPriority: () => {
+        set((state) => {
+          const priorityOrder = { high: 0, medium: 1, low: 2, optional: 3 };
+          
+          const sortedTasks = [...state.tasks].sort((a, b) => {
+            const aPriority = a.priority ? priorityOrder[a.priority] : 4;
+            const bPriority = b.priority ? priorityOrder[b.priority] : 4;
+            
+            return aPriority - bPriority;
+          });
+          
+          // Update order property based on new sort
+          const updatedTasks = sortedTasks.map((task, index) => ({
+            ...task,
+            order: index + 1
+          }));
           
           return { tasks: updatedTasks };
         });

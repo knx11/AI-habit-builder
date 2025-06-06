@@ -70,12 +70,18 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
       extrapolate: 'clamp',
     });
 
+    const scale = progress.interpolate({
+      inputRange: [0, 0.8, 1],
+      outputRange: [0.8, 1.1, 1],
+      extrapolate: 'clamp',
+    });
+
     return (
       <Animated.View 
         style={[
           styles.leftAction, 
           { 
-            transform: [{ translateX: trans }],
+            transform: [{ translateX: trans }, { scale }],
             opacity
           }
         ]}
@@ -100,12 +106,18 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
       extrapolate: 'clamp',
     });
 
+    const scale = progress.interpolate({
+      inputRange: [0, 0.8, 1],
+      outputRange: [0.8, 1.1, 1],
+      extrapolate: 'clamp',
+    });
+
     return (
       <Animated.View 
         style={[
           styles.rightAction, 
           { 
-            transform: [{ translateX: trans }],
+            transform: [{ translateX: trans }, { scale }],
             opacity
           }
         ]}
@@ -121,6 +133,9 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
     if (direction === 'left') {
       // Delete action
       handleDelete();
+      if (Platform.OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      }
     } else {
       // Complete action
       completeTask(task.id, true);
@@ -206,6 +221,7 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
           rightThreshold={80}
           friction={2}
           overshootFriction={8}
+          containerStyle={styles.swipeableContainer}
         >
           {renderContent()}
         </Swipeable>
@@ -221,6 +237,10 @@ const styles = StyleSheet.create({
   itemContainer: {
     position: 'relative',
     marginBottom: 12,
+  },
+  swipeableContainer: {
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   priorityIndicator: {
     position: 'absolute',

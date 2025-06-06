@@ -19,10 +19,10 @@ import TaskForm from '@/components/TaskForm';
 import TaskDetails from '@/components/TaskDetails';
 import { Task } from '@/types/task';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as Haptics from 'expo-haptics';
 
 export default function TasksScreen() {
-  const { tasks, reorderTasks, autoAssignPriorities } = useTaskStore();
+  const { tasks, reorderTasks, autoAssignPriorities, sortTasksByPriority } = useTaskStore();
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
@@ -81,10 +81,7 @@ export default function TasksScreen() {
   const toggleSortMode = () => {
     setSortBy(sortBy === 'order' ? 'priority' : 'order');
     if (Platform.OS !== 'web') {
-      Alert.alert(
-        'Sorting Tasks',
-        `Tasks are now sorted by ${sortBy === 'order' ? 'priority' : 'order'}`
-      );
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
 
@@ -96,6 +93,7 @@ export default function TasksScreen() {
     setSortBy('priority');
     
     if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
         'Tasks Auto-Ranked',
         'Tasks have been automatically ranked by priority and sorted'
