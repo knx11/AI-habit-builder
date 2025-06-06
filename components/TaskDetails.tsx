@@ -17,8 +17,6 @@ import {
   Calendar, 
   CheckCircle, 
   Circle, 
-  Trash2, 
-  Edit2,
   Share2, 
   Zap,
   Trash,
@@ -261,7 +259,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                 style={[styles.headerButton, styles.deleteButton]}
                 onPress={handleDeleteTask}
               >
-                <Trash2 size={20} color={colors.danger} />
+                <Trash size={20} color={colors.danger} />
               </TouchableOpacity>
             </View>
           </View>
@@ -295,7 +293,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                   </Text>
                   
                   <TouchableOpacity onPress={handleEditTitle}>
-                    <Edit2 size={18} color={colors.textLight} />
+                    <Text style={styles.editText}>Edit</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -372,7 +370,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                       Estimated: {formatTime(task.estimatedMinutes)}
                     </Text>
                     <TouchableOpacity onPress={handleEditTime}>
-                      <Edit2 size={14} color={colors.textLight} />
+                      <Text style={styles.editText}>Edit</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -516,7 +514,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                               hitSlop={10}
                               style={styles.actionButton}
                             >
-                              <Edit2 size={16} color={colors.textLight} />
+                              <Text style={styles.editText}>Edit</Text>
                             </TouchableOpacity>
                             
                             <TouchableOpacity 
@@ -524,7 +522,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                               hitSlop={10}
                               style={styles.actionButton}
                             >
-                              <Trash2 size={16} color={colors.danger} />
+                              <Text style={styles.deleteText}>Delete</Text>
                             </TouchableOpacity>
                           </View>
                         </>
@@ -624,6 +622,14 @@ const styles = StyleSheet.create({
   completedText: {
     textDecorationLine: 'line-through',
     color: colors.textLight,
+  },
+  editText: {
+    color: colors.primary,
+    fontWeight: '500',
+  },
+  deleteText: {
+    color: colors.danger,
+    fontWeight: '500',
   },
   editTitleContainer: {
     flexDirection: 'row',
