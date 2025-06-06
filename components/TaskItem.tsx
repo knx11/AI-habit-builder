@@ -135,6 +135,57 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
     }, 300);
   };
 
+  // Render different content for web vs native
+  const renderContent = () => {
+    return (
+      <View style={styles.container}>
+        {/* Main task content */}
+        <TouchableOpacity 
+          onPress={onPress}
+          onLongPress={onLongPress}
+          activeOpacity={0.7}
+          style={styles.taskContent}
+        >
+          <View style={styles.taskHeader}>
+            <View style={styles.titleContainer}>
+              <TouchableOpacity onPress={handleToggleComplete}>
+                {task.completed ? (
+                  <CheckCircle size={24} color={colors.primary} />
+                ) : (
+                  <Circle size={24} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+              <Text 
+                style={[
+                  styles.title,
+                  task.completed && styles.completedText
+                ]}
+                numberOfLines={1}
+              >
+                {task.title}
+              </Text>
+            </View>
+            <Text style={styles.time}>{formatTime(task.estimatedMinutes)}</Text>
+          </View>
+
+          {task.subTasks.length > 0 && (
+            <View style={styles.progressContainer}>
+              <ProgressBar 
+                progress={task.subTasks.filter(st => st.completed).length / task.subTasks.length * 100}
+                height={3}
+                backgroundColor={colors.border}
+                progressColor={task.completed ? colors.primary : colors.secondary}
+              />
+              <Text style={styles.subtaskCount}>
+                {task.subTasks.filter(st => st.completed).length}/{task.subTasks.length} subtasks
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.itemContainer}>
       {/* Priority indicator */}
@@ -156,99 +207,11 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
           friction={2}
           overshootFriction={8}
         >
-          <View style={styles.container}>
-            {/* Main task content */}
-            <TouchableOpacity 
-              onPress={onPress}
-              onLongPress={onLongPress}
-              activeOpacity={0.7}
-              style={styles.taskContent}
-            >
-              <View style={styles.taskHeader}>
-                <View style={styles.titleContainer}>
-                  <TouchableOpacity onPress={handleToggleComplete}>
-                    {task.completed ? (
-                      <CheckCircle size={24} color={colors.primary} />
-                    ) : (
-                      <Circle size={24} color={colors.primary} />
-                    )}
-                  </TouchableOpacity>
-                  <Text 
-                    style={[
-                      styles.title,
-                      task.completed && styles.completedText
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {task.title}
-                  </Text>
-                </View>
-                <Text style={styles.time}>{formatTime(task.estimatedMinutes)}</Text>
-              </View>
-
-              {task.subTasks.length > 0 && (
-                <View style={styles.progressContainer}>
-                  <ProgressBar 
-                    progress={task.subTasks.filter(st => st.completed).length / task.subTasks.length * 100}
-                    height={3}
-                    backgroundColor={colors.border}
-                    progressColor={task.completed ? colors.primary : colors.secondary}
-                  />
-                  <Text style={styles.subtaskCount}>
-                    {task.subTasks.filter(st => st.completed).length}/{task.subTasks.length} subtasks
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
+          {renderContent()}
         </Swipeable>
       ) : (
         // Fallback for web (no swipe gestures)
-        <View style={styles.container}>
-          {/* Main task content */}
-          <TouchableOpacity 
-            onPress={onPress}
-            onLongPress={onLongPress}
-            activeOpacity={0.7}
-            style={styles.taskContent}
-          >
-            <View style={styles.taskHeader}>
-              <View style={styles.titleContainer}>
-                <TouchableOpacity onPress={handleToggleComplete}>
-                  {task.completed ? (
-                    <CheckCircle size={24} color={colors.primary} />
-                  ) : (
-                    <Circle size={24} color={colors.primary} />
-                  )}
-                </TouchableOpacity>
-                <Text 
-                  style={[
-                    styles.title,
-                    task.completed && styles.completedText
-                  ]}
-                  numberOfLines={1}
-                >
-                  {task.title}
-                </Text>
-              </View>
-              <Text style={styles.time}>{formatTime(task.estimatedMinutes)}</Text>
-            </View>
-
-            {task.subTasks.length > 0 && (
-              <View style={styles.progressContainer}>
-                <ProgressBar 
-                  progress={task.subTasks.filter(st => st.completed).length / task.subTasks.length * 100}
-                  height={3}
-                  backgroundColor={colors.border}
-                  progressColor={task.completed ? colors.primary : colors.secondary}
-                />
-                <Text style={styles.subtaskCount}>
-                  {task.subTasks.filter(st => st.completed).length}/{task.subTasks.length} subtasks
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
+        renderContent()
       )}
     </View>
   );

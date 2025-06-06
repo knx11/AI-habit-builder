@@ -19,6 +19,7 @@ import TaskForm from '@/components/TaskForm';
 import TaskDetails from '@/components/TaskDetails';
 import { Task } from '@/types/task';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function TasksScreen() {
   const { tasks, reorderTasks, autoAssignPriorities } = useTaskStore();
