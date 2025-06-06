@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -18,7 +18,6 @@ import TaskItem from '@/components/TaskItem';
 import TaskForm from '@/components/TaskForm';
 import TaskDetails from '@/components/TaskDetails';
 import { Task } from '@/types/task';
-import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 import * as Haptics from 'expo-haptics';
 
 export default function TasksScreen() {
@@ -101,28 +100,16 @@ export default function TasksScreen() {
     }
   };
   
-  const handleDragEnd = ({ data }: { data: Task[] }) => {
-    // Update the order in the store
-    const newTaskIds = data.map(task => task.id);
-    reorderTasks(newTaskIds);
-  };
-  
-  const renderItem = ({ item, drag, isActive }: RenderItemParams<Task>) => {
+  const renderItem = useCallback(({ item }: { item: Task }) => {
     return (
-      <TouchableOpacity
-        onLongPress={isReordering ? drag : undefined}
-        disabled={!isReordering}
-        style={[isActive && styles.draggingItem]}
-      >
-        <TaskItem 
-          task={item} 
-          onPress={() => handleTaskPress(item.id)}
-          onLongPress={() => handleTaskPress(item.id)}
-        />
-      </TouchableOpacity>
+      <TaskItem 
+        task={item} 
+        onPress={() => handleTaskPress(item.id)}
+        onLongPress={() => handleTaskPress(item.id)}
+      />
     );
-  };
-  
+  }, [handleTaskPress]);
+
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen
@@ -249,28 +236,12 @@ export default function TasksScreen() {
           </Text>
         </View>
       ) : (
-        Platform.OS !== 'web' && isReordering ? (
-          <DraggableFlatList
-            data={filteredTasks}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.id}
-            onDragEnd={handleDragEnd}
-            contentContainerStyle={styles.listContent}
-          />
-        ) : (
-          <FlatList
-            data={filteredTasks}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TaskItem 
-                task={item} 
-                onPress={() => handleTaskPress(item.id)}
-                onLongPress={() => handleTaskPress(item.id)}
-              />
-            )}
-            contentContainerStyle={styles.listContent}
-          />
-        )
+        <FlatList
+          data={filteredTasks}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+        />
       )}
       
       {/* Floating Action Button for adding tasks */}
@@ -435,14 +406,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-  },
-  draggingItem: {
-    opacity: 0.7,
-    transform: [{ scale: 1.05 }],
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 10,
   },
 });

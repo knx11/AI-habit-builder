@@ -66,20 +66,6 @@ export default function RootLayout() {
     return null;
   }
 
-  // On web, don't use GestureHandlerRootView
-  if (Platform.OS === 'web') {
-    return (
-      <View style={styles.container}>
-        <trpc.Provider client={trpcClient} queryClient={queryClient}>
-          <QueryClientProvider client={queryClient}>
-            <RootLayoutNav />
-          </QueryClientProvider>
-        </trpc.Provider>
-      </View>
-    );
-  }
-
-  // On native, wrap with GestureHandlerRootView
   return (
     <GestureHandlerRootView style={styles.container}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
