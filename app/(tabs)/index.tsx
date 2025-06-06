@@ -249,7 +249,7 @@ export default function TasksScreen() {
           </Text>
         </View>
       ) : (
-        isReordering ? (
+        Platform.OS !== 'web' && isReordering ? (
           <DraggableFlatList
             data={filteredTasks}
             renderItem={renderItem}

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -25,6 +25,7 @@ interface TaskItemProps {
 export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) {
   const { completeTask, deleteTask } = useTaskStore();
   const swipeableRef = useRef<Swipeable>(null);
+  const [isSwiping, setIsSwiping] = useState(false);
 
   const handleToggleComplete = () => {
     if (Platform.OS !== 'web') {
@@ -146,18 +147,19 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
     
     // Close the swipeable after action
     setTimeout(() => {
-      swipeableRef.current?.close();
+      if (swipeableRef.current) {
+        swipeableRef.current.close();
+      }
     }, 300);
   };
 
-  // Render different content for web vs native
-  const renderContent = () => {
+  // Render the main task content
+  const renderTaskContent = () => {
     return (
       <View style={styles.container}>
-        {/* Main task content */}
         <TouchableOpacity 
-          onPress={onPress}
-          onLongPress={onLongPress}
+          onPress={isSwiping ? undefined : onPress}
+          onLongPress={isSwiping ? undefined : onLongPress}
           activeOpacity={0.7}
           style={styles.taskContent}
         >
@@ -217,17 +219,22 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
           renderLeftActions={renderLeftActions}
           renderRightActions={renderRightActions}
           onSwipeableOpen={onSwipeableOpen}
+          onSwipeableWillOpen={() => setIsSwiping(true)}
+          onSwipeableWillClose={() => setIsSwiping(false)}
           leftThreshold={80}
           rightThreshold={80}
           friction={2}
           overshootFriction={8}
           containerStyle={styles.swipeableContainer}
+          childrenContainerStyle={styles.swipeableChildrenContainer}
         >
-          {renderContent()}
+          {renderTaskContent()}
         </Swipeable>
       ) : (
         // Fallback for web (no swipe gestures)
-        renderContent()
+        <View style={styles.swipeableContainer}>
+          {renderTaskContent()}
+        </View>
       )}
     </View>
   );
@@ -241,6 +248,9 @@ const styles = StyleSheet.create({
   swipeableContainer: {
     borderRadius: 12,
     overflow: 'hidden',
+  },
+  swipeableChildrenContainer: {
+    borderRadius: 12,
   },
   priorityIndicator: {
     position: 'absolute',
