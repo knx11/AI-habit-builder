@@ -8,10 +8,9 @@ import { generateMockTasks, generateMockStats } from "@/utils/mockData";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform, View } from "react-native";
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: "(tabs)",
 };
 
@@ -67,6 +66,20 @@ export default function RootLayout() {
     return null;
   }
 
+  // On web, don't use GestureHandlerRootView
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.container}>
+        <trpc.Provider client={trpcClient} queryClient={queryClient}>
+          <QueryClientProvider client={queryClient}>
+            <RootLayoutNav />
+          </QueryClientProvider>
+        </trpc.Provider>
+      </View>
+    );
+  }
+
+  // On native, wrap with GestureHandlerRootView
   return (
     <GestureHandlerRootView style={styles.container}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>

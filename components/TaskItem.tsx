@@ -3,154 +3,69 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  TouchableOpacity, 
+  TouchableOpacity,
   Platform,
-  Animated,
+  Dimensions
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
-import { CheckCircle, Circle, Check, Trash2 } from 'lucide-react-native';
-import { colors } from '@/constants/colors';
 import { Task } from '@/types/task';
-import { useTaskStore } from '@/store/taskStore';
+import { colors } from '@/constants/colors';
 import { formatTime } from '@/utils/helpers';
+import { Circle, CheckCircle, Clock } from 'lucide-react-native';
 import ProgressBar from './ProgressBar';
 import { Swipeable } from 'react-native-gesture-handler';
 
 interface TaskItemProps {
   task: Task;
   onPress: () => void;
-  onLongPress?: () => void;
+  onLongPress: () => void;
 }
 
 export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) {
-  const { completeTask, deleteTask } = useTaskStore();
   const swipeableRef = useRef<Swipeable>(null);
   const [isSwiping, setIsSwiping] = useState(false);
 
-  const handleToggleComplete = () => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    completeTask(task.id, !task.completed);
-  };
-
-  const handleDelete = () => {
-    if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    }
-    deleteTask(task.id);
-  };
-
-  // Get priority color
   const getPriorityColor = () => {
     switch (task.priority) {
       case 'high':
-        return '#3498db'; // Blue
+        return '#3498db';
       case 'medium':
-        return '#f1c40f'; // Yellow
+        return '#f1c40f';
       case 'low':
-        return '#2ecc71'; // Green
+        return '#2ecc71';
       case 'optional':
-        return '#bdc3c7'; // Light Gray
+        return '#bdc3c7';
       default:
-        return colors.border; // Default
+        return colors.border;
     }
   };
 
-  // Render the left action (Complete)
-  const renderLeftActions = (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
-    const trans = dragX.interpolate({
-      inputRange: [0, 50, 100, 101],
-      outputRange: [-20, 0, 0, 0],
-      extrapolate: 'clamp',
-    });
-    
-    const opacity = progress.interpolate({
-      inputRange: [0, 0.2, 1],
-      outputRange: [0, 0.5, 1],
-      extrapolate: 'clamp',
-    });
+  const progress = task.subTasks.length > 0
+    ? (task.subTasks.filter(st => st.completed).length / task.subTasks.length) * 100
+    : task.completed ? 100 : 0;
 
-    const scale = progress.interpolate({
-      inputRange: [0, 0.8, 1],
-      outputRange: [0.8, 1.1, 1],
-      extrapolate: 'clamp',
-    });
-
-    return (
-      <Animated.View 
-        style={[
-          styles.leftAction, 
-          { 
-            transform: [{ translateX: trans }, { scale }],
-            opacity
-          }
-        ]}
-      >
-        <Check size={24} color="#fff" />
-        <Text style={styles.actionText}>Complete</Text>
-      </Animated.View>
-    );
-  };
-
-  // Render the right action (Delete)
-  const renderRightActions = (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
-    const trans = dragX.interpolate({
-      inputRange: [-101, -100, -50, 0],
-      outputRange: [0, 0, 0, 20],
-      extrapolate: 'clamp',
-    });
-    
-    const opacity = progress.interpolate({
-      inputRange: [0, 0.2, 1],
-      outputRange: [0, 0.5, 1],
-      extrapolate: 'clamp',
-    });
-
-    const scale = progress.interpolate({
-      inputRange: [0, 0.8, 1],
-      outputRange: [0.8, 1.1, 1],
-      extrapolate: 'clamp',
-    });
-
-    return (
-      <Animated.View 
-        style={[
-          styles.rightAction, 
-          { 
-            transform: [{ translateX: trans }, { scale }],
-            opacity
-          }
-        ]}
-      >
-        <Text style={styles.actionText}>Delete</Text>
-        <Trash2 size={24} color="#fff" />
-      </Animated.View>
-    );
-  };
-
-  // Handle swipe actions
-  const onSwipeableOpen = (direction: 'left' | 'right') => {
-    if (direction === 'left') {
-      // Delete action
-      handleDelete();
-      if (Platform.OS !== 'web') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      }
-    } else {
-      // Complete action
-      completeTask(task.id, true);
-      if (Platform.OS !== 'web') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
+  const onSwipeableOpen = () => {
+    if (Platform.OS !== 'web') {
+      setTimeout(() => {
+        swipeableRef.current?.close();
+        setIsSwiping(false);
+      }, 2000);
     }
-    
-    // Close the swipeable after action
-    setTimeout(() => {
-      if (swipeableRef.current) {
-        swipeableRef.current.close();
-      }
-    }, 300);
+  };
+
+  const renderLeftActions = () => {
+    return (
+      <View style={styles.leftAction}>
+        <CheckCircle size={24} color={colors.success} />
+      </View>
+    );
+  };
+
+  const renderRightActions = () => {
+    return (
+      <View style={styles.rightAction}>
+        <Clock size={24} color={colors.primary} />
+      </View>
+    );
   };
 
   // Render the main task content
@@ -163,176 +78,191 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
           activeOpacity={0.7}
           style={styles.taskContent}
         >
-          <View style={styles.taskHeader}>
+          <View style={styles.header}>
             <View style={styles.titleContainer}>
-              <TouchableOpacity onPress={handleToggleComplete}>
-                {task.completed ? (
-                  <CheckCircle size={24} color={colors.primary} />
-                ) : (
-                  <Circle size={24} color={colors.primary} />
-                )}
-              </TouchableOpacity>
               <Text 
                 style={[
                   styles.title,
                   task.completed && styles.completedText
                 ]}
-                numberOfLines={1}
+                numberOfLines={2}
               >
                 {task.title}
               </Text>
+              {task.category && (
+                <View style={styles.categoryChip}>
+                  <Text style={styles.categoryText}>{task.category}</Text>
+                </View>
+              )}
             </View>
-            <Text style={styles.time}>{formatTime(task.estimatedMinutes)}</Text>
           </View>
 
-          {task.subTasks.length > 0 && (
+          {task.description ? (
+            <Text 
+              style={styles.description}
+              numberOfLines={2}
+            >
+              {task.description}
+            </Text>
+          ) : null}
+
+          <View style={styles.footer}>
             <View style={styles.progressContainer}>
               <ProgressBar 
-                progress={task.subTasks.filter(st => st.completed).length / task.subTasks.length * 100}
+                progress={progress}
                 height={3}
                 backgroundColor={colors.border}
-                progressColor={task.completed ? colors.primary : colors.secondary}
+                progressColor={getPriorityColor()}
               />
-              <Text style={styles.subtaskCount}>
-                {task.subTasks.filter(st => st.completed).length}/{task.subTasks.length} subtasks
+              <Text style={styles.progressText}>
+                {task.subTasks.length > 0 
+                  ? `${task.subTasks.filter(st => st.completed).length}/${task.subTasks.length} subtasks`
+                  : formatTime(task.estimatedMinutes)
+                }
               </Text>
             </View>
-          )}
+          </View>
         </TouchableOpacity>
       </View>
     );
   };
 
+  // On web, don't use Swipeable
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.itemContainer}>
+        <View 
+          style={[
+            styles.priorityIndicator, 
+            { backgroundColor: getPriorityColor() }
+          ]} 
+        />
+        <View style={styles.swipeableContainer}>
+          {renderTaskContent()}
+        </View>
+      </View>
+    );
+  }
+
+  // On native, use Swipeable
   return (
     <View style={styles.itemContainer}>
-      {/* Priority indicator */}
       <View 
         style={[
           styles.priorityIndicator, 
           { backgroundColor: getPriorityColor() }
         ]} 
       />
-      
-      {Platform.OS !== 'web' ? (
-        <Swipeable
-          ref={swipeableRef}
-          renderLeftActions={renderLeftActions}
-          renderRightActions={renderRightActions}
-          onSwipeableOpen={onSwipeableOpen}
-          onSwipeableWillOpen={() => setIsSwiping(true)}
-          onSwipeableWillClose={() => setIsSwiping(false)}
-          leftThreshold={80}
-          rightThreshold={80}
-          friction={2}
-          overshootFriction={8}
-          containerStyle={styles.swipeableContainer}
-          childrenContainerStyle={styles.swipeableChildrenContainer}
-        >
-          {renderTaskContent()}
-        </Swipeable>
-      ) : (
-        // Fallback for web (no swipe gestures)
-        <View style={styles.swipeableContainer}>
-          {renderTaskContent()}
-        </View>
-      )}
+      <Swipeable
+        ref={swipeableRef}
+        renderLeftActions={renderLeftActions}
+        renderRightActions={renderRightActions}
+        onSwipeableOpen={onSwipeableOpen}
+        onSwipeableWillOpen={() => setIsSwiping(true)}
+        onSwipeableWillClose={() => setIsSwiping(false)}
+        leftThreshold={80}
+        rightThreshold={80}
+        friction={2}
+        overshootFriction={8}
+        containerStyle={styles.swipeableContainer}
+        childrenContainerStyle={styles.swipeableChildrenContainer}
+      >
+        {renderTaskContent()}
+      </Swipeable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   itemContainer: {
-    position: 'relative',
+    flexDirection: 'row',
     marginBottom: 12,
   },
+  priorityIndicator: {
+    width: 4,
+    borderRadius: 2,
+    marginRight: 8,
+  },
   swipeableContainer: {
-    borderRadius: 12,
-    overflow: 'hidden',
+    flex: 1,
   },
   swipeableChildrenContainer: {
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
-  },
-  priorityIndicator: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 4,
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
-    zIndex: 1,
   },
   container: {
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-    position: 'relative',
+    overflow: 'hidden',
   },
   taskContent: {
     padding: 16,
   },
-  taskHeader: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    marginBottom: 8,
   },
   titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     flex: 1,
-    marginRight: 8,
   },
   title: {
     fontSize: 16,
+    fontWeight: '600',
     color: colors.text,
-    marginLeft: 12,
-    flex: 1,
+    marginBottom: 4,
   },
   completedText: {
     textDecorationLine: 'line-through',
     color: colors.textLight,
   },
-  time: {
+  categoryChip: {
+    backgroundColor: colors.secondary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  categoryText: {
+    color: colors.background,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  description: {
     fontSize: 14,
     color: colors.textLight,
+    marginBottom: 12,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   progressContainer: {
-    marginTop: 12,
+    flex: 1,
   },
-  subtaskCount: {
+  progressText: {
     fontSize: 12,
     color: colors.textLight,
     marginTop: 4,
-    textAlign: 'right',
   },
-  // Swipeable action styles
   leftAction: {
     flex: 1,
-    backgroundColor: '#34C759', // iOS green
+    backgroundColor: colors.success,
     justifyContent: 'center',
     alignItems: 'flex-start',
     paddingLeft: 20,
-    borderRadius: 12,
-    flexDirection: 'row',
-    gap: 8,
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
   },
   rightAction: {
     flex: 1,
-    backgroundColor: '#FF3B30', // iOS red
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'flex-end',
     paddingRight: 20,
-    borderRadius: 12,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
   },
 });
