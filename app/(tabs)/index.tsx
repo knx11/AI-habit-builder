@@ -11,7 +11,7 @@ import {
   Dimensions
 } from 'react-native';
 import { Stack } from 'expo-router';
-import { Plus, Filter, ArrowUpDown } from 'lucide-react-native';
+import { Plus, Filter, ArrowUpDown, ListFilter } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import TaskItem from '@/components/TaskItem';
@@ -86,6 +86,21 @@ export default function TasksScreen() {
       );
     }
   };
+
+  const handleAutoRankAndSort = () => {
+    // Auto-assign priorities to all tasks
+    autoAssignPriorities();
+    
+    // Switch to priority sorting
+    setSortBy('priority');
+    
+    if (Platform.OS !== 'web') {
+      Alert.alert(
+        'Tasks Auto-Ranked',
+        'Tasks have been automatically ranked by priority and sorted'
+      );
+    }
+  };
   
   const handleDragEnd = ({ data }: { data: Task[] }) => {
     // Update the order in the store
@@ -116,6 +131,12 @@ export default function TasksScreen() {
           headerTitle: 'My Tasks',
           headerRight: () => (
             <View style={styles.headerButtons}>
+              <TouchableOpacity 
+                style={styles.headerButton}
+                onPress={handleAutoRankAndSort}
+              >
+                <ListFilter size={24} color={colors.text} />
+              </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.headerButton}
                 onPress={toggleSortMode}
