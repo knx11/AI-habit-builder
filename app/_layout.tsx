@@ -25,14 +25,14 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
   
-  const { tasks, dailyStats } = useTaskStore();
+  const { tasks, dailyStats, addTask, addDailyStats } = useTaskStore();
   
   // Initialize with mock data if empty
   useEffect(() => {
     if (tasks.length === 0) {
       const mockTasks = generateMockTasks();
       mockTasks.forEach((task) => {
-        useTaskStore.getState().addTask({
+        addTask({
           title: task.title,
           description: task.description,
           category: task.category,
@@ -45,7 +45,7 @@ export default function RootLayout() {
     if (dailyStats.length === 0) {
       const mockStats = generateMockStats();
       mockStats.forEach((stat) => {
-        useTaskStore.getState().addDailyStats(stat);
+        addDailyStats(stat);
       });
     }
   }, []);
@@ -71,7 +71,10 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.container}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-          <RootLayoutNav />
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
+          </Stack>
         </QueryClientProvider>
       </trpc.Provider>
     </GestureHandlerRootView>
@@ -83,16 +86,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-
-function RootLayoutNav() {
-  return (
-    <Stack
-      screenOptions={{
-        headerBackTitle: "Back",
-      }}
-    >
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
-    </Stack>
-  );
-}
