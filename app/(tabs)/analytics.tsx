@@ -41,7 +41,7 @@ export default function AnalyticsScreen() {
           headerRight: () => (
             <TouchableOpacity 
               onPress={() => router.push('/settings')}
-              style={{ marginRight: 16 }}
+              style={styles.headerButton}
             >
               <Settings size={24} color={colors.text} />
             </TouchableOpacity>
@@ -64,5 +64,8 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
+  },
+  headerButton: {
+    marginRight: 16,
   },
 });
