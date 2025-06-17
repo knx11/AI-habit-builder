@@ -12,7 +12,7 @@ import { useRouter } from 'expo-router';
 export default function TimerScreen() {
   const router = useRouter();
   const { tasks, pomodoroSettings } = useTaskStore();
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>();
   
   // Filter only incomplete tasks
   const activeTasks = tasks.filter((task) => !task.completed)
@@ -62,8 +62,8 @@ export default function TimerScreen() {
       
       <TaskDetails
         visible={!!selectedTaskId}
-        taskId={selectedTaskId}
-        onClose={() => setSelectedTaskId(null)}
+        taskId={selectedTaskId || null}
+        onClose={() => setSelectedTaskId(undefined)}
       />
     </SafeAreaView>
   );
