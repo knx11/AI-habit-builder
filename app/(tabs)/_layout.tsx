@@ -1,13 +1,9 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { TouchableOpacity } from 'react-native';
 import { CheckSquare, Clock, BarChart2, Calendar } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
-import { useRouter } from 'expo-router';
 
 export default function TabLayout() {
-  const router = useRouter();
-
   return (
     <Tabs
       screenOptions={{
