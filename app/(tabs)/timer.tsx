@@ -11,9 +11,8 @@ import { useRouter } from 'expo-router';
 
 export default function TimerScreen() {
   const router = useRouter();
-  const { tasks, pomodoroSettings, updatePomodoroSettings } = useTaskStore();
+  const { tasks, pomodoroSettings } = useTaskStore();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
   
   // Filter only incomplete tasks
   const activeTasks = tasks.filter((task) => !task.completed)
@@ -39,7 +38,59 @@ export default function TimerScreen() {
         }}
       />
       
-      {/* Rest of your existing code remains the same */}
+      <View style={styles.content}>
+        <PomodoroTimer taskId={selectedTaskId} />
+        
+        <View style={styles.taskListContainer}>
+          <Text style={styles.sectionTitle}>Active Tasks</Text>
+          <FlatList
+            data={activeTasks}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TaskItem
+                task={item}
+                onPress={() => handleTaskPress(item.id)}
+                onLongPress={() => {}}
+              />
+            )}
+            ListEmptyComponent={() => (
+              <Text style={styles.emptyText}>No active tasks</Text>
+            )}
+          />
+        </View>
+      </View>
+      
+      <TaskDetails
+        visible={!!selectedTaskId}
+        taskId={selectedTaskId}
+        onClose={() => setSelectedTaskId(null)}
+      />
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  content: {
+    flex: 1,
+    padding: 16,
+  },
+  taskListContainer: {
+    flex: 1,
+    marginTop: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: colors.textLight,
+    marginTop: 20,
+  },
+});

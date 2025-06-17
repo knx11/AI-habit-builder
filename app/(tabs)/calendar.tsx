@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import { Stack } from 'expo-router';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
@@ -41,7 +41,88 @@ export default function CalendarScreen() {
         }}
       />
 
-      {/* Rest of your existing calendar code remains the same */}
+      <View style={styles.content}>
+        <View style={styles.calendar}>
+          {weekDates.map((date) => (
+            <TouchableOpacity
+              key={date.toISOString()}
+              style={[
+                styles.dateButton,
+                isSameDay(date, selectedDate) && styles.selectedDate,
+              ]}
+              onPress={() => setSelectedDate(date)}
+            >
+              <Text style={styles.dayText}>{format(date, 'EEE')}</Text>
+              <Text style={styles.dateText}>{format(date, 'd')}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <ScrollView style={styles.taskList}>
+          {tasksForDate.map((task) => (
+            <TaskItem
+              key={task.id}
+              task={task}
+              onPress={() => setSelectedTaskId(task.id)}
+              onLongPress={() => {}}
+            />
+          ))}
+          {tasksForDate.length === 0 && (
+            <Text style={styles.emptyText}>No tasks for this date</Text>
+          )}
+        </ScrollView>
+      </View>
+
+      <TaskDetails
+        visible={!!selectedTaskId}
+        taskId={selectedTaskId}
+        onClose={() => setSelectedTaskId(null)}
+      />
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  content: {
+    flex: 1,
+    padding: 16,
+  },
+  calendar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 12,
+  },
+  dateButton: {
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 8,
+  },
+  selectedDate: {
+    backgroundColor: colors.primary,
+  },
+  dayText: {
+    fontSize: 14,
+    color: colors.text,
+    marginBottom: 4,
+  },
+  dateText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  taskList: {
+    flex: 1,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: colors.textLight,
+    marginTop: 20,
+  },
+});

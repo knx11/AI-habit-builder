@@ -19,13 +19,19 @@ import {
 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useRouter } from 'expo-router';
-
-// ... rest of your imports ...
+import { useTaskStore } from '@/store/taskStore';
+import AnalyticsCard from '@/components/AnalyticsCard';
+import BarChart from '@/components/BarChart';
+import PieChart from '@/components/PieChart';
+import { generateWeeklyStats } from '@/utils/helpers';
 
 export default function AnalyticsScreen() {
   const router = useRouter();
-  
-  // ... rest of your existing code ...
+  const { tasks, dailyStats } = useTaskStore();
+  const [selectedPeriod, setSelectedPeriod] = useState('week');
+
+  // Get weekly stats
+  const weeklyStats = generateWeeklyStats(tasks, dailyStats);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -43,7 +49,20 @@ export default function AnalyticsScreen() {
         }}
       />
       
-      {/* Rest of your existing code remains the same */}
+      <ScrollView style={styles.content}>
+        {/* Analytics content will go here */}
+      </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  content: {
+    flex: 1,
+    padding: 16,
+  },
+});

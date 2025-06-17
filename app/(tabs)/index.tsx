@@ -22,10 +22,7 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 
 export default function TasksScreen() {
-  // Add router
   const router = useRouter();
-  
-  // Rest of the code remains the same, just add the settings button to Stack.Screen
   const { tasks, reorderTasks, autoAssignPriorities, sortTasksByPriority } = useTaskStore();
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -33,7 +30,30 @@ export default function TasksScreen() {
   const [isReordering, setIsReordering] = useState(false);
   const [sortBy, setSortBy] = useState<'order' | 'priority'>('order');
 
-  // ... rest of your existing code ...
+  const toggleSortMode = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setSortBy(current => current === 'order' ? 'priority' : 'order');
+    if (sortBy === 'order') {
+      sortTasksByPriority();
+    }
+  };
+
+  const toggleReorderMode = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setIsReordering(!isReordering);
+  };
+
+  const handleAutoRankAndSort = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    autoAssignPriorities();
+    sortTasksByPriority();
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -72,7 +92,35 @@ export default function TasksScreen() {
         }}
       />
       
-      {/* Rest of your existing code remains the same */}
+      {/* Rest of your existing code */}
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerButton: {
+    marginLeft: 16,
+  },
+  autoRankButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  autoRankText: {
+    color: colors.background,
+    marginLeft: 4,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+});
