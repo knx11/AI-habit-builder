@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import TaskItem from '@/components/TaskItem';
 import TaskDetails from '@/components/TaskDetails';
 import { Settings } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
 
 export default function CalendarScreen() {
   const router = useRouter();

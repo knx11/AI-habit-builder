@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   SafeAreaView
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { 
   CheckCircle, 
   Clock, 
@@ -18,7 +18,6 @@ import {
   Settings
 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
-import { useRouter } from 'expo-router';
 import { useTaskStore } from '@/store/taskStore';
 import AnalyticsCard from '@/components/AnalyticsCard';
 import BarChart from '@/components/BarChart';
@@ -50,7 +49,41 @@ export default function AnalyticsScreen() {
       />
       
       <ScrollView style={styles.content}>
-        {/* Analytics content will go here */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Weekly Overview</Text>
+          <BarChart 
+            data={weeklyStats.data}
+            labels={weeklyStats.labels}
+            barColor={colors.primary}
+          />
+        </View>
+        
+        <View style={styles.cardsContainer}>
+          <AnalyticsCard
+            title="Tasks Completed"
+            value={dailyStats.length > 0 ? dailyStats[dailyStats.length - 1].totalTasksCompleted : 0}
+            subtitle="Today"
+            icon={<CheckCircle size={24} color={colors.primary} />}
+          />
+          
+          <AnalyticsCard
+            title="Time Spent"
+            value={dailyStats.length > 0 ? 
+              `${Math.floor(dailyStats[dailyStats.length - 1].totalTimeSpent / 60)}h ${dailyStats[dailyStats.length - 1].totalTimeSpent % 60}m` : 
+              "0h 0m"}
+            subtitle="Today"
+            icon={<Clock size={24} color={colors.secondary} />}
+            color={colors.secondary}
+          />
+          
+          <AnalyticsCard
+            title="Productivity Score"
+            value={dailyStats.length > 0 ? `${dailyStats[dailyStats.length - 1].productivityScore}%` : "0%"}
+            subtitle="Today"
+            icon={<TrendingUp size={24} color={colors.accent} />}
+            color={colors.accent}
+          />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -67,5 +100,20 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     marginRight: 16,
+  },
+  section: {
+    marginBottom: 24,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 16,
+  },
+  cardsContainer: {
+    marginBottom: 24,
   },
 });

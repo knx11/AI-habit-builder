@@ -37,6 +37,7 @@ export default function RootLayout() {
           description: task.description,
           category: task.category,
           estimatedMinutes: task.estimatedMinutes,
+          priority: task.priority,
         });
       });
     }
@@ -91,6 +92,7 @@ function RootLayoutNav() {
       }}
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }

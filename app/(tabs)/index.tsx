@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -8,7 +8,7 @@ import {
   SafeAreaView,
   Platform
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { Plus, Filter, ArrowUpDown, ListFilter, Settings } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
@@ -16,7 +16,6 @@ import TaskItem from '@/components/TaskItem';
 import TaskForm from '@/components/TaskForm';
 import TaskDetails from '@/components/TaskDetails';
 import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
 
 export default function TasksScreen() {
   const router = useRouter();
@@ -26,6 +25,15 @@ export default function TasksScreen() {
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [isReordering, setIsReordering] = useState(false);
   const [sortBy, setSortBy] = useState<'order' | 'priority'>('order');
+
+  // Force a re-render after initial load to ensure tasks are displayed
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // This empty setState forces a re-render
+      setSortBy(current => current);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const toggleSortMode = () => {
     if (Platform.OS !== 'web') {
