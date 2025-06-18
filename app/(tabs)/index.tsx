@@ -79,6 +79,12 @@ export default function TasksScreen() {
           headerRight: () => (
             <View style={styles.headerButtons}>
               <TouchableOpacity 
+                style={styles.headerButton}
+                onPress={() => router.push('/settings')}
+              >
+                <Settings size={24} color={colors.text} />
+              </TouchableOpacity>
+              <TouchableOpacity 
                 style={[styles.headerButton, styles.autoRankButton]}
                 onPress={handleAutoRankAndSort}
               >
@@ -96,12 +102,6 @@ export default function TasksScreen() {
                 onPress={toggleReorderMode}
               >
                 <ArrowUpDown size={24} color={isReordering ? colors.primary : colors.text} />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.headerButton}
-                onPress={() => router.push('/settings')}
-              >
-                <Settings size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
           ),

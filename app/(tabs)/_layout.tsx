@@ -1,5 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
+import { StyleSheet, View, Text } from 'react-native';
 import { CheckSquare, Clock, BarChart2, Calendar } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 
@@ -11,6 +12,9 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.textLight,
         tabBarStyle: {
           borderTopColor: colors.border,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
         },
         headerStyle: {
           backgroundColor: colors.background,
@@ -18,6 +22,9 @@ export default function TabLayout() {
         headerTitleStyle: {
           color: colors.text,
           fontWeight: '600',
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
         },
       }}
     >
@@ -27,6 +34,9 @@ export default function TabLayout() {
           title: 'Tasks',
           tabBarIcon: ({ color, size }) => (
             <CheckSquare size={size} color={color} />
+          ),
+          tabBarLabel: ({ color }) => (
+            <Text style={[styles.tabLabel, { color }]}>Tasks</Text>
           ),
         }}
       />
@@ -38,6 +48,9 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <Clock size={size} color={color} />
           ),
+          tabBarLabel: ({ color }) => (
+            <Text style={[styles.tabLabel, { color }]}>Timer</Text>
+          ),
         }}
       />
       
@@ -47,6 +60,9 @@ export default function TabLayout() {
           title: 'Analytics',
           tabBarIcon: ({ color, size }) => (
             <BarChart2 size={size} color={color} />
+          ),
+          tabBarLabel: ({ color }) => (
+            <Text style={[styles.tabLabel, { color }]}>Analytics</Text>
           ),
         }}
       />
@@ -58,8 +74,19 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <Calendar size={size} color={color} />
           ),
+          tabBarLabel: ({ color }) => (
+            <Text style={[styles.tabLabel, { color }]}>Calendar</Text>
+          ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: -4,
+  },
+});
