@@ -1,20 +1,20 @@
-// Color palette based on the provided image
 export const colors = {
-  primary: '#2D4A43', // Dark teal
-  secondary: '#8BBAB4', // Light teal/sage
-  background: '#FFFFFF', // White
-  accent: '#F9B293', // Peach/coral
+  primary: '#2D4A43', // Dark green
+  secondary: '#8BBAB4', // Light teal
+  background: '#FFFFFF',
   text: '#333333',
   textLight: '#777777',
-  success: '#4CAF50',
-  danger: '#F44336',
-  warning: '#FFC107',
-  cardBackground: '#F8F9FA',
   border: '#E0E0E0',
+  cardBackground: '#F8F9FA',
   
-  // Priority colors
-  priorityHigh: '#3498db',    // Blue
-  priorityMedium: '#f1c40f',  // Yellow
-  priorityLow: '#2ecc71',     // Green
-  priorityOptional: '#bdc3c7', // Light Gray
+  // Category colors
+  categoryWork: '#8BBAB4',    // Teal
+  categoryHealth: '#8BBAB4',  // Teal
+  categoryPersonal: '#8BBAB4', // Teal
+  
+  // Priority colors (for left bars)
+  priorityHigh: '#FFB800',    // Yellow
+  priorityMedium: '#CCCCCC',  // Gray
+  priorityLow: '#CCCCCC',     // Gray
+  priorityOptional: '#CCCCCC', // Gray
 };
