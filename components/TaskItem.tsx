@@ -20,28 +20,15 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
   const getPriorityColor = () => {
     switch (task.priority) {
       case 'high':
-        return colors.priorityHigh;
+        return '#FFB800';    // Yellow
       case 'medium':
-        return colors.priorityMedium;
+        return '#8BBAB4';    // Teal
       case 'low':
-        return colors.priorityLow;
+        return '#CCCCCC';    // Gray
       case 'optional':
-        return colors.priorityOptional;
+        return '#CCCCCC';    // Gray
       default:
         return colors.border;
-    }
-  };
-
-  const getCategoryColor = () => {
-    switch (task.category?.toLowerCase()) {
-      case 'work':
-        return colors.categoryWork;
-      case 'health':
-        return colors.categoryHealth;
-      case 'personal':
-        return colors.categoryPersonal;
-      default:
-        return colors.secondary;
     }
   };
 
@@ -60,7 +47,7 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
         </Text>
         
         {task.category && (
-          <View style={[styles.categoryChip, { backgroundColor: getCategoryColor() }]}>
+          <View style={styles.categoryChip}>
             <Text style={styles.categoryText}>{task.category}</Text>
           </View>
         )}
@@ -83,44 +70,40 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     backgroundColor: colors.background,
-    borderRadius: 12,
     marginBottom: 12,
     overflow: 'hidden',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    borderRadius: 8,
   },
   priorityBar: {
     width: 4,
   },
   content: {
     flex: 1,
-    padding: 16,
+    padding: 12,
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   categoryChip: {
     alignSelf: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 16,
-    marginBottom: 8,
+    marginBottom: 4,
+    backgroundColor: colors.secondary + '20', // 20% opacity
   },
   categoryText: {
-    color: colors.background,
+    color: colors.primary,
     fontSize: 12,
     fontWeight: '500',
   },
   description: {
     fontSize: 14,
     color: colors.textLight,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   time: {
     fontSize: 14,

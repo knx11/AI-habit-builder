@@ -40,7 +40,10 @@ export default function TasksScreen() {
         options={{
           headerTitle: 'Tasks',
           headerRight: () => (
-            <TouchableOpacity style={styles.headerButton}>
+            <TouchableOpacity 
+              style={styles.headerButton}
+              onPress={() => {/* Navigate to settings */}}
+            >
               <Settings size={24} color={colors.text} />
             </TouchableOpacity>
           ),
