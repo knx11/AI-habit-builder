@@ -9,7 +9,7 @@ import {
   Platform
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { Plus, Filter, ArrowUpDown, ListFilter, Settings } from 'lucide-react-native';
+import { Plus, Filter, ListFilter, Settings } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import TaskItem from '@/components/TaskItem';
@@ -96,12 +96,6 @@ export default function TasksScreen() {
                 onPress={toggleSortMode}
               >
                 <Filter size={24} color={colors.text} />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.headerButton}
-                onPress={toggleReorderMode}
-              >
-                <ArrowUpDown size={24} color={isReordering ? colors.primary : colors.text} />
               </TouchableOpacity>
             </View>
           ),
