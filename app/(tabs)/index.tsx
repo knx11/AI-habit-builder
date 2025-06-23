@@ -75,7 +75,17 @@ export default function TasksScreen() {
     <SafeAreaView style={styles.container}>
       <Stack.Screen
         options={{
-          headerTitle: 'My Tasks',
+          headerTitle: () => (
+            <View style={styles.headerTitleContainer}>
+              <Text style={styles.headerTitle}>My Tasks</Text>
+              <TouchableOpacity 
+                onPress={() => router.push('/settings')}
+                style={styles.settingsButton}
+              >
+                <Settings size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+          ),
           headerRight: () => (
             <View style={styles.headerButtons}>
               <TouchableOpacity 
@@ -97,17 +107,12 @@ export default function TasksScreen() {
               >
                 <ArrowUpDown size={24} color={isReordering ? colors.primary : colors.text} />
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.headerButton}
-                onPress={() => router.push('/settings')}
-              >
-                <Settings size={24} color={colors.text} />
-              </TouchableOpacity>
             </View>
           ),
         }}
       />
       
+      {/* Rest of the component remains the same */}
       <View style={styles.content}>
         <View style={styles.filterContainer}>
           <TouchableOpacity
@@ -185,6 +190,21 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
+  },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingRight: 16,
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  settingsButton: {
+    marginLeft: 12,
   },
   headerButtons: {
     flexDirection: 'row',

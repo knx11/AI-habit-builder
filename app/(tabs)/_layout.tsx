@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { StyleSheet, View, Text } from 'react-native';
-import { CheckSquare, Clock, BarChart2, Calendar, Settings } from 'lucide-react-native';
+import { CheckSquare, Clock, BarChart2, Calendar } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 
 export default function TabLayout() {
@@ -76,19 +76,6 @@ export default function TabLayout() {
           ),
           tabBarLabel: ({ color }) => (
             <Text style={[styles.tabLabel, { color }]}>Calendar</Text>
-          ),
-        }}
-      />
-      
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
-            <Settings size={size} color={color} />
-          ),
-          tabBarLabel: ({ color }) => (
-            <Text style={[styles.tabLabel, { color }]}>settings</Text>
           ),
         }}
       />
