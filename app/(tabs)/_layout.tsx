@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { StyleSheet } from 'react-native';
-import { ClipboardList, Clock, BarChart2, Calendar } from 'lucide-react-native';
+import { StyleSheet, View, Text } from 'react-native';
+import { CheckSquare, Clock, BarChart2, Calendar, Settings } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 
 export default function TabLayout() {
@@ -21,7 +21,6 @@ export default function TabLayout() {
         },
         headerTitleStyle: {
           color: colors.text,
-          fontSize: 24,
           fontWeight: '600',
         },
         tabBarLabelStyle: {
@@ -34,9 +33,11 @@ export default function TabLayout() {
         options={{
           title: 'Tasks',
           tabBarIcon: ({ color, size }) => (
-            <ClipboardList size={size} color={color} />
+            <CheckSquare size={size} color={color} />
           ),
-          tabBarLabel: 'Tasks',
+          tabBarLabel: ({ color }) => (
+            <Text style={[styles.tabLabel, { color }]}>Tasks</Text>
+          ),
         }}
       />
       
@@ -47,7 +48,9 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <Clock size={size} color={color} />
           ),
-          tabBarLabel: 'Timer',
+          tabBarLabel: ({ color }) => (
+            <Text style={[styles.tabLabel, { color }]}>Timer</Text>
+          ),
         }}
       />
       
@@ -58,7 +61,9 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <BarChart2 size={size} color={color} />
           ),
-          tabBarLabel: 'Analytics',
+          tabBarLabel: ({ color }) => (
+            <Text style={[styles.tabLabel, { color }]}>Analytics</Text>
+          ),
         }}
       />
       
@@ -69,9 +74,32 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <Calendar size={size} color={color} />
           ),
-          tabBarLabel: 'Calendar',
+          tabBarLabel: ({ color }) => (
+            <Text style={[styles.tabLabel, { color }]}>Calendar</Text>
+          ),
+        }}
+      />
+      
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color, size }) => (
+            <Settings size={size} color={color} />
+          ),
+          tabBarLabel: ({ color }) => (
+            <Text style={[styles.tabLabel, { color }]}>settings</Text>
+          ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: -4,
+  },
+});

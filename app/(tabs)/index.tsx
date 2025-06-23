@@ -1,27 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
-  FlatList,
-  TouchableOpacity,
+  FlatList, 
+  TouchableOpacity, 
   SafeAreaView,
+  Platform
 } from 'react-native';
-import { Stack } from 'expo-router';
-import { Plus, Settings } from 'lucide-react-native';
+import { Stack, useRouter } from 'expo-router';
+import { Plus, Filter, ArrowUpDown, ListFilter, Settings } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import TaskItem from '@/components/TaskItem';
 import TaskForm from '@/components/TaskForm';
 import TaskDetails from '@/components/TaskDetails';
-
-type FilterType = 'all' | 'active' | 'completed';
+import * as Haptics from 'expo-haptics';
 
 export default function TasksScreen() {
-  const { tasks } = useTaskStore();
+  const router = useRouter();
+  const { tasks, reorderTasks, autoAssignPriorities, sortTasksByPriority } = useTaskStore();
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterType>('all');
+  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [isReordering, setIsReordering] = useState(false);
+  const [sortBy, setSortBy] = useState<'order' | 'priority'>('order');
+
+  // Force a re-render after initial load to ensure tasks are displayed
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // This empty setState forces a re-render
+      setSortBy(current => current);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const toggleSortMode = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setSortBy(current => current === 'order' ? 'priority' : 'order');
+    if (sortBy === 'order') {
+      sortTasksByPriority();
+    }
+  };
+
+  const toggleReorderMode = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setIsReordering(!isReordering);
+  };
+
+  const handleAutoRankAndSort = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    autoAssignPriorities();
+    sortTasksByPriority();
+  };
 
   const filteredTasks = tasks.filter(task => {
     switch (filter) {
@@ -38,14 +75,35 @@ export default function TasksScreen() {
     <SafeAreaView style={styles.container}>
       <Stack.Screen
         options={{
-          headerTitle: 'Tasks',
+          headerTitle: 'My Tasks',
           headerRight: () => (
-            <TouchableOpacity 
-              style={styles.headerButton}
-              onPress={() => {/* Navigate to settings */}}
-            >
-              <Settings size={24} color={colors.text} />
-            </TouchableOpacity>
+            <View style={styles.headerButtons}>
+              <TouchableOpacity 
+                style={[styles.headerButton, styles.autoRankButton]}
+                onPress={handleAutoRankAndSort}
+              >
+                <ListFilter size={20} color={colors.background} />
+                <Text style={styles.autoRankText}>Auto Rank</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.headerButton}
+                onPress={toggleSortMode}
+              >
+                <Filter size={24} color={colors.text} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.headerButton}
+                onPress={toggleReorderMode}
+              >
+                <ArrowUpDown size={24} color={isReordering ? colors.primary : colors.text} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.headerButton}
+                onPress={() => router.push('/settings')}
+              >
+                <Settings size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
           ),
         }}
       />
@@ -60,7 +118,6 @@ export default function TasksScreen() {
               All
             </Text>
           </TouchableOpacity>
-          
           <TouchableOpacity
             style={[styles.filterButton, filter === 'active' && styles.activeFilter]}
             onPress={() => setFilter('active')}
@@ -69,7 +126,6 @@ export default function TasksScreen() {
               Active
             </Text>
           </TouchableOpacity>
-          
           <TouchableOpacity
             style={[styles.filterButton, filter === 'completed' && styles.activeFilter]}
             onPress={() => setFilter('completed')}
@@ -87,7 +143,7 @@ export default function TasksScreen() {
             <TaskItem
               task={item}
               onPress={() => setSelectedTaskId(item.id)}
-              onLongPress={() => {}}
+              onLongPress={() => setIsReordering(true)}
             />
           )}
           contentContainerStyle={styles.listContent}
@@ -130,28 +186,45 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   headerButton: {
-    marginRight: 16,
+    marginLeft: 16,
+  },
+  autoRankButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  autoRankText: {
+    color: colors.background,
+    marginLeft: 4,
+    fontSize: 14,
+    fontWeight: '500',
   },
   filterContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F1F1F1',
-    borderRadius: 24,
-    padding: 4,
     marginBottom: 16,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 4,
   },
   filterButton: {
     flex: 1,
     paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
     alignItems: 'center',
+    borderRadius: 8,
   },
   activeFilter: {
     backgroundColor: colors.primary,
   },
   filterText: {
-    color: colors.textLight,
+    color: colors.text,
     fontWeight: '500',
   },
   activeFilterText: {
@@ -159,7 +232,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     flexGrow: 1,
-    paddingBottom: 80,
   },
   emptyContainer: {
     flex: 1,
