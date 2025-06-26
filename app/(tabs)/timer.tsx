@@ -7,11 +7,14 @@ import PomodoroTimer from '@/components/PomodoroTimer';
 import TaskItem from '@/components/TaskItem';
 import TaskDetails from '@/components/TaskDetails';
 import { Settings } from 'lucide-react-native';
+import FeedbackToast from '@/components/FeedbackToast';
+import useFeedback from '@/hooks/useFeedback';
 
 export default function TimerScreen() {
   const router = useRouter();
   const { tasks } = useTaskStore();
   const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>();
+  const { feedback, showFeedback, hideFeedback } = useFeedback();
   
   // Filter only incomplete tasks
   const activeTasks = tasks.filter((task) => !task.completed)
@@ -19,6 +22,7 @@ export default function TimerScreen() {
   
   const handleTaskPress = (taskId: string) => {
     setSelectedTaskId(taskId);
+    showFeedback('Task selected for timer', 'info');
   };
   
   // Calculate content padding
@@ -80,6 +84,13 @@ export default function TimerScreen() {
         visible={!!selectedTaskId}
         taskId={selectedTaskId || null}
         onClose={() => setSelectedTaskId(undefined)}
+      />
+      
+      <FeedbackToast
+        message={feedback.message}
+        visible={feedback.visible}
+        onHide={hideFeedback}
+        type={feedback.type}
       />
     </View>
   );

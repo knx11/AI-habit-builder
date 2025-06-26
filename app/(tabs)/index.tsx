@@ -7,12 +7,15 @@ import { useTaskStore } from '@/store/taskStore';
 import TaskItem from '@/components/TaskItem';
 import TaskForm from '@/components/TaskForm';
 import TaskDetails from '@/components/TaskDetails';
+import FeedbackToast from '@/components/FeedbackToast';
+import useFeedback from '@/hooks/useFeedback';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { tasks } = useTaskStore();
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const { feedback, showFeedback, hideFeedback } = useFeedback();
   
   // Sort tasks by creation date, newest first
   const sortedTasks = [...tasks].sort(
@@ -24,6 +27,10 @@ export default function HomeScreen() {
   const headerHeight = Platform.OS === 'ios' ? 90 : 60 + statusBarHeight;
   const tabBarHeight = Platform.OS === 'ios' ? 80 : 60;
   
+  const handleTaskFormSuccess = () => {
+    showFeedback('Task created successfully', 'success');
+  };
+
   return (
     <View style={styles.container}>
       <Stack.Screen
@@ -73,12 +80,20 @@ export default function HomeScreen() {
       <TaskForm
         visible={showTaskForm}
         onClose={() => setShowTaskForm(false)}
+        onSuccess={handleTaskFormSuccess}
       />
       
       <TaskDetails
         visible={!!selectedTaskId}
         taskId={selectedTaskId}
         onClose={() => setSelectedTaskId(null)}
+      />
+      
+      <FeedbackToast
+        message={feedback.message}
+        visible={feedback.visible}
+        onHide={hideFeedback}
+        type={feedback.type}
       />
     </View>
   );
