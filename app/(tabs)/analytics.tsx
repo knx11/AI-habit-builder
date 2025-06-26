@@ -10,23 +10,18 @@ import { Stack, useRouter } from 'expo-router';
 import { 
   CheckCircle, 
   Clock, 
-  TrendingUp, 
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
+  TrendingUp,
   Settings
 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import AnalyticsCard from '@/components/AnalyticsCard';
 import BarChart from '@/components/BarChart';
-import PieChart from '@/components/PieChart';
 import { generateWeeklyStats } from '@/utils/helpers';
 
 export default function AnalyticsScreen() {
   const router = useRouter();
   const { tasks, dailyStats } = useTaskStore();
-  const [selectedPeriod, setSelectedPeriod] = useState('week');
 
   // Get weekly stats
   const weeklyStats = generateWeeklyStats(tasks, dailyStats);
@@ -35,7 +30,7 @@ export default function AnalyticsScreen() {
     <View style={styles.container}>
       <Stack.Screen
         options={{
-          headerTitle: 'Productivity Analytics',
+          headerTitle: 'Analytics',
           headerStyle: {
             backgroundColor: colors.background,
           },

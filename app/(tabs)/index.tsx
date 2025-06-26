@@ -56,7 +56,7 @@ export default function IndexScreen() {
       />
 
       <View style={styles.content}>
-        {/* Filter Tabs */}
+        {/* Rest of the code remains the same */}
         <View style={styles.filterContainer}>
           <TouchableOpacity
             style={[
@@ -104,7 +104,6 @@ export default function IndexScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Task List */}
         <FlatList
           data={filteredTasks}
           keyExtractor={(item) => item.id}
@@ -119,7 +118,6 @@ export default function IndexScreen() {
           showsVerticalScrollIndicator={false}
         />
 
-        {/* Floating Action Button */}
         <TouchableOpacity
           style={styles.fab}
           onPress={() => setShowAddTask(true)}
