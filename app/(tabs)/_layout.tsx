@@ -33,9 +33,6 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontSize: 12,
         },
-        sceneContainerStyle: {
-          backgroundColor: colors.background,
-        },
       }}
     >
       <Tabs.Screen
