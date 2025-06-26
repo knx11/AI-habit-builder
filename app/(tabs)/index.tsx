@@ -10,26 +10,61 @@ import TaskDetails from '@/components/TaskDetails';
 import FeedbackToast from '@/components/FeedbackToast';
 import useFeedback from '@/hooks/useFeedback';
 
+type FilterType = 'all' | 'active' | 'completed';
+
 export default function HomeScreen() {
   const router = useRouter();
   const { tasks } = useTaskStore();
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterType>('all');
   const { feedback, showFeedback, hideFeedback } = useFeedback();
   
-  // Sort tasks by creation date, newest first
-  const sortedTasks = [...tasks].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  // Filter tasks based on selected filter
+  const getFilteredTasks = () => {
+    let filteredTasks = [...tasks];
+    
+    switch (filter) {
+      case 'active':
+        filteredTasks = tasks.filter(task => !task.completed);
+        break;
+      case 'completed':
+        filteredTasks = tasks.filter(task => task.completed);
+        break;
+      default:
+        filteredTasks = tasks;
+    }
+    
+    // Sort by creation date, newest first
+    return filteredTasks.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  };
   
-  // Calculate content padding to account for status bar and tab bar
-  const statusBarHeight = Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 44;
-  const headerHeight = Platform.OS === 'ios' ? 90 : 60 + statusBarHeight;
-  const tabBarHeight = Platform.OS === 'ios' ? 80 : 60;
+  const filteredTasks = getFilteredTasks();
   
   const handleTaskFormSuccess = () => {
     showFeedback('Task created successfully', 'success');
   };
+
+  const renderFilterButton = (filterType: FilterType, label: string) => (
+    <TouchableOpacity
+      style={[
+        styles.filterButton,
+        filter === filterType && styles.activeFilterButton,
+      ]}
+      onPress={() => setFilter(filterType)}
+    >
+      <Text
+        style={[
+          styles.filterButtonText,
+          filter === filterType && styles.activeFilterButtonText,
+        ]}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
@@ -41,12 +76,20 @@ export default function HomeScreen() {
           },
           headerTitleStyle: {
             color: colors.text,
+            fontSize: 24,
+            fontWeight: 'bold',
           },
         }}
       />
       
+      <View style={styles.filterContainer}>
+        {renderFilterButton('all', 'All')}
+        {renderFilterButton('active', 'Active')}
+        {renderFilterButton('completed', 'Completed')}
+      </View>
+      
       <FlatList
-        data={sortedTasks}
+        data={filteredTasks}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <TaskItem
@@ -55,23 +98,18 @@ export default function HomeScreen() {
             onLongPress={() => {}}
           />
         )}
-        contentContainerStyle={[
-          styles.listContent,
-          { 
-            paddingTop: headerHeight + 16,
-            paddingBottom: tabBarHeight + 88,
-          }
-        ]}
+        contentContainerStyle={styles.listContent}
         ListEmptyComponent={() => (
-          <Text style={styles.emptyText}>No tasks yet</Text>
+          <Text style={styles.emptyText}>
+            {filter === 'active' ? 'No active tasks' : 
+             filter === 'completed' ? 'No completed tasks' : 
+             'No tasks yet'}
+          </Text>
         )}
       />
       
       <TouchableOpacity
-        style={[
-          styles.fab,
-          { bottom: tabBarHeight + 24 }
-        ]}
+        style={styles.fab}
         onPress={() => setShowTaskForm(true)}
       >
         <Plus size={24} color="#fff" />
@@ -104,17 +142,44 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  filterContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  filterButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
+  },
+  activeFilterButton: {
+    backgroundColor: colors.primary,
+  },
+  filterButtonText: {
+    fontSize: 16,
+    color: colors.textLight,
+    fontWeight: '500',
+  },
+  activeFilterButtonText: {
+    color: colors.background,
+    fontWeight: '600',
+  },
   listContent: {
     paddingHorizontal: 16,
+    paddingBottom: 100,
   },
   emptyText: {
     textAlign: 'center',
     color: colors.textLight,
-    marginTop: 20,
+    marginTop: 40,
+    fontSize: 16,
   },
   fab: {
     position: 'absolute',
     right: 24,
+    bottom: 100,
     width: 56,
     height: 56,
     borderRadius: 28,

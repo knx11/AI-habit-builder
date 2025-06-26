@@ -24,13 +24,13 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
   const getPriorityColor = () => {
     switch (task.priority) {
       case 'high':
-        return '#f1c40f'; // Yellow/orange for high priority
+        return '#f1c40f'; // Yellow for high priority
       case 'medium':
-        return '#f1c40f';
+        return '#f1c40f'; // Yellow for medium priority
       case 'low':
         return '#bdc3c7'; // Gray for low priority
       case 'optional':
-        return '#bdc3c7';
+        return '#bdc3c7'; // Gray for optional
       default:
         return '#bdc3c7';
     }
@@ -40,6 +40,12 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
   const renderTaskContent = () => {
     return (
       <View style={styles.container}>
+        <View 
+          style={[
+            styles.priorityIndicator, 
+            { backgroundColor: getPriorityColor() }
+          ]} 
+        />
         <TouchableOpacity 
           onPress={isSwiping ? undefined : onPress}
           onLongPress={isSwiping ? undefined : onLongPress}
@@ -56,6 +62,12 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
             {task.title}
           </Text>
 
+          {task.category && (
+            <View style={styles.categoryChip}>
+              <Text style={styles.categoryText}>{task.category}</Text>
+            </View>
+          )}
+
           {task.description ? (
             <Text 
               style={styles.description}
@@ -65,17 +77,9 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
             </Text>
           ) : null}
 
-          <View style={styles.footer}>
-            {task.category && (
-              <View style={styles.categoryChip}>
-                <Text style={styles.categoryText}>{task.category}</Text>
-              </View>
-            )}
-
-            <Text style={styles.timeText}>
-              {formatTime(task.estimatedMinutes)}
-            </Text>
-          </View>
+          <Text style={styles.timeText}>
+            {formatTime(task.estimatedMinutes)}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -85,15 +89,7 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
   if (Platform.OS === 'web') {
     return (
       <View style={styles.itemContainer}>
-        <View 
-          style={[
-            styles.priorityIndicator, 
-            { backgroundColor: getPriorityColor() }
-          ]} 
-        />
-        <View style={styles.swipeableContainer}>
-          {renderTaskContent()}
-        </View>
+        {renderTaskContent()}
       </View>
     );
   }
@@ -101,12 +97,6 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
   // On native, use Swipeable
   return (
     <View style={styles.itemContainer}>
-      <View 
-        style={[
-          styles.priorityIndicator, 
-          { backgroundColor: getPriorityColor() }
-        ]} 
-      />
       <Swipeable
         ref={swipeableRef}
         onSwipeableWillOpen={() => setIsSwiping(true)}
@@ -122,60 +112,61 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
 
 const styles = StyleSheet.create({
   itemContainer: {
-    flexDirection: 'row',
-    marginBottom: 12,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  priorityIndicator: {
-    width: 4,
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
+    marginBottom: 16,
   },
   swipeableContainer: {
     flex: 1,
   },
   swipeableChildrenContainer: {
-    backgroundColor: colors.cardBackground,
+    backgroundColor: colors.background,
   },
   container: {
-    backgroundColor: colors.cardBackground,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    overflow: 'hidden',
+    flexDirection: 'row',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  priorityIndicator: {
+    width: 4,
   },
   taskContent: {
+    flex: 1,
     padding: 16,
+    backgroundColor: colors.background,
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   completedText: {
     textDecorationLine: 'line-through',
     color: colors.textLight,
+  },
+  categoryChip: {
+    backgroundColor: colors.secondary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  categoryText: {
+    color: colors.background,
+    fontSize: 12,
+    fontWeight: '500',
   },
   description: {
     fontSize: 14,
     color: colors.textLight,
     marginBottom: 8,
     lineHeight: 20,
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  categoryChip: {
-    backgroundColor: colors.secondary,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  categoryText: {
-    color: colors.background,
-    fontSize: 12,
-    fontWeight: '500',
   },
   timeText: {
     fontSize: 14,
