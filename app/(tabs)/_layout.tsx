@@ -15,7 +15,7 @@ export default function TabLayout() {
         headerRight: () => (
           <TouchableOpacity 
             onPress={() => router.push('/settings')}
-            style={[styles.headerButton, { marginTop: insets.top }]}
+            style={[styles.headerButton, { marginTop: Platform.OS === 'ios' ? 0 : insets.top }]}
           >
             <Settings size={24} color={colors.text} />
           </TouchableOpacity>
@@ -25,27 +25,26 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
-          height: 60 + insets.bottom,
-          paddingBottom: insets.bottom,
+          height: Platform.OS === 'ios' ? 80 : 60 + insets.bottom,
+          paddingBottom: Platform.OS === 'ios' ? 30 : insets.bottom,
           paddingTop: 8,
         },
         headerStyle: {
           backgroundColor: colors.background,
-          height: Platform.OS === 'ios' ? 100 : 80,
-          paddingTop: insets.top,
+          height: Platform.OS === 'ios' ? 90 : 60 + insets.top,
         },
         headerTitleStyle: {
           color: colors.text,
           fontSize: 24,
           fontWeight: 'bold',
-          marginTop: insets.top,
+          marginTop: Platform.OS === 'ios' ? 0 : insets.top,
         },
         headerTitleContainerStyle: {
           paddingHorizontal: 16,
-          paddingTop: insets.top,
         },
         tabBarLabelStyle: {
           fontSize: 12,
+          marginBottom: Platform.OS === 'ios' ? 0 : 8,
         },
         headerShadowVisible: false,
       }}
