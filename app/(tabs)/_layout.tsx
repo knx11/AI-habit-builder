@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { CheckSquare, Clock, BarChart2, Calendar } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
