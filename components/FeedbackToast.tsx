@@ -29,6 +29,17 @@ export default function FeedbackToast({
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(-100);
 
+  const getBackgroundColor = () => {
+    switch (type) {
+      case 'success':
+        return colors.success;
+      case 'error':
+        return colors.danger;
+      default:
+        return colors.primary;
+    }
+  };
+
   const animatedStyle = useAnimatedStyle(() => {
     return {
       opacity: opacity.value,
@@ -55,17 +66,6 @@ export default function FeedbackToast({
       return () => clearTimeout(timer);
     }
   }, [visible, opacity, translateY, duration, onHide]);
-
-  const getBackgroundColor = () => {
-    switch (type) {
-      case 'success':
-        return colors.success;
-      case 'error':
-        return colors.danger;
-      default:
-        return colors.primary;
-    }
-  };
 
   if (!visible) return null;
 
