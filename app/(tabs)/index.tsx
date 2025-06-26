@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Platform, Modal } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { Plus } from 'lucide-react-native';
+import { Plus, ChevronDown, Check } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import TaskItem from '@/components/TaskItem';
@@ -18,13 +18,22 @@ export default function HomeScreen() {
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const { feedback, showFeedback, hideFeedback } = useFeedback();
   
-  // Filter tasks based on selected filter
+  // Get unique categories from tasks
+  const categories = ['All Categories', ...Array.from(new Set(tasks.map(task => task.category).filter(Boolean)))];
+  
+  // Filter tasks based on selected filter and category
   const getFilteredTasks = () => {
     let filteredTasks = [...tasks];
     
     switch (filter) {
+      case 'all':
+        // Show only non-completed tasks for "All"
+        filteredTasks = tasks.filter(task => !task.completed);
+        break;
       case 'active':
         filteredTasks = tasks.filter(task => !task.completed);
         break;
@@ -33,6 +42,11 @@ export default function HomeScreen() {
         break;
       default:
         filteredTasks = tasks;
+    }
+    
+    // Apply category filter if selected
+    if (selectedCategory && selectedCategory !== 'All Categories') {
+      filteredTasks = filteredTasks.filter(task => task.category === selectedCategory);
     }
     
     // Sort by creation date, newest first
@@ -47,24 +61,68 @@ export default function HomeScreen() {
     showFeedback('Task created successfully', 'success');
   };
 
-  const renderFilterButton = (filterType: FilterType, label: string) => (
-    <TouchableOpacity
-      style={[
-        styles.filterButton,
-        filter === filterType && styles.activeFilterButton,
-      ]}
-      onPress={() => setFilter(filterType)}
-    >
-      <Text
+  const handleCategorySelect = (category: string) => {
+    setSelectedCategory(category === 'All Categories' ? null : category);
+    setShowCategoryDropdown(false);
+  };
+
+  const renderFilterButton = (filterType: FilterType, label: string) => {
+    const isActive = filter === filterType;
+    
+    if (filterType === 'all') {
+      return (
+        <View style={styles.allFilterContainer}>
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              isActive && styles.activeFilterButton,
+            ]}
+            onPress={() => setFilter(filterType)}
+          >
+            <Text
+              style={[
+                styles.filterButtonText,
+                isActive && styles.activeFilterButtonText,
+              ]}
+            >
+              {selectedCategory || label}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.dropdownButton,
+              isActive && styles.activeDropdownButton,
+            ]}
+            onPress={() => setShowCategoryDropdown(true)}
+          >
+            <ChevronDown 
+              size={16} 
+              color={isActive ? colors.background : colors.textLight} 
+            />
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <TouchableOpacity
         style={[
-          styles.filterButtonText,
-          filter === filterType && styles.activeFilterButtonText,
+          styles.filterButton,
+          isActive && styles.activeFilterButton,
         ]}
+        onPress={() => setFilter(filterType)}
       >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
+        <Text
+          style={[
+            styles.filterButtonText,
+            isActive && styles.activeFilterButtonText,
+          ]}
+        >
+          {label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -108,6 +166,7 @@ export default function HomeScreen() {
             <Text style={styles.emptyText}>
               {filter === 'active' ? 'No active tasks' : 
                filter === 'completed' ? 'No completed tasks' : 
+               selectedCategory ? `No tasks in ${selectedCategory}` :
                'No tasks yet'}
             </Text>
             <Text style={styles.emptySubtext}>
@@ -143,6 +202,37 @@ export default function HomeScreen() {
         onHide={hideFeedback}
         type={feedback.type}
       />
+
+      {/* Category Dropdown Modal */}
+      <Modal
+        visible={showCategoryDropdown}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowCategoryDropdown(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowCategoryDropdown(false)}
+        >
+          <View style={styles.dropdownModal}>
+            <Text style={styles.dropdownTitle}>Select Category</Text>
+            {categories.map((category) => (
+              <TouchableOpacity
+                key={category}
+                style={styles.categoryOption}
+                onPress={() => handleCategorySelect(category)}
+              >
+                <Text style={styles.categoryOptionText}>{category}</Text>
+                {((category === 'All Categories' && !selectedCategory) || 
+                  (category === selectedCategory)) && (
+                  <Check size={16} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -163,6 +253,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
+  allFilterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   filterButton: {
     paddingHorizontal: 24,
     paddingVertical: 12,
@@ -171,7 +265,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  dropdownButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    borderTopRightRadius: 25,
+    borderBottomRightRadius: 25,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderLeftWidth: 0,
+    marginLeft: -1,
+  },
   activeFilterButton: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  activeDropdownButton: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
@@ -217,9 +326,60 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dropdownModal: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 16,
+    minWidth: 200,
+    maxWidth: 300,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  dropdownTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  categoryOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  categoryOptionText: {
+    fontSize: 16,
+    color: colors.text,
   },
 });
