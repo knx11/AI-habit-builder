@@ -36,7 +36,7 @@ export default function TabLayout() {
             onPress={() => router.push('/settings')}
             style={{ marginRight: 16 }}
           >
-            <Settings size={24} color={colors.background} />
+            <Settings size={24} color="#FF0000" /> {/* Changed to red */}
           </TouchableOpacity>
         ),
         tabBarLabelStyle: {
