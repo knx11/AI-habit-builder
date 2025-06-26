@@ -12,8 +12,6 @@ interface PomodoroTimerProps {
 type TimerState = 'work' | 'shortBreak' | 'longBreak';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const ITEM_HEIGHT = 50;
-const VISIBLE_ITEMS = 5;
 
 export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   const { pomodoroSettings } = useTaskStore();
@@ -24,13 +22,10 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   const [progress, setProgress] = useState(0);
   const [showTimePicker, setShowTimePicker] = useState(false);
   
-  // Time picker state - now using hours and minutes
-  const [selectedHours, setSelectedHours] = useState(Math.floor(timeLeft / 3600));
-  const [selectedMinutes, setSelectedMinutes] = useState(Math.floor((timeLeft % 3600) / 60));
+  // Simplified time picker state
+  const [selectedMinutes, setSelectedMinutes] = useState(Math.floor(timeLeft / 60));
   
-  // Refs for scroll views
-  const hoursScrollRef = useRef<ScrollView>(null);
-  const minutesScrollRef = useRef<ScrollView>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const getDuration = useCallback(() => {
     switch (timerState) {
@@ -45,34 +40,44 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
 
   useEffect(() => {
     setTimeLeft(getDuration());
+    setProgress(0);
   }, [timerState, getDuration]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-
     if (isRunning) {
-      interval = setInterval(() => {
+      intervalRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             handleTimerComplete();
             return 0;
           }
-          return prev - 1;
-        });
-
-        setProgress((prev) => {
+          const newTime = prev - 1;
           const duration = getDuration();
-          return ((duration - (timeLeft - 1)) / duration) * 100;
+          setProgress(((duration - newTime) / duration) * 100);
+          return newTime;
         });
       }, 1000);
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     }
 
-    return () => clearInterval(interval);
-  }, [isRunning, timeLeft]);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isRunning, getDuration]);
 
   const handleTimerComplete = () => {
     if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (error) {
+        console.log('Haptics not available');
+      }
     }
     
     setIsRunning(false);
@@ -95,17 +100,26 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
 
   const toggleTimer = () => {
     if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch (error) {
+        console.log('Haptics not available');
+      }
     }
     setIsRunning(!isRunning);
   };
 
   const resetTimer = () => {
     if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } catch (error) {
+        console.log('Haptics not available');
+      }
     }
     setIsRunning(false);
-    setTimeLeft(getDuration());
+    const duration = getDuration();
+    setTimeLeft(duration);
     setProgress(0);
   };
 
@@ -132,51 +146,30 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   };
   
   const openTimePicker = () => {
-    if (isRunning) return; // Don't allow time adjustment while timer is running
+    if (isRunning) return;
     
-    setSelectedHours(Math.floor(timeLeft / 3600));
-    setSelectedMinutes(Math.floor((timeLeft % 3600) / 60));
+    setSelectedMinutes(Math.floor(timeLeft / 60));
     setShowTimePicker(true);
-    
-    // Scroll to the current values
-    setTimeout(() => {
-      hoursScrollRef.current?.scrollTo({ 
-        y: selectedHours * ITEM_HEIGHT, 
-        animated: false 
-      });
-      minutesScrollRef.current?.scrollTo({ 
-        y: selectedMinutes * ITEM_HEIGHT, 
-        animated: false 
-      });
-    }, 100);
   };
   
   const applyTimeSelection = () => {
-    const newTimeInSeconds = (selectedHours * 3600) + (selectedMinutes * 60);
+    const newTimeInSeconds = selectedMinutes * 60;
     setTimeLeft(newTimeInSeconds);
     setProgress(0);
     setShowTimePicker(false);
     
     if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (error) {
+        console.log('Haptics not available');
+      }
     }
   };
-  
-  const handleHourScroll = (event: any) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    const index = Math.round(offsetY / ITEM_HEIGHT);
-    setSelectedHours(index);
+
+  const adjustMinutes = (amount: number) => {
+    setSelectedMinutes(Math.max(1, Math.min(120, selectedMinutes + amount)));
   };
-  
-  const handleMinuteScroll = (event: any) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    const index = Math.round(offsetY / ITEM_HEIGHT);
-    setSelectedMinutes(index);
-  };
-  
-  // Generate arrays for hours and minutes
-  const hours = Array.from({ length: 10 }, (_, i) => i); // 0-9 hours
-  const minutes = Array.from({ length: 60 }, (_, i) => i); // 0-59 minutes
 
   return (
     <View style={styles.container}>
@@ -187,8 +180,10 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
             timerState === 'work' && { backgroundColor: colors.primary },
           ]}
           onPress={() => {
-            setTimerState('work');
-            resetTimer();
+            if (!isRunning) {
+              setTimerState('work');
+              resetTimer();
+            }
           }}
         >
           <Text
@@ -207,8 +202,10 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
             timerState === 'shortBreak' && { backgroundColor: colors.secondary },
           ]}
           onPress={() => {
-            setTimerState('shortBreak');
-            resetTimer();
+            if (!isRunning) {
+              setTimerState('shortBreak');
+              resetTimer();
+            }
           }}
         >
           <Text
@@ -227,8 +224,10 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
             timerState === 'longBreak' && { backgroundColor: colors.accent },
           ]}
           onPress={() => {
-            setTimerState('longBreak');
-            resetTimer();
+            if (!isRunning) {
+              setTimerState('longBreak');
+              resetTimer();
+            }
           }}
         >
           <Text
@@ -246,7 +245,7 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
         <TouchableOpacity
           onPress={isRunning ? toggleTimer : openTimePicker}
           activeOpacity={0.8}
-          style={styles.timerCircle}
+          style={[styles.timerCircle, { borderColor: getStateColor(timerState) }]}
         >
           <View style={styles.timerInner}>
             <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
@@ -263,7 +262,7 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
           <RotateCcw size={24} color={colors.text} />
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={toggleTimer} style={styles.playButton}>
+        <TouchableOpacity onPress={toggleTimer} style={[styles.playButton, { backgroundColor: getStateColor(timerState) }]}>
           {isRunning ? (
             <Pause size={32} color={colors.background} />
           ) : (
@@ -273,8 +272,10 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
 
         <TouchableOpacity
           onPress={() => {
-            setTimerState(timerState === 'work' ? 'shortBreak' : 'work');
-            resetTimer();
+            if (!isRunning) {
+              setTimerState(timerState === 'work' ? 'shortBreak' : 'work');
+              resetTimer();
+            }
           }}
           style={styles.controlButton}
         >
@@ -282,7 +283,7 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
         </TouchableOpacity>
       </View>
       
-      {/* Time Picker Modal - Hours and Minutes only */}
+      {/* Simplified Time Picker Modal */}
       <Modal
         visible={showTimePicker}
         transparent={true}
@@ -291,72 +292,47 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.pickerContainer}>
-            <Text style={styles.pickerTitle}>Adjust Timer</Text>
+            <Text style={styles.pickerTitle}>Set Timer Duration</Text>
             
-            <View style={styles.pickerContent}>
-              <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Hours</Text>
-                <View style={styles.pickerScrollContainer}>
-                  <View style={styles.pickerHighlight} />
-                  <ScrollView
-                    ref={hoursScrollRef}
-                    showsVerticalScrollIndicator={false}
-                    snapToInterval={ITEM_HEIGHT}
-                    decelerationRate="fast"
-                    onMomentumScrollEnd={handleHourScroll}
-                    contentContainerStyle={[
-                      styles.pickerScrollContent,
-                      { paddingVertical: ITEM_HEIGHT * Math.floor(VISIBLE_ITEMS / 2) }
-                    ]}
-                  >
-                    {hours.map((hour) => (
-                      <View key={`hour-${hour}`} style={styles.pickerItem}>
-                        <Text
-                          style={[
-                            styles.pickerItemText,
-                            selectedHours === hour && styles.pickerItemSelected,
-                          ]}
-                        >
-                          {hour.toString().padStart(2, '0')}
-                        </Text>
-                      </View>
-                    ))}
-                  </ScrollView>
-                </View>
+            <View style={styles.timePickerContent}>
+              <TouchableOpacity
+                style={styles.timeButton}
+                onPress={() => adjustMinutes(-5)}
+              >
+                <Text style={styles.timeButtonText}>-5</Text>
+              </TouchableOpacity>
+              
+              <View style={styles.timeDisplay}>
+                <Text style={styles.timeValue}>{selectedMinutes}</Text>
+                <Text style={styles.timeUnit}>minutes</Text>
               </View>
               
-              <Text style={styles.pickerSeparator}>:</Text>
-              
-              <View style={styles.pickerColumn}>
-                <Text style={styles.pickerLabel}>Minutes</Text>
-                <View style={styles.pickerScrollContainer}>
-                  <View style={styles.pickerHighlight} />
-                  <ScrollView
-                    ref={minutesScrollRef}
-                    showsVerticalScrollIndicator={false}
-                    snapToInterval={ITEM_HEIGHT}
-                    decelerationRate="fast"
-                    onMomentumScrollEnd={handleMinuteScroll}
-                    contentContainerStyle={[
-                      styles.pickerScrollContent,
-                      { paddingVertical: ITEM_HEIGHT * Math.floor(VISIBLE_ITEMS / 2) }
-                    ]}
-                  >
-                    {minutes.map((min) => (
-                      <View key={`min-${min}`} style={styles.pickerItem}>
-                        <Text
-                          style={[
-                            styles.pickerItemText,
-                            selectedMinutes === min && styles.pickerItemSelected,
-                          ]}
-                        >
-                          {min.toString().padStart(2, '0')}
-                        </Text>
-                      </View>
-                    ))}
-                  </ScrollView>
-                </View>
-              </View>
+              <TouchableOpacity
+                style={styles.timeButton}
+                onPress={() => adjustMinutes(5)}
+              >
+                <Text style={styles.timeButtonText}>+5</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.quickTimeButtons}>
+              {[15, 25, 30, 45, 60].map((minutes) => (
+                <TouchableOpacity
+                  key={minutes}
+                  style={[
+                    styles.quickTimeButton,
+                    selectedMinutes === minutes && styles.selectedQuickTime
+                  ]}
+                  onPress={() => setSelectedMinutes(minutes)}
+                >
+                  <Text style={[
+                    styles.quickTimeText,
+                    selectedMinutes === minutes && styles.selectedQuickTimeText
+                  ]}>
+                    {minutes}m
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
             
             <View style={styles.pickerActions}>
@@ -371,7 +347,7 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
                 style={[styles.pickerButton, styles.pickerConfirmButton]}
                 onPress={applyTimeSelection}
               >
-                <Text style={styles.pickerConfirmText}>Set</Text>
+                <Text style={styles.pickerConfirmText}>Set Timer</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -485,7 +461,7 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  // Time Picker Modal Styles
+  // Simplified Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -505,58 +481,64 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 20,
   },
-  pickerContent: {
+  timePickerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
   },
-  pickerColumn: {
-    alignItems: 'center',
-    width: 80,
-  },
-  pickerLabel: {
-    fontSize: 14,
-    color: colors.textLight,
-    marginBottom: 8,
-  },
-  pickerScrollContainer: {
-    height: ITEM_HEIGHT * VISIBLE_ITEMS,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  pickerHighlight: {
-    position: 'absolute',
-    top: ITEM_HEIGHT * 2,
-    left: 0,
-    right: 0,
-    height: ITEM_HEIGHT,
-    backgroundColor: colors.border,
-    opacity: 0.3,
+  timeButton: {
+    backgroundColor: colors.cardBackground,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 8,
-    zIndex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  pickerScrollContent: {
-    paddingHorizontal: 10,
+  timeButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
   },
-  pickerItem: {
-    height: ITEM_HEIGHT,
-    justifyContent: 'center',
+  timeDisplay: {
     alignItems: 'center',
+    marginHorizontal: 30,
   },
-  pickerItemText: {
-    fontSize: 22,
-    color: colors.text,
-  },
-  pickerItemSelected: {
+  timeValue: {
+    fontSize: 48,
+    fontWeight: 'bold',
     color: colors.primary,
-    fontWeight: 'bold',
   },
-  pickerSeparator: {
-    fontSize: 30,
-    fontWeight: 'bold',
+  timeUnit: {
+    fontSize: 16,
+    color: colors.textLight,
+  },
+  quickTimeButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  quickTimeButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    margin: 4,
+  },
+  selectedQuickTime: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  quickTimeText: {
+    fontSize: 14,
     color: colors.text,
-    marginHorizontal: 10,
+    fontWeight: '500',
+  },
+  selectedQuickTimeText: {
+    color: colors.background,
   },
   pickerActions: {
     flexDirection: 'row',
@@ -568,6 +550,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
+    flex: 1,
+    marginHorizontal: 5,
   },
   pickerConfirmButton: {
     backgroundColor: colors.primary,
@@ -575,10 +559,12 @@ const styles = StyleSheet.create({
   pickerCancelText: {
     fontSize: 16,
     color: colors.textLight,
+    textAlign: 'center',
   },
   pickerConfirmText: {
     fontSize: 16,
     color: colors.background,
     fontWeight: '600',
+    textAlign: 'center',
   },
 });
