@@ -66,6 +66,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={styles.container}>
+        <View style={styles.debugTop} />
         <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
         <trpc.Provider client={trpcClient} queryClient={queryClient}>
           <QueryClientProvider client={queryClient}>
@@ -90,6 +91,7 @@ export default function RootLayout() {
             </Stack>
           </QueryClientProvider>
         </trpc.Provider>
+        <View style={styles.debugBottom} />
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );
@@ -99,4 +101,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  debugTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === 'ios' ? 47 : StatusBar.currentHeight,
+    backgroundColor: '#ff000033',
+    zIndex: 999,
+  },
+  debugBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === 'ios' ? 34 : 0,
+    backgroundColor: '#ff000033',
+    zIndex: 999,
+  }
 });
