@@ -8,7 +8,8 @@ import { generateMockTasks, generateMockStats } from "@/utils/mockData";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { StyleSheet, Platform, View } from "react-native";
+import { StyleSheet, Platform, StatusBar } from "react-native";
+import { colors } from "@/constants/colors";
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
@@ -69,13 +70,20 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-          <Stack>
+          <Stack screenOptions={{ 
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.background }
+          }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="settings" options={{ 
               presentation: 'modal',
-              title: 'Settings'
+              title: 'Settings',
+              headerShown: true,
+              headerStyle: { backgroundColor: colors.background },
+              headerTitleStyle: { color: colors.text }
             }} />
           </Stack>
         </QueryClientProvider>
@@ -87,6 +95,6 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
   },
 });

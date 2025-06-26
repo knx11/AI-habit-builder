@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
@@ -25,10 +25,16 @@ export default function CalendarScreen() {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <Stack.Screen
         options={{
           headerTitle: 'Calendar',
+          headerStyle: {
+            backgroundColor: colors.background,
+          },
+          headerTitleStyle: {
+            color: colors.text,
+          },
           headerRight: () => (
             <TouchableOpacity 
               onPress={() => router.push('/settings')}
@@ -77,7 +83,7 @@ export default function CalendarScreen() {
         taskId={selectedTaskId}
         onClose={() => setSelectedTaskId(null)}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

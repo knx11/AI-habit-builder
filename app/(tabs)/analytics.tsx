@@ -4,8 +4,7 @@ import {
   Text, 
   StyleSheet, 
   ScrollView, 
-  TouchableOpacity,
-  SafeAreaView
+  TouchableOpacity
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { 
@@ -33,10 +32,16 @@ export default function AnalyticsScreen() {
   const weeklyStats = generateWeeklyStats(tasks, dailyStats);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <Stack.Screen
         options={{
           headerTitle: 'Productivity Analytics',
+          headerStyle: {
+            backgroundColor: colors.background,
+          },
+          headerTitleStyle: {
+            color: colors.text,
+          },
           headerRight: () => (
             <TouchableOpacity 
               onPress={() => router.push('/settings')}
@@ -85,7 +90,7 @@ export default function AnalyticsScreen() {
           />
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -1,10 +1,13 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View, Text, Platform, StatusBar } from 'react-native';
 import { CheckSquare, Clock, BarChart2, Calendar } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+  
   return (
     <Tabs
       screenOptions={{
@@ -12,12 +15,16 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.textLight,
         tabBarStyle: {
           borderTopColor: colors.border,
-          height: 60,
-          paddingBottom: 8,
+          height: 60 + (Platform.OS === 'ios' ? insets.bottom : 0),
+          paddingBottom: Platform.OS === 'ios' ? insets.bottom : 8,
           paddingTop: 8,
+          backgroundColor: colors.background,
         },
         headerStyle: {
           backgroundColor: colors.background,
+          borderBottomWidth: 0,
+          elevation: 0,
+          shadowOpacity: 0,
         },
         headerTitleStyle: {
           color: colors.text,
@@ -25,6 +32,9 @@ export default function TabLayout() {
         },
         tabBarLabelStyle: {
           fontSize: 12,
+        },
+        sceneContainerStyle: {
+          backgroundColor: colors.background,
         },
       }}
     >

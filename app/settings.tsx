@@ -7,8 +7,7 @@ import {
   Switch,
   TextInput,
   ScrollView,
-  Alert,
-  SafeAreaView
+  Alert
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { 
@@ -84,10 +83,16 @@ export default function SettingsScreen() {
   };
   
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <Stack.Screen
         options={{
           headerTitle: 'Settings',
+          headerStyle: {
+            backgroundColor: colors.background,
+          },
+          headerTitleStyle: {
+            color: colors.text,
+          },
           headerLeft: () => (
             <TouchableOpacity 
               onPress={() => router.back()}
@@ -100,7 +105,6 @@ export default function SettingsScreen() {
       />
       
       <ScrollView style={styles.content}>
-        {/* Rest of the settings screen content remains the same */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Pomodoro Timer</Text>
           
@@ -241,7 +245,7 @@ export default function SettingsScreen() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

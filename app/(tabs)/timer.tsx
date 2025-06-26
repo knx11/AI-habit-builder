@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { Stack } from 'expo-router';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
@@ -20,10 +20,16 @@ export default function TimerScreen() {
   };
   
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <Stack.Screen
         options={{
           headerTitle: 'Pomodoro Timer',
+          headerStyle: {
+            backgroundColor: colors.background,
+          },
+          headerTitleStyle: {
+            color: colors.text,
+          },
         }}
       />
       
@@ -54,7 +60,7 @@ export default function TimerScreen() {
         taskId={selectedTaskId || null}
         onClose={() => setSelectedTaskId(undefined)}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
