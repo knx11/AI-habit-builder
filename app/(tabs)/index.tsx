@@ -2,6 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Platform, Modal } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Plus, ChevronDown, Check } from 'lucide-react-native';
+import Animated, { 
+  FadeIn, 
+  FadeOut, 
+  Layout,
+  SlideInRight,
+  SlideOutLeft
+} from 'react-native-reanimated';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import TaskItem from '@/components/TaskItem';
@@ -11,6 +18,8 @@ import FeedbackToast from '@/components/FeedbackToast';
 import useFeedback from '@/hooks/useFeedback';
 
 type FilterType = 'all' | 'active' | 'completed';
+
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -153,45 +162,58 @@ export default function HomeScreen() {
         }}
       />
       
-      <View style={styles.header}>
+      <Animated.View 
+        style={styles.header}
+        entering={FadeIn.duration(500)}
+      >
         <View style={styles.filterContainer}>
           {renderFilterButton('all', 'All')}
           {renderFilterButton('active', 'Active')}
           {renderFilterButton('completed', 'Completed')}
         </View>
-      </View>
+      </Animated.View>
       
       <FlatList
         data={filteredTasks}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TaskItem
-            task={item}
-            onPress={() => setSelectedTaskId(item.id)}
-            onLongPress={() => {}}
-          />
+        renderItem={({ item, index }) => (
+          <Animated.View
+            entering={Platform.OS === 'web' ? FadeIn.delay(index * 100) : SlideInRight.delay(index * 100)}
+            exiting={Platform.OS === 'web' ? FadeOut : SlideOutLeft}
+            layout={Platform.OS === 'web' ? undefined : Layout.springify()}
+          >
+            <TaskItem
+              task={item}
+              onPress={() => setSelectedTaskId(item.id)}
+              onLongPress={() => {}}
+            />
+          </Animated.View>
         )}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={() => (
-          <View style={styles.emptyContainer}>
+          <Animated.View 
+            style={styles.emptyContainer}
+            entering={FadeIn.duration(800)}
+          >
             <Text style={styles.emptyText}>
               {getEmptyMessage()}
             </Text>
             <Text style={styles.emptySubtext}>
               Tap the + button to create your first task
             </Text>
-          </View>
+          </Animated.View>
         )}
       />
       
-      <TouchableOpacity
+      <AnimatedTouchableOpacity
         style={styles.fab}
         onPress={() => setShowTaskForm(true)}
         activeOpacity={0.8}
+        entering={FadeIn.delay(600).duration(400)}
       >
         <Plus size={24} color="#fff" />
-      </TouchableOpacity>
+      </AnimatedTouchableOpacity>
       
       <TaskForm
         visible={showTaskForm}
@@ -224,22 +246,30 @@ export default function HomeScreen() {
           activeOpacity={1}
           onPress={() => setShowCategoryDropdown(false)}
         >
-          <View style={styles.dropdownModal}>
+          <Animated.View 
+            style={styles.dropdownModal}
+            entering={FadeIn.duration(200)}
+            exiting={FadeOut.duration(200)}
+          >
             <Text style={styles.dropdownTitle}>Select Category</Text>
-            {categories.map((category) => (
-              <TouchableOpacity
+            {categories.map((category, index) => (
+              <Animated.View
                 key={category}
-                style={styles.categoryOption}
-                onPress={() => handleCategorySelect(category)}
+                entering={FadeIn.delay(index * 50)}
               >
-                <Text style={styles.categoryOptionText}>{category}</Text>
-                {((category === 'All Categories' && !selectedCategory) || 
-                  (selectedCategory && category === selectedCategory)) && (
-                  <Check size={16} color={colors.primary} />
-                )}
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.categoryOption}
+                  onPress={() => handleCategorySelect(category)}
+                >
+                  <Text style={styles.categoryOptionText}>{category}</Text>
+                  {((category === 'All Categories' && !selectedCategory) || 
+                    (selectedCategory && category === selectedCategory)) && (
+                    <Check size={16} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              </Animated.View>
             ))}
-          </View>
+          </Animated.View>
         </TouchableOpacity>
       </Modal>
     </View>

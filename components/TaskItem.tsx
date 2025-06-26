@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -6,6 +6,15 @@ import {
   TouchableOpacity,
   Platform
 } from 'react-native';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring, 
+  withTiming,
+  FadeIn,
+  FadeOut,
+  Layout
+} from 'react-native-reanimated';
 import { Task } from '@/types/task';
 import { colors } from '@/constants/colors';
 import { formatTime } from '@/utils/helpers';
@@ -17,18 +26,47 @@ interface TaskItemProps {
   onLongPress: () => void;
 }
 
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+
 export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) {
   const swipeableRef = useRef<Swipeable>(null);
   const [isSwiping, setIsSwiping] = useState(false);
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+      opacity: opacity.value,
+    };
+  });
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.98);
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1);
+  };
+
+  useEffect(() => {
+    if (task.completed) {
+      opacity.value = withTiming(0.6, { duration: 300 });
+    } else {
+      opacity.value = withTiming(1, { duration: 300 });
+    }
+  }, [task.completed]);
 
   // Render the main task content
   const renderTaskContent = () => {
     return (
-      <TouchableOpacity 
+      <AnimatedTouchableOpacity 
         onPress={isSwiping ? undefined : onPress}
         onLongPress={isSwiping ? undefined : onLongPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
         activeOpacity={0.7}
-        style={styles.container}
+        style={[styles.container, animatedStyle]}
       >
         <View style={styles.taskContent}>
           <View style={styles.headerRow}>
@@ -62,22 +100,31 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
             {formatTime(task.estimatedMinutes)}
           </Text>
         </View>
-      </TouchableOpacity>
+      </AnimatedTouchableOpacity>
     );
   };
 
-  // On web, don't use Swipeable
+  // On web, don't use Swipeable and provide fallback animations
   if (Platform.OS === 'web') {
     return (
-      <View style={styles.itemContainer}>
+      <Animated.View 
+        style={styles.itemContainer}
+        entering={FadeIn.duration(300)}
+        exiting={FadeOut.duration(200)}
+      >
         {renderTaskContent()}
-      </View>
+      </Animated.View>
     );
   }
 
-  // On native, use Swipeable
+  // On native, use Swipeable with layout animations
   return (
-    <View style={styles.itemContainer}>
+    <Animated.View 
+      style={styles.itemContainer}
+      entering={FadeIn.duration(300)}
+      exiting={FadeOut.duration(200)}
+      layout={Layout.springify()}
+    >
       <Swipeable
         ref={swipeableRef}
         onSwipeableWillOpen={() => setIsSwiping(true)}
@@ -87,7 +134,7 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
       >
         {renderTaskContent()}
       </Swipeable>
-    </View>
+    </Animated.View>
   );
 }
 

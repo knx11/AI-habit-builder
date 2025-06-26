@@ -8,6 +8,13 @@ import {
   TextStyle,
   TouchableOpacityProps
 } from 'react-native';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring,
+  withSequence,
+  withTiming
+} from 'react-native-reanimated';
 import { colors } from '@/constants/colors';
 
 interface ButtonProps extends TouchableOpacityProps {
@@ -22,6 +29,8 @@ interface ButtonProps extends TouchableOpacityProps {
   icon?: React.ReactNode;
 }
 
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+
 export default function Button({
   title,
   onPress,
@@ -34,6 +43,33 @@ export default function Button({
   icon,
   ...rest
 }: ButtonProps) {
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+      opacity: opacity.value,
+    };
+  });
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.96);
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1);
+  };
+
+  const handlePress = () => {
+    // Add a subtle pulse animation on press
+    scale.value = withSequence(
+      withTiming(0.94, { duration: 100 }),
+      withSpring(1)
+    );
+    onPress();
+  };
+
   const getButtonStyle = () => {
     let buttonStyle: ViewStyle = {};
     
@@ -105,9 +141,11 @@ export default function Button({
   };
   
   return (
-    <TouchableOpacity
-      style={[styles.button, getButtonStyle(), style]}
-      onPress={onPress}
+    <AnimatedTouchableOpacity
+      style={[styles.button, getButtonStyle(), style, animatedStyle]}
+      onPress={handlePress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       disabled={disabled || loading}
       activeOpacity={0.8}
       {...rest}
@@ -125,7 +163,7 @@ export default function Button({
           </Text>
         </>
       )}
-    </TouchableOpacity>
+    </AnimatedTouchableOpacity>
   );
 }
 

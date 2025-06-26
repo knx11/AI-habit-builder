@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, ScrollView, Modal, Dimensions } from 'react-native';
 import { Play, Pause, RotateCcw, Coffee } from 'lucide-react-native';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withTiming,
+  withSpring,
+  withSequence,
+  interpolate,
+  Easing,
+  useAnimatedProps,
+  runOnJS
+} from 'react-native-reanimated';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import * as Haptics from 'expo-haptics';
@@ -12,6 +23,7 @@ interface PomodoroTimerProps {
 type TimerState = 'work' | 'shortBreak' | 'longBreak';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   const { pomodoroSettings } = useTaskStore();
@@ -19,13 +31,18 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   const [timeLeft, setTimeLeft] = useState(pomodoroSettings.workDuration * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [currentSession, setCurrentSession] = useState(1);
-  const [progress, setProgress] = useState(0);
   const [showTimePicker, setShowTimePicker] = useState(false);
   
   // Simplified time picker state
   const [selectedMinutes, setSelectedMinutes] = useState(Math.floor(timeLeft / 60));
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Animation values
+  const progress = useSharedValue(0);
+  const scale = useSharedValue(1);
+  const playButtonScale = useSharedValue(1);
+  const timerOpacity = useSharedValue(1);
 
   const getDuration = useCallback(() => {
     switch (timerState) {
@@ -39,8 +56,9 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   }, [pomodoroSettings, timerState]);
 
   useEffect(() => {
-    setTimeLeft(getDuration());
-    setProgress(0);
+    const duration = getDuration();
+    setTimeLeft(duration);
+    progress.value = withTiming(0, { duration: 300 });
   }, [timerState, getDuration]);
 
   useEffect(() => {
@@ -53,7 +71,8 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
           }
           const newTime = prev - 1;
           const duration = getDuration();
-          setProgress(((duration - newTime) / duration) * 100);
+          const newProgress = ((duration - newTime) / duration) * 100;
+          progress.value = newProgress;
           return newTime;
         });
       }, 1000);
@@ -79,6 +98,12 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
         console.log('Haptics not available');
       }
     }
+    
+    // Completion animation
+    scale.value = withSequence(
+      withSpring(1.1),
+      withSpring(1)
+    );
     
     setIsRunning(false);
     
@@ -106,6 +131,12 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
         console.log('Haptics not available');
       }
     }
+    
+    playButtonScale.value = withSequence(
+      withSpring(0.9),
+      withSpring(1)
+    );
+    
     setIsRunning(!isRunning);
   };
 
@@ -117,10 +148,11 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
         console.log('Haptics not available');
       }
     }
+    
     setIsRunning(false);
     const duration = getDuration();
     setTimeLeft(duration);
-    setProgress(0);
+    progress.value = withTiming(0, { duration: 300 });
   };
 
   const formatTime = (seconds: number) => {
@@ -155,7 +187,7 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   const applyTimeSelection = () => {
     const newTimeInSeconds = selectedMinutes * 60;
     setTimeLeft(newTimeInSeconds);
-    setProgress(0);
+    progress.value = withTiming(0, { duration: 300 });
     setShowTimePicker(false);
     
     if (Platform.OS !== 'web') {
@@ -170,6 +202,31 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   const adjustMinutes = (amount: number) => {
     setSelectedMinutes(Math.max(1, Math.min(120, selectedMinutes + amount)));
   };
+
+  // Animated styles
+  const timerCircleStyle = useAnimatedStyle(() => {
+    const rotation = interpolate(progress.value, [0, 100], [0, 360]);
+    return {
+      transform: [
+        { scale: scale.value },
+        { rotate: `${rotation}deg` }
+      ],
+      borderColor: getStateColor(timerState),
+    };
+  });
+
+  const playButtonStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: playButtonScale.value }],
+      backgroundColor: getStateColor(timerState),
+    };
+  });
+
+  const timerTextStyle = useAnimatedStyle(() => {
+    return {
+      opacity: timerOpacity.value,
+    };
+  });
 
   return (
     <View style={styles.container}>
@@ -245,15 +302,18 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
         <TouchableOpacity
           onPress={isRunning ? toggleTimer : openTimePicker}
           activeOpacity={0.8}
-          style={[styles.timerCircle, { borderColor: getStateColor(timerState) }]}
         >
-          <View style={styles.timerInner}>
-            <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
-            <Text style={styles.sessionText}>Session {currentSession}</Text>
-            <Text style={styles.tapHint}>
-              {isRunning ? 'Tap to pause' : 'Tap to adjust time'}
-            </Text>
-          </View>
+          <Animated.View style={[styles.timerCircle, timerCircleStyle]}>
+            <View style={styles.timerInner}>
+              <Animated.Text style={[styles.timerText, timerTextStyle]}>
+                {formatTime(timeLeft)}
+              </Animated.Text>
+              <Text style={styles.sessionText}>Session {currentSession}</Text>
+              <Text style={styles.tapHint}>
+                {isRunning ? 'Tap to pause' : 'Tap to adjust time'}
+              </Text>
+            </View>
+          </Animated.View>
         </TouchableOpacity>
       </View>
 
@@ -262,13 +322,16 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
           <RotateCcw size={24} color={colors.text} />
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={toggleTimer} style={[styles.playButton, { backgroundColor: getStateColor(timerState) }]}>
+        <AnimatedTouchableOpacity 
+          onPress={toggleTimer} 
+          style={[styles.playButton, playButtonStyle]}
+        >
           {isRunning ? (
             <Pause size={32} color={colors.background} />
           ) : (
             <Play size={32} color={colors.background} />
           )}
-        </TouchableOpacity>
+        </AnimatedTouchableOpacity>
 
         <TouchableOpacity
           onPress={() => {
