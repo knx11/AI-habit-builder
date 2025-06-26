@@ -234,7 +234,7 @@ export default function HomeScreen() {
               >
                 <Text style={styles.categoryOptionText}>{category}</Text>
                 {((category === 'All Categories' && !selectedCategory) || 
-                  (category === selectedCategory)) && (
+                  (selectedCategory && category === selectedCategory)) && (
                   <Check size={16} color={colors.primary} />
                 )}
               </TouchableOpacity>
