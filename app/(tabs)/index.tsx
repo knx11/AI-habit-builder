@@ -26,7 +26,7 @@ export default function HomeScreen() {
   const { tasks } = useTaskStore();
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterType>('all');
+  const [filter, setFilter] = useState<FilterType>('active');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const { feedback, showFeedback, hideFeedback } = useFeedback();
@@ -40,13 +40,15 @@ export default function HomeScreen() {
     
     switch (filter) {
       case 'all':
-        // Show only non-completed tasks for "All"
-        filteredTasks = tasks.filter(task => !task.completed);
+        // Show ALL tasks (both completed and incomplete)
+        filteredTasks = tasks;
         break;
       case 'active':
+        // Show only non-completed tasks
         filteredTasks = tasks.filter(task => !task.completed);
         break;
       case 'completed':
+        // Show only completed tasks
         filteredTasks = tasks.filter(task => task.completed);
         break;
       default:
@@ -78,32 +80,6 @@ export default function HomeScreen() {
   const renderFilterButton = (filterType: FilterType, label: string) => {
     const isActive = filter === filterType;
     
-    if (filterType === 'all') {
-      return (
-        <TouchableOpacity
-          style={[
-            styles.allFilterButton,
-            isActive && styles.activeFilterButton,
-          ]}
-          onPress={() => setShowCategoryDropdown(true)}
-        >
-          <Text
-            style={[
-              styles.filterButtonText,
-              isActive && styles.activeFilterButtonText,
-            ]}
-          >
-            {selectedCategory || label}
-          </Text>
-          <ChevronDown 
-            size={16} 
-            color={isActive ? colors.background : colors.textLight} 
-            style={styles.dropdownIcon}
-          />
-        </TouchableOpacity>
-      );
-    }
-
     return (
       <TouchableOpacity
         style={[
@@ -124,13 +100,45 @@ export default function HomeScreen() {
     );
   };
 
+  const renderCategoryButton = () => {
+    return (
+      <TouchableOpacity
+        style={[
+          styles.categoryFilterButton,
+          selectedCategory && styles.activeCategoryFilterButton,
+        ]}
+        onPress={() => setShowCategoryDropdown(true)}
+      >
+        <Text
+          style={[
+            styles.filterButtonText,
+            selectedCategory && styles.activeFilterButtonText,
+          ]}
+        >
+          {selectedCategory || 'All Categories'}
+        </Text>
+        <ChevronDown 
+          size={16} 
+          color={selectedCategory ? colors.background : colors.textLight} 
+          style={styles.dropdownIcon}
+        />
+      </TouchableOpacity>
+    );
+  };
+
   const getEmptyMessage = () => {
     if (filter === 'active') {
-      return 'No active tasks';
+      return selectedCategory 
+        ? `No active tasks in ${selectedCategory}`
+        : 'No active tasks';
     } else if (filter === 'completed') {
-      return 'No completed tasks';
-    } else if (selectedCategory) {
-      return `No tasks in ${selectedCategory}`;
+      return selectedCategory 
+        ? `No completed tasks in ${selectedCategory}`
+        : 'No completed tasks';
+    } else if (filter === 'all') {
+      return selectedCategory 
+        ? `No tasks in ${selectedCategory}`
+        : 'No tasks yet';
     } else {
       return 'No tasks yet';
     }
@@ -161,6 +169,10 @@ export default function HomeScreen() {
           {renderFilterButton('all', 'All')}
           {renderFilterButton('active', 'Active')}
           {renderFilterButton('completed', 'Completed')}
+        </View>
+        
+        <View style={styles.categoryContainer}>
+          {renderCategoryButton()}
         </View>
       </Animated.View>
       
@@ -282,6 +294,10 @@ const styles = StyleSheet.create({
   filterContainer: {
     flexDirection: 'row',
     gap: 12,
+    marginBottom: 12,
+  },
+  categoryContainer: {
+    flexDirection: 'row',
   },
   filterButton: {
     paddingHorizontal: 24,
@@ -291,7 +307,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  allFilterButton: {
+  categoryFilterButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 24,
@@ -300,11 +316,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
-    minWidth: 100,
+    minWidth: 140,
   },
   activeFilterButton: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
+  },
+  activeCategoryFilterButton: {
+    backgroundColor: colors.secondary,
+    borderColor: colors.secondary,
   },
   filterButtonText: {
     fontSize: 15,
