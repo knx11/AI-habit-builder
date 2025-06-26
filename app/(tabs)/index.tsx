@@ -80,36 +80,27 @@ export default function HomeScreen() {
     
     if (filterType === 'all') {
       return (
-        <View style={styles.allFilterContainer}>
-          <TouchableOpacity
+        <TouchableOpacity
+          style={[
+            styles.allFilterButton,
+            isActive && styles.activeFilterButton,
+          ]}
+          onPress={() => setShowCategoryDropdown(true)}
+        >
+          <Text
             style={[
-              styles.filterButton,
-              isActive && styles.activeFilterButton,
+              styles.filterButtonText,
+              isActive && styles.activeFilterButtonText,
             ]}
-            onPress={() => setFilter(filterType)}
           >
-            <Text
-              style={[
-                styles.filterButtonText,
-                isActive && styles.activeFilterButtonText,
-              ]}
-            >
-              {selectedCategory || label}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.dropdownButton,
-              isActive && styles.activeDropdownButton,
-            ]}
-            onPress={() => setShowCategoryDropdown(true)}
-          >
-            <ChevronDown 
-              size={16} 
-              color={isActive ? colors.background : colors.textLight} 
-            />
-          </TouchableOpacity>
-        </View>
+            {selectedCategory || label}
+          </Text>
+          <ChevronDown 
+            size={16} 
+            color={isActive ? colors.background : colors.textLight} 
+            style={styles.dropdownIcon}
+          />
+        </TouchableOpacity>
       );
     }
 
@@ -292,10 +283,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
-  allFilterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   filterButton: {
     paddingHorizontal: 24,
     paddingVertical: 12,
@@ -304,22 +291,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  dropdownButton: {
-    paddingHorizontal: 8,
+  allFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
     paddingVertical: 12,
-    borderTopRightRadius: 25,
-    borderBottomRightRadius: 25,
+    borderRadius: 25,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
-    borderLeftWidth: 0,
-    marginLeft: -1,
+    minWidth: 100,
   },
   activeFilterButton: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  activeDropdownButton: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
@@ -331,6 +314,9 @@ const styles = StyleSheet.create({
   activeFilterButtonText: {
     color: colors.background,
     fontWeight: '600',
+  },
+  dropdownIcon: {
+    marginLeft: 8,
   },
   listContent: {
     paddingHorizontal: 20,
