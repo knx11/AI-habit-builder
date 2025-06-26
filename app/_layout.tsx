@@ -8,7 +8,7 @@ import { generateMockTasks, generateMockStats } from "@/utils/mockData";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { StyleSheet, Platform, StatusBar } from "react-native";
+import { StyleSheet, Platform, StatusBar, View } from "react-native";
 import { colors } from "@/constants/colors";
 
 export const unstable_settings = {
@@ -52,20 +52,18 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (error) {
-      console.error(error);
-      throw error;
-    }
+    if (error) throw error;
   }, [error]);
 
   useEffect(() => {
     if (loaded) {
-      SplashScreen.hideAsync();
+      // Hide splash screen once everything is ready
+      SplashScreen.hideAsync().catch(console.error);
     }
   }, [loaded]);
 
   if (!loaded) {
-    return null;
+    return <View style={styles.container} />;
   }
 
   return (
