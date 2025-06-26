@@ -1,13 +1,14 @@
 import { Tabs } from 'expo-router';
-import { TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
 import { Settings, CheckSquare, Timer, Calendar, BarChart } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  
+  // Get status bar height
+  const statusBarHeight = Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 44;
 
   return (
     <Tabs
@@ -25,13 +26,18 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
-          height: Platform.OS === 'ios' ? 80 + insets.bottom : 60,
-          paddingBottom: Platform.OS === 'ios' ? insets.bottom : 8,
+          height: Platform.OS === 'ios' ? 80 : 60,
+          paddingBottom: Platform.OS === 'ios' ? 20 : 8,
           paddingTop: 8,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
         },
         headerStyle: {
           backgroundColor: colors.background,
-          height: Platform.OS === 'ios' ? 90 + insets.top : 60,
+          height: Platform.OS === 'ios' ? 90 : 60 + statusBarHeight,
+          paddingTop: statusBarHeight,
         },
         headerTitleStyle: {
           color: colors.text,

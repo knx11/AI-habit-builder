@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Platform, StatusBar } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Plus } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
@@ -18,6 +18,11 @@ export default function HomeScreen() {
   const sortedTasks = [...tasks].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
+  
+  // Calculate content padding to account for status bar and tab bar
+  const statusBarHeight = Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 44;
+  const headerHeight = Platform.OS === 'ios' ? 90 : 60 + statusBarHeight;
+  const tabBarHeight = Platform.OS === 'ios' ? 80 : 60;
   
   return (
     <View style={styles.container}>
@@ -43,14 +48,23 @@ export default function HomeScreen() {
             onLongPress={() => {}}
           />
         )}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          { 
+            paddingTop: headerHeight + 16,
+            paddingBottom: tabBarHeight + 88,
+          }
+        ]}
         ListEmptyComponent={() => (
           <Text style={styles.emptyText}>No tasks yet</Text>
         )}
       />
       
       <TouchableOpacity
-        style={styles.fab}
+        style={[
+          styles.fab,
+          { bottom: tabBarHeight + 24 }
+        ]}
         onPress={() => setShowTaskForm(true)}
       >
         <Plus size={24} color="#fff" />
@@ -76,8 +90,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   listContent: {
-    padding: 16,
-    paddingBottom: 88, // Extra padding for FAB
+    paddingHorizontal: 16,
   },
   emptyText: {
     textAlign: 'center',
@@ -86,7 +99,6 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 24,
     right: 24,
     width: 56,
     height: 56,

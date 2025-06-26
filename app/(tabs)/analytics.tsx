@@ -4,7 +4,9 @@ import {
   Text, 
   StyleSheet, 
   ScrollView, 
-  TouchableOpacity
+  TouchableOpacity,
+  Platform,
+  StatusBar
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { 
@@ -25,6 +27,11 @@ export default function AnalyticsScreen() {
 
   // Get weekly stats
   const weeklyStats = generateWeeklyStats(tasks, dailyStats);
+
+  // Calculate content padding
+  const statusBarHeight = Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 44;
+  const headerHeight = Platform.OS === 'ios' ? 90 : 60 + statusBarHeight;
+  const tabBarHeight = Platform.OS === 'ios' ? 80 : 60;
 
   return (
     <View style={styles.container}>
@@ -48,7 +55,13 @@ export default function AnalyticsScreen() {
         }}
       />
       
-      <ScrollView style={styles.content}>
+      <ScrollView 
+        style={styles.content}
+        contentContainerStyle={{
+          paddingTop: headerHeight + 16,
+          paddingBottom: tabBarHeight + 16,
+        }}
+      >
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Weekly Overview</Text>
           <BarChart 
@@ -96,7 +109,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 16,
   },
   headerButton: {
     marginRight: 16,

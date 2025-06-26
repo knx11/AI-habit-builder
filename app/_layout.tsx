@@ -67,7 +67,7 @@ export default function RootLayout() {
       <StatusBar 
         barStyle="dark-content" 
         backgroundColor={colors.background}
-        translucent={false}
+        translucent={true}
       />
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>

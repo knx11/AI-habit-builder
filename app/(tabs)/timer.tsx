@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, StatusBar } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
@@ -20,6 +20,11 @@ export default function TimerScreen() {
   const handleTaskPress = (taskId: string) => {
     setSelectedTaskId(taskId);
   };
+  
+  // Calculate content padding
+  const statusBarHeight = Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 44;
+  const headerHeight = Platform.OS === 'ios' ? 90 : 60 + statusBarHeight;
+  const tabBarHeight = Platform.OS === 'ios' ? 80 : 60;
   
   return (
     <View style={styles.container}>
@@ -43,7 +48,13 @@ export default function TimerScreen() {
         }}
       />
       
-      <View style={styles.content}>
+      <View style={[
+        styles.content,
+        { 
+          paddingTop: headerHeight + 16,
+          paddingBottom: tabBarHeight + 16,
+        }
+      ]}>
         <PomodoroTimer taskId={selectedTaskId} />
         
         <View style={styles.taskListContainer}>
@@ -81,7 +92,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 16,
   },
   headerButton: {
     marginRight: 16,
