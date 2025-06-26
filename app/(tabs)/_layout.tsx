@@ -3,9 +3,11 @@ import { TouchableOpacity, StyleSheet } from 'react-native';
 import { Settings, CheckSquare, Timer, Calendar, BarChart } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -23,8 +25,8 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
-          height: 60,
-          paddingBottom: 8,
+          height: 60 + insets.bottom,
+          paddingBottom: insets.bottom,
           paddingTop: 8,
         },
         headerStyle: {

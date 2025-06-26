@@ -10,6 +10,7 @@ import { trpc, trpcClient } from "@/lib/trpc";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StyleSheet, Platform, StatusBar, View } from "react-native";
 import { colors } from "@/constants/colors";
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
@@ -57,7 +58,6 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (loaded) {
-      // Hide splash screen once everything is ready
       SplashScreen.hideAsync().catch(console.error);
     }
   }, [loaded]);
@@ -67,27 +67,30 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <trpc.Provider client={trpcClient} queryClient={queryClient}>
-        <QueryClientProvider client={queryClient}>
-          <Stack screenOptions={{ 
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.background },
-            animation: 'fade',
-          }}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="settings" options={{ 
-              presentation: 'modal',
-              title: 'Settings',
-              headerShown: true,
-              headerStyle: { backgroundColor: colors.background },
-              headerTitleStyle: { color: colors.text }
-            }} />
-          </Stack>
-        </QueryClientProvider>
-      </trpc.Provider>
-    </GestureHandlerRootView>
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        <trpc.Provider client={trpcClient} queryClient={queryClient}>
+          <QueryClientProvider client={queryClient}>
+            <Stack screenOptions={{ 
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.background },
+              animation: 'fade',
+              fullScreenGestureEnabled: true,
+            }}>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="settings" options={{ 
+                presentation: 'modal',
+                title: 'Settings',
+                headerShown: true,
+                headerStyle: { backgroundColor: colors.background },
+                headerTitleStyle: { color: colors.text }
+              }} />
+            </Stack>
+          </QueryClientProvider>
+        </trpc.Provider>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
 
