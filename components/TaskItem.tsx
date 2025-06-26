@@ -39,34 +39,37 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
   // Render the main task content
   const renderTaskContent = () => {
     return (
-      <View style={styles.container}>
+      <TouchableOpacity 
+        onPress={isSwiping ? undefined : onPress}
+        onLongPress={isSwiping ? undefined : onLongPress}
+        activeOpacity={0.7}
+        style={styles.container}
+      >
         <View 
           style={[
             styles.priorityIndicator, 
             { backgroundColor: getPriorityColor() }
           ]} 
         />
-        <TouchableOpacity 
-          onPress={isSwiping ? undefined : onPress}
-          onLongPress={isSwiping ? undefined : onLongPress}
-          activeOpacity={0.7}
-          style={styles.taskContent}
-        >
-          <Text 
-            style={[
-              styles.title,
-              task.completed && styles.completedText
-            ]}
-            numberOfLines={1}
-          >
-            {task.title}
-          </Text>
+        
+        <View style={styles.taskContent}>
+          <View style={styles.headerRow}>
+            <Text 
+              style={[
+                styles.title,
+                task.completed && styles.completedText
+              ]}
+              numberOfLines={1}
+            >
+              {task.title}
+            </Text>
 
-          {task.category && (
-            <View style={styles.categoryChip}>
-              <Text style={styles.categoryText}>{task.category}</Text>
-            </View>
-          )}
+            {task.category && (
+              <View style={styles.categoryChip}>
+                <Text style={styles.categoryText}>{task.category}</Text>
+              </View>
+            )}
+          </View>
 
           {task.description ? (
             <Text 
@@ -80,8 +83,8 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
           <Text style={styles.timeText}>
             {formatTime(task.estimatedMinutes)}
           </Text>
-        </TouchableOpacity>
-      </View>
+        </View>
+      </TouchableOpacity>
     );
   };
 
@@ -112,7 +115,7 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
 
 const styles = StyleSheet.create({
   itemContainer: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   swipeableContainer: {
     flex: 1,
@@ -122,54 +125,63 @@ const styles = StyleSheet.create({
   },
   container: {
     backgroundColor: colors.background,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     flexDirection: 'row',
-    elevation: 1,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   priorityIndicator: {
     width: 4,
   },
   taskContent: {
     flex: 1,
-    padding: 16,
+    padding: 20,
     backgroundColor: colors.background,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 8,
+    flex: 1,
+    marginRight: 12,
   },
   completedText: {
     textDecorationLine: 'line-through',
     color: colors.textLight,
   },
   categoryChip: {
-    backgroundColor: colors.secondary,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: colors.categoryBackground,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
     alignSelf: 'flex-start',
-    marginBottom: 8,
   },
   categoryText: {
-    color: colors.background,
+    color: colors.categoryText,
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   description: {
     fontSize: 14,
     color: colors.textLight,
-    marginBottom: 8,
+    marginBottom: 12,
     lineHeight: 20,
   },
   timeText: {
     fontSize: 14,
     color: colors.textLight,
+    fontWeight: '500',
   },
 });

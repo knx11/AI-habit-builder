@@ -99,18 +99,25 @@ export default function HomeScreen() {
           />
         )}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={() => (
-          <Text style={styles.emptyText}>
-            {filter === 'active' ? 'No active tasks' : 
-             filter === 'completed' ? 'No completed tasks' : 
-             'No tasks yet'}
-          </Text>
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              {filter === 'active' ? 'No active tasks' : 
+               filter === 'completed' ? 'No completed tasks' : 
+               'No tasks yet'}
+            </Text>
+            <Text style={styles.emptySubtext}>
+              Tap the + button to create your first task
+            </Text>
+          </View>
         )}
       />
       
       <TouchableOpacity
         style={styles.fab}
         onPress={() => setShowTaskForm(true)}
+        activeOpacity={0.8}
       >
         <Plus size={24} color="#fff" />
       </TouchableOpacity>
@@ -144,21 +151,24 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 8,
   },
   filterButton: {
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
     backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   activeFilterButton: {
     backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   filterButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     color: colors.textLight,
     fontWeight: '500',
   },
@@ -167,14 +177,25 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   listContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingBottom: 100,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    marginTop: 60,
+    paddingHorizontal: 40,
   },
   emptyText: {
     textAlign: 'center',
+    color: colors.text,
+    marginBottom: 8,
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  emptySubtext: {
+    textAlign: 'center',
     color: colors.textLight,
-    marginTop: 40,
-    fontSize: 16,
+    fontSize: 14,
   },
   fab: {
     position: 'absolute',
@@ -186,10 +207,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 6,
+    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.27,
-    shadowRadius: 4.65,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
 });

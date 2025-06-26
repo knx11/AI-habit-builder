@@ -11,6 +11,10 @@ export const colors = {
   warning: '#FFC107',
   accent: '#F9B293', // Peach/coral
   
+  // Updated category colors for soft teal
+  categoryBackground: '#E0F2F1', // Soft teal background
+  categoryText: '#00695C', // Darker teal text
+  
   // Priority colors
   priorityHigh: '#f1c40f',    // Yellow/orange
   priorityMedium: '#f1c40f',  // Yellow
