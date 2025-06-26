@@ -63,7 +63,7 @@ export default function RootLayout() {
   }, [loaded]);
 
   if (!loaded) {
-    return <View style={styles.container} />;
+    return null;
   }
 
   return (
