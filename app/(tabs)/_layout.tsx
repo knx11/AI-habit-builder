@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs, useRouter } from 'expo-router';
 import { StyleSheet, Platform, TouchableOpacity } from 'react-native';
-import { CheckSquare, Clock, BarChart2, ChevronDown } from 'lucide-react-native';
+import { CheckSquare, Clock, BarChart2, ChevronDown, Settings } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
