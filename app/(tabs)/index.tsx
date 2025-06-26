@@ -124,6 +124,18 @@ export default function HomeScreen() {
     );
   };
 
+  const getEmptyMessage = () => {
+    if (filter === 'active') {
+      return 'No active tasks';
+    } else if (filter === 'completed') {
+      return 'No completed tasks';
+    } else if (selectedCategory) {
+      return `No tasks in ${selectedCategory}`;
+    } else {
+      return 'No tasks yet';
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Stack.Screen
@@ -164,10 +176,7 @@ export default function HomeScreen() {
         ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
-              {filter === 'active' ? 'No active tasks' : 
-               filter === 'completed' ? 'No completed tasks' : 
-               selectedCategory ? `No tasks in ${selectedCategory}` :
-               'No tasks yet'}
+              {getEmptyMessage()}
             </Text>
             <Text style={styles.emptySubtext}>
               Tap the + button to create your first task
