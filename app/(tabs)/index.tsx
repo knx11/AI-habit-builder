@@ -72,7 +72,7 @@ export default function HomeScreen() {
         options={{
           headerTitle: 'Tasks',
           headerStyle: {
-            backgroundColor: colors.background,
+            backgroundColor: '#FFFFFF',
             shadowColor: 'transparent',
             elevation: 0,
           },
@@ -151,10 +151,10 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
   },
   header: {
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 25,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   activeFilterButtonText: {
-    color: colors.background,
+    color: '#FFFFFF',
     fontWeight: '600',
   },
   listContent: {
