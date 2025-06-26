@@ -56,14 +56,6 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
             {task.title}
           </Text>
 
-          {task.category && (
-            <View style={styles.categoryContainer}>
-              <View style={styles.categoryChip}>
-                <Text style={styles.categoryText}>{task.category}</Text>
-              </View>
-            </View>
-          )}
-
           {task.description ? (
             <Text 
               style={styles.description}
@@ -73,9 +65,17 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
             </Text>
           ) : null}
 
-          <Text style={styles.timeText}>
-            {formatTime(task.estimatedMinutes)}
-          </Text>
+          <View style={styles.footer}>
+            {task.category && (
+              <View style={styles.categoryChip}>
+                <Text style={styles.categoryText}>{task.category}</Text>
+              </View>
+            )}
+
+            <Text style={styles.timeText}>
+              {formatTime(task.estimatedMinutes)}
+            </Text>
+          </View>
         </TouchableOpacity>
       </View>
     );
@@ -123,64 +123,62 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
 const styles = StyleSheet.create({
   itemContainer: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: 12,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   priorityIndicator: {
     width: 4,
-    borderRadius: 2,
-    marginRight: 12,
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
   },
   swipeableContainer: {
     flex: 1,
   },
   swipeableChildrenContainer: {
-    backgroundColor: colors.background,
-    borderRadius: 0,
+    backgroundColor: colors.cardBackground,
   },
   container: {
-    backgroundColor: colors.background,
-    borderRadius: 0,
-    overflow: 'hidden',
+    backgroundColor: colors.cardBackground,
   },
   taskContent: {
-    paddingVertical: 16,
-    paddingRight: 16,
+    padding: 16,
   },
   title: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
-    lineHeight: 24,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   completedText: {
     textDecorationLine: 'line-through',
     color: colors.textLight,
   },
-  categoryContainer: {
+  description: {
+    fontSize: 14,
+    color: colors.textLight,
     marginBottom: 8,
+    lineHeight: 20,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   categoryChip: {
-    backgroundColor: '#8BBAB4', // Muted green color from the design
+    backgroundColor: colors.secondary,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
-    alignSelf: 'flex-start',
   },
   categoryText: {
     color: colors.background,
     fontSize: 12,
     fontWeight: '500',
   },
-  description: {
-    fontSize: 14,
-    color: colors.textLight,
-    marginBottom: 12,
-    lineHeight: 20,
-  },
   timeText: {
     fontSize: 14,
     color: colors.textLight,
-    fontWeight: '500',
   },
 });

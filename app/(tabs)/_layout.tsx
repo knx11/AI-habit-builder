@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { StyleSheet, View, Text, Platform, StatusBar } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { CheckSquare, Clock, BarChart2, Calendar } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -42,9 +42,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <CheckSquare size={size} color={color} />
           ),
-          tabBarLabel: ({ color }) => (
-            <Text style={[styles.tabLabel, { color }]}>Tasks</Text>
-          ),
         }}
       />
       
@@ -54,9 +51,6 @@ export default function TabLayout() {
           title: 'Timer',
           tabBarIcon: ({ color, size }) => (
             <Clock size={size} color={color} />
-          ),
-          tabBarLabel: ({ color }) => (
-            <Text style={[styles.tabLabel, { color }]}>Timer</Text>
           ),
         }}
       />
@@ -68,9 +62,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <BarChart2 size={size} color={color} />
           ),
-          tabBarLabel: ({ color }) => (
-            <Text style={[styles.tabLabel, { color }]}>Analytics</Text>
-          ),
         }}
       />
       
@@ -80,9 +71,6 @@ export default function TabLayout() {
           title: 'Calendar',
           tabBarIcon: ({ color, size }) => (
             <Calendar size={size} color={color} />
-          ),
-          tabBarLabel: ({ color }) => (
-            <Text style={[styles.tabLabel, { color }]}>Calendar</Text>
           ),
         }}
       />

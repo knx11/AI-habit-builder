@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Settings, Plus } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
@@ -159,14 +159,14 @@ const styles = StyleSheet.create({
   filterContainer: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 8,
     gap: 8,
   },
   filterTab: {
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: 'transparent',
+    backgroundColor: colors.cardBackground,
   },
   activeFilterTab: {
     backgroundColor: colors.primary,
