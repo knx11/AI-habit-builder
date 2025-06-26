@@ -73,9 +73,8 @@ export default function HomeScreen() {
           headerTitle: 'Tasks',
           headerStyle: {
             backgroundColor: '#FFFFFF',
-            shadowColor: 'transparent',
-            elevation: 0,
           },
+          headerShadowVisible: false,
           headerTitleStyle: {
             color: colors.text,
             fontSize: 28,
