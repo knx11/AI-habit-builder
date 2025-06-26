@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs, useRouter } from 'expo-router';
 import { StyleSheet, Platform, TouchableOpacity } from 'react-native';
-import { CheckSquare, Clock, BarChart2, Calendar, Settings } from 'lucide-react-native';
+import { CheckSquare, Clock, BarChart2, ChevronDown } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -86,7 +86,7 @@ export default function TabLayout() {
         options={{
           title: 'Calendar',
           tabBarIcon: ({ color }) => (
-            <Calendar size={32} color="#F44336" /> // Red color for Calendar icon
+            <ChevronDown size={32} color="#F44336" /> // Red upside down triangle icon
           ),
         }}
       />
