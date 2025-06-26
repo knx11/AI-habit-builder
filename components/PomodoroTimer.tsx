@@ -248,31 +248,6 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
           activeOpacity={0.8}
           style={styles.timerCircle}
         >
-          <View
-            style={[
-              styles.progressCircle,
-              {
-                width: 240,
-                height: 240,
-                borderRadius: 120,
-                borderColor: getStateColor(timerState),
-              },
-            ]}
-          />
-          {progress > 0 && (
-            <View
-              style={[
-                styles.progressArc,
-                {
-                  width: 240,
-                  height: 240,
-                  borderRadius: 120,
-                  transform: [{ rotate: `${progress * 3.6}deg` }],
-                  borderTopColor: getStateColor(timerState),
-                },
-              ]}
-            />
-          )}
           <View style={styles.timerInner}>
             <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
             <Text style={styles.sessionText}>Session {currentSession}</Text>
@@ -410,8 +385,10 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.cardBackground,
     borderRadius: 16,
-    padding: 16,
+    padding: 20,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   timerStatesContainer: {
     flexDirection: 'row',
@@ -420,13 +397,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   stateButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
     marginHorizontal: 4,
-  },
-  activeState: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   stateText: {
     fontSize: 14,
@@ -443,32 +420,21 @@ const styles = StyleSheet.create({
     marginVertical: 32,
   },
   timerCircle: {
-    width: 240,
-    height: 240,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
-  },
-  progressCircle: {
-    position: 'absolute',
     borderWidth: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  progressArc: {
-    position: 'absolute',
-    borderWidth: 8,
-    borderLeftColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderRightColor: 'transparent',
+    borderColor: colors.primary,
   },
   timerInner: {
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 1,
   },
   timerText: {
-    fontSize: 48,
+    fontSize: 36,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 8,
@@ -494,7 +460,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.cardBackground,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -507,11 +473,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   // Time Picker Modal Styles
   modalOverlay: {

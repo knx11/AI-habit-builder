@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
@@ -25,11 +25,6 @@ export default function TimerScreen() {
     showFeedback('Task selected for timer', 'info');
   };
   
-  // Calculate content padding
-  const statusBarHeight = Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 44;
-  const headerHeight = Platform.OS === 'ios' ? 90 : 60 + statusBarHeight;
-  const tabBarHeight = Platform.OS === 'ios' ? 80 : 60;
-  
   return (
     <View style={styles.container}>
       <Stack.Screen
@@ -52,14 +47,10 @@ export default function TimerScreen() {
         }}
       />
       
-      <View style={[
-        styles.content,
-        { 
-          paddingTop: headerHeight + 16,
-          paddingBottom: tabBarHeight + 16,
-        }
-      ]}>
-        <PomodoroTimer taskId={selectedTaskId} />
+      <View style={styles.content}>
+        <View style={styles.timerSection}>
+          <PomodoroTimer taskId={selectedTaskId} />
+        </View>
         
         <View style={styles.taskListContainer}>
           <Text style={styles.sectionTitle}>Active Tasks</Text>
@@ -76,6 +67,7 @@ export default function TimerScreen() {
             ListEmptyComponent={() => (
               <Text style={styles.emptyText}>No active tasks</Text>
             )}
+            showsVerticalScrollIndicator={false}
           />
         </View>
       </View>
@@ -104,23 +96,28 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 16,
+    paddingTop: 16,
   },
   headerButton: {
     marginRight: 16,
+    padding: 8,
+  },
+  timerSection: {
+    marginBottom: 24,
   },
   taskListContainer: {
     flex: 1,
-    marginTop: 20,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   emptyText: {
     textAlign: 'center',
     color: colors.textLight,
-    marginTop: 20,
+    marginTop: 40,
+    fontSize: 16,
   },
 });
