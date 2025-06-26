@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
   TouchableOpacity,
-  Platform,
-  StatusBar
+  Platform
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { 
@@ -27,11 +26,6 @@ export default function AnalyticsScreen() {
 
   // Get weekly stats
   const weeklyStats = generateWeeklyStats(tasks, dailyStats);
-
-  // Calculate content padding
-  const statusBarHeight = Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 44;
-  const headerHeight = Platform.OS === 'ios' ? 90 : 60 + statusBarHeight;
-  const tabBarHeight = Platform.OS === 'ios' ? 80 : 60;
 
   return (
     <View style={styles.container}>
@@ -57,10 +51,7 @@ export default function AnalyticsScreen() {
       
       <ScrollView 
         style={styles.content}
-        contentContainerStyle={{
-          paddingTop: headerHeight + 16,
-          paddingBottom: tabBarHeight + 16,
-        }}
+        contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Weekly Overview</Text>
@@ -109,16 +100,22 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: Platform.OS === 'ios' ? 120 : 100,
   },
   headerButton: {
     marginRight: 16,
+    padding: 8,
   },
   section: {
     marginBottom: 24,
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   sectionTitle: {
     fontSize: 18,

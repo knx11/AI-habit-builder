@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Plus } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
@@ -72,7 +72,7 @@ export default function HomeScreen() {
         options={{
           headerTitle: 'Tasks',
           headerStyle: {
-            backgroundColor: '#FFFFFF',
+            backgroundColor: colors.background,
           },
           headerShadowVisible: false,
           headerTitleStyle: {
@@ -150,10 +150,10 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 25,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -181,13 +181,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   activeFilterButtonText: {
-    color: '#FFFFFF',
+    color: colors.background,
     fontWeight: '600',
   },
   listContent: {
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 100,
+    paddingBottom: Platform.OS === 'ios' ? 120 : 100,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -209,23 +209,17 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 24,
-    bottom: 100,
+    bottom: Platform.OS === 'ios' ? 120 : 100,
     width: 56,
     height: 56,
     borderRadius: 28,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
 });

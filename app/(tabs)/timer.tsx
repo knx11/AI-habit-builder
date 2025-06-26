@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import PomodoroTimer from '@/components/PomodoroTimer';
 import TaskItem from '@/components/TaskItem';
 import TaskDetails from '@/components/TaskDetails';
-import { Settings } from 'lucide-react-native';
 import FeedbackToast from '@/components/FeedbackToast';
 import useFeedback from '@/hooks/useFeedback';
 
@@ -157,7 +156,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   listContent: {
-    paddingBottom: 100,
+    paddingBottom: Platform.OS === 'ios' ? 120 : 100,
   },
   emptyContainer: {
     alignItems: 'center',

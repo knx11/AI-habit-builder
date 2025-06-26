@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
@@ -24,11 +24,6 @@ export default function CalendarScreen() {
     return isSameDay(taskDate, selectedDate);
   });
 
-  // Calculate content padding
-  const statusBarHeight = Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 44;
-  const headerHeight = Platform.OS === 'ios' ? 90 : 60 + statusBarHeight;
-  const tabBarHeight = Platform.OS === 'ios' ? 80 : 60;
-
   return (
     <View style={styles.container}>
       <Stack.Screen
@@ -51,13 +46,7 @@ export default function CalendarScreen() {
         }}
       />
 
-      <View style={[
-        styles.content,
-        { 
-          paddingTop: headerHeight + 16,
-          paddingBottom: tabBarHeight + 16,
-        }
-      ]}>
+      <View style={styles.content}>
         <View style={styles.calendar}>
           {weekDates.map((date) => (
             <TouchableOpacity
@@ -68,13 +57,26 @@ export default function CalendarScreen() {
               ]}
               onPress={() => setSelectedDate(date)}
             >
-              <Text style={styles.dayText}>{format(date, 'EEE')}</Text>
-              <Text style={styles.dateText}>{format(date, 'd')}</Text>
+              <Text style={[
+                styles.dayText,
+                isSameDay(date, selectedDate) && styles.selectedDateText
+              ]}>
+                {format(date, 'EEE')}
+              </Text>
+              <Text style={[
+                styles.dateText,
+                isSameDay(date, selectedDate) && styles.selectedDateText
+              ]}>
+                {format(date, 'd')}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <ScrollView style={styles.taskList}>
+        <ScrollView 
+          style={styles.taskList}
+          contentContainerStyle={styles.taskListContent}
+        >
           {tasksForDate.map((task) => (
             <TaskItem
               key={task.id}
@@ -84,7 +86,9 @@ export default function CalendarScreen() {
             />
           ))}
           {tasksForDate.length === 0 && (
-            <Text style={styles.emptyText}>No tasks for this date</Text>
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No tasks for this date</Text>
+            </View>
           )}
         </ScrollView>
       </View>
@@ -106,9 +110,11 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 16,
+    paddingTop: 16,
   },
   headerButton: {
     marginRight: 16,
+    padding: 8,
   },
   calendar: {
     flexDirection: 'row',
@@ -117,11 +123,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   dateButton: {
     alignItems: 'center',
     padding: 8,
     borderRadius: 8,
+    minWidth: 40,
   },
   selectedDate: {
     backgroundColor: colors.primary,
@@ -136,12 +145,23 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
   },
+  selectedDateText: {
+    color: colors.background,
+  },
   taskList: {
     flex: 1,
+  },
+  taskListContent: {
+    paddingBottom: Platform.OS === 'ios' ? 120 : 100,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    marginTop: 40,
+    paddingHorizontal: 40,
   },
   emptyText: {
     textAlign: 'center',
     color: colors.textLight,
-    marginTop: 20,
+    fontSize: 16,
   },
 });
