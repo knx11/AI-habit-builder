@@ -86,7 +86,7 @@ export default function TabLayout() {
         options={{
           title: 'Calendar',
           tabBarIcon: ({ color }) => (
-            <Calendar size={32} color="#F44336" /> // Increased size and red color
+            <Calendar size={32} color="#F44336" /> // Red color for Calendar icon
           ),
         }}
       />
