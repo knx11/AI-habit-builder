@@ -1,12 +1,13 @@
 import React from 'react';
-import { Tabs } from 'expo-router';
-import { StyleSheet, Platform } from 'react-native';
-import { CheckSquare, Clock, BarChart2, Calendar } from 'lucide-react-native';
+import { Tabs, useRouter } from 'expo-router';
+import { StyleSheet, Platform, TouchableOpacity } from 'react-native';
+import { CheckSquare, Clock, BarChart2, Calendar, Settings } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   
   return (
     <Tabs
@@ -27,9 +28,17 @@ export default function TabLayout() {
           shadowOpacity: 0,
         },
         headerTitleStyle: {
-          color: colors.background, // White text for contrast
+          color: colors.background,
           fontWeight: '600',
         },
+        headerRight: () => (
+          <TouchableOpacity 
+            onPress={() => router.push('/settings')}
+            style={{ marginRight: 16 }}
+          >
+            <Settings size={24} color={colors.background} />
+          </TouchableOpacity>
+        ),
         tabBarLabelStyle: {
           fontSize: 12,
         },
