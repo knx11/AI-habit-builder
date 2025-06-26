@@ -73,19 +73,23 @@ export default function HomeScreen() {
           headerTitle: 'Tasks',
           headerStyle: {
             backgroundColor: colors.background,
+            shadowColor: 'transparent',
+            elevation: 0,
           },
           headerTitleStyle: {
             color: colors.text,
-            fontSize: 24,
+            fontSize: 28,
             fontWeight: 'bold',
           },
         }}
       />
       
-      <View style={styles.filterContainer}>
-        {renderFilterButton('all', 'All')}
-        {renderFilterButton('active', 'Active')}
-        {renderFilterButton('completed', 'Completed')}
+      <View style={styles.header}>
+        <View style={styles.filterContainer}>
+          {renderFilterButton('all', 'All')}
+          {renderFilterButton('active', 'Active')}
+          {renderFilterButton('completed', 'Completed')}
+        </View>
       </View>
       
       <FlatList
@@ -149,17 +153,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  header: {
+    backgroundColor: colors.background,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
   filterContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 8,
+    gap: 12,
   },
   filterButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: 'transparent',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+    backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -168,7 +177,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   filterButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textLight,
     fontWeight: '500',
   },
@@ -178,6 +187,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 20,
+    paddingTop: 20,
     paddingBottom: 100,
   },
   emptyContainer: {

@@ -21,21 +21,6 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
   const swipeableRef = useRef<Swipeable>(null);
   const [isSwiping, setIsSwiping] = useState(false);
 
-  const getPriorityColor = () => {
-    switch (task.priority) {
-      case 'high':
-        return '#f1c40f'; // Yellow for high priority
-      case 'medium':
-        return '#f1c40f'; // Yellow for medium priority
-      case 'low':
-        return '#bdc3c7'; // Gray for low priority
-      case 'optional':
-        return '#bdc3c7'; // Gray for optional
-      default:
-        return '#bdc3c7';
-    }
-  };
-
   // Render the main task content
   const renderTaskContent = () => {
     return (
@@ -45,13 +30,6 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
         activeOpacity={0.7}
         style={styles.container}
       >
-        <View 
-          style={[
-            styles.priorityIndicator, 
-            { backgroundColor: getPriorityColor() }
-          ]} 
-        />
-        
         <View style={styles.taskContent}>
           <View style={styles.headerRow}>
             <Text 
@@ -115,7 +93,7 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
 
 const styles = StyleSheet.create({
   itemContainer: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
   swipeableContainer: {
     flex: 1,
@@ -124,10 +102,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   container: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     overflow: 'hidden',
-    flexDirection: 'row',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -136,13 +113,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  priorityIndicator: {
-    width: 4,
-  },
   taskContent: {
-    flex: 1,
     padding: 20,
-    backgroundColor: colors.background,
+    backgroundColor: colors.cardBackground,
   },
   headerRow: {
     flexDirection: 'row',
@@ -151,7 +124,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   title: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
     color: colors.text,
     flex: 1,
@@ -174,7 +147,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   description: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textLight,
     marginBottom: 12,
     lineHeight: 20,
