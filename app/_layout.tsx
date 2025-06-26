@@ -73,7 +73,8 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <Stack screenOptions={{ 
             headerShown: false,
-            contentStyle: { backgroundColor: colors.background }
+            contentStyle: { backgroundColor: colors.background },
+            animation: 'fade',
           }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="settings" options={{ 

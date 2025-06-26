@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { TouchableOpacity } from 'react-native';
+import { TouchableOpacity, StyleSheet } from 'react-native';
 import { Settings, CheckSquare, Timer, Calendar, BarChart } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useRouter } from 'expo-router';
@@ -13,7 +13,7 @@ export default function TabLayout() {
         headerRight: () => (
           <TouchableOpacity 
             onPress={() => router.push('/settings')}
-            style={{ marginRight: 16 }}
+            style={styles.headerButton}
           >
             <Settings size={24} color={colors.text} />
           </TouchableOpacity>
@@ -23,12 +23,24 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
         },
         headerStyle: {
           backgroundColor: colors.background,
+          height: 96,
         },
         headerTitleStyle: {
           color: colors.text,
+          fontSize: 24,
+          fontWeight: 'bold',
+        },
+        headerTitleContainerStyle: {
+          paddingHorizontal: 16,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
         },
       }}
     >
@@ -63,3 +75,10 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  headerButton: {
+    marginRight: 16,
+    padding: 8,
+  },
+});
