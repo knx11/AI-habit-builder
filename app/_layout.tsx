@@ -16,10 +16,8 @@ export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
 
-// Create a client
 const queryClient = new QueryClient();
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -29,7 +27,6 @@ export default function RootLayout() {
   
   const { tasks, dailyStats, addTask, addDailyStats } = useTaskStore();
   
-  // Initialize with mock data if empty
   useEffect(() => {
     if (tasks.length === 0) {
       const mockTasks = generateMockTasks();
@@ -72,12 +69,17 @@ export default function RootLayout() {
         <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
         <trpc.Provider client={trpcClient} queryClient={queryClient}>
           <QueryClientProvider client={queryClient}>
-            <Stack screenOptions={{ 
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.background },
-              animation: 'fade',
-              fullScreenGestureEnabled: true,
-            }}>
+            <Stack 
+              screenOptions={{ 
+                headerShown: false,
+                contentStyle: { 
+                  backgroundColor: colors.background,
+                  flex: 1, // Ensure content fills screen
+                },
+                animation: 'fade',
+                fullScreenGestureEnabled: true,
+              }}
+            >
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="settings" options={{ 
                 presentation: 'modal',
@@ -97,6 +99,5 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
 });

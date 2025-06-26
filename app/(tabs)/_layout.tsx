@@ -31,7 +31,6 @@ export default function TabLayout() {
         },
         headerStyle: {
           backgroundColor: colors.background,
-          height: 96,
         },
         headerTitleStyle: {
           color: colors.text,
@@ -44,6 +43,7 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontSize: 12,
         },
+        headerShadowVisible: false,
       }}
     >
       <Tabs.Screen
