@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { Settings, CheckSquare, Timer, Calendar, BarChart } from 'lucide-react-native';
+import { Settings, CheckSquare, Calendar, BarChart } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useRouter } from 'expo-router';
 
@@ -51,13 +51,6 @@ export default function TabLayout() {
         options={{
           title: 'Tasks',
           tabBarIcon: ({ color }) => <CheckSquare size={24} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="timer"
-        options={{
-          title: 'Timer',
-          tabBarIcon: ({ color }) => <Timer size={24} color={color} />,
         }}
       />
       <Tabs.Screen
