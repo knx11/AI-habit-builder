@@ -154,8 +154,100 @@ export default function TaskForm({ visible, onClose, onSuccess, initialDate }: T
           
           {mode === 'new' ? (
             <ScrollView style={styles.form}>
-              {/* Existing new task form content */}
-              {/* ... Keep all the existing form fields ... */}
+              <View style={styles.formField}>
+                <Text style={styles.label}>Title</Text>
+                <TextInput
+                  style={styles.input}
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder="Task title"
+                  placeholderTextColor={colors.textLight}
+                />
+              </View>
+
+              <View style={styles.formField}>
+                <Text style={styles.label}>Description</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Task description"
+                  placeholderTextColor={colors.textLight}
+                  multiline
+                  numberOfLines={4}
+                />
+              </View>
+
+              <View style={styles.formField}>
+                <Text style={styles.label}>Category</Text>
+                <View style={styles.categoryButtons}>
+                  {categories.map((cat) => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[
+                        styles.categoryButton,
+                        category === cat && styles.selectedCategory,
+                      ]}
+                      onPress={() => setCategory(cat)}
+                    >
+                      <Text
+                        style={[
+                          styles.categoryButtonText,
+                          category === cat && styles.selectedCategoryText,
+                        ]}
+                      >
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.formField}>
+                <Text style={styles.label}>Priority</Text>
+                <View style={styles.priorityButtons}>
+                  {priorities.map((p) => (
+                    <TouchableOpacity
+                      key={p.value}
+                      style={[
+                        styles.priorityButton,
+                        { borderColor: p.color },
+                        priority === p.value && { backgroundColor: p.color },
+                      ]}
+                      onPress={() => setPriority(p.value)}
+                    >
+                      <Text
+                        style={[
+                          styles.priorityButtonText,
+                          { color: p.color },
+                          priority === p.value && { color: '#fff' },
+                        ]}
+                      >
+                        {p.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.formField}>
+                <Text style={styles.label}>Estimated Time (minutes)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={estimatedMinutes.toString()}
+                  onChangeText={(text) => setEstimatedMinutes(parseInt(text) || 0)}
+                  keyboardType="number-pad"
+                  placeholder="30"
+                  placeholderTextColor={colors.textLight}
+                />
+              </View>
+
+              {error ? (
+                <View style={styles.errorContainer}>
+                  <AlertCircle size={16} color={colors.danger} />
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              ) : null}
             </ScrollView>
           ) : (
             <FlatList
@@ -256,6 +348,77 @@ const styles = StyleSheet.create({
   },
   form: {
     padding: 20,
+  },
+  formField: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 8,
+    padding: 12,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  categoryButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  categoryButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: colors.categoryBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  selectedCategory: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  categoryButtonText: {
+    color: colors.categoryText,
+    fontWeight: '500',
+  },
+  selectedCategoryText: {
+    color: colors.background,
+  },
+  priorityButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  priorityButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  priorityButtonText: {
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFEBEE',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: colors.danger,
+    marginLeft: 8,
   },
   taskList: {
     padding: 20,
