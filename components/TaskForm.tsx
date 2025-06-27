@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Platform
+  Platform,
+  FlatList
 } from 'react-native';
 import { X, Zap, AlertTriangle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
@@ -16,6 +17,7 @@ import Button from './Button';
 import { useTaskStore } from '@/store/taskStore';
 import { generateTaskBreakdown } from '@/services/aiService';
 import * as Haptics from 'expo-haptics';
+import { Task } from '@/types/task';
 
 interface TaskFormProps {
   visible: boolean;
@@ -24,13 +26,14 @@ interface TaskFormProps {
 }
 
 export default function TaskForm({ visible, onClose, initialDate }: TaskFormProps) {
-  const { addTask } = useTaskStore();
+  const { addTask, tasks } = useTaskStore();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [estimatedMinutes, setEstimatedMinutes] = useState('30');
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [showTaskPicker, setShowTaskPicker] = useState(false);
 
   const handleSubmit = async () => {
     if (!title.trim()) return;
@@ -89,7 +92,28 @@ export default function TaskForm({ visible, onClose, initialDate }: TaskFormProp
     setCategory('');
     setEstimatedMinutes('30');
     setAiError(null);
+    setShowTaskPicker(false);
   };
+
+  const handleSelectTask = (task: Task) => {
+    setTitle(task.title);
+    setDescription(task.description);
+    setCategory(task.category || '');
+    setEstimatedMinutes(task.estimatedMinutes.toString());
+    setShowTaskPicker(false);
+  };
+
+  const renderTaskItem = ({ item }: { item: Task }) => (
+    <TouchableOpacity 
+      style={styles.taskPickerItem}
+      onPress={() => handleSelectTask(item)}
+    >
+      <Text style={styles.taskPickerTitle}>{item.title}</Text>
+      {item.category && (
+        <Text style={styles.taskPickerCategory}>{item.category}</Text>
+      )}
+    </TouchableOpacity>
+  );
 
   return (
     <Modal
@@ -110,7 +134,15 @@ export default function TaskForm({ visible, onClose, initialDate }: TaskFormProp
 
           <ScrollView style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Title</Text>
+              <View style={styles.titleHeader}>
+                <Text style={styles.label}>Title</Text>
+                <TouchableOpacity 
+                  onPress={() => setShowTaskPicker(true)}
+                  style={styles.selectButton}
+                >
+                  <Text style={styles.selectButtonText}>Select Existing</Text>
+                </TouchableOpacity>
+              </View>
               <TextInput
                 style={styles.input}
                 value={title}
@@ -196,6 +228,30 @@ export default function TaskForm({ visible, onClose, initialDate }: TaskFormProp
             />
           </View>
         </View>
+
+        <Modal
+          visible={showTaskPicker}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowTaskPicker(false)}
+        >
+          <View style={styles.pickerContainer}>
+            <View style={styles.pickerContent}>
+              <View style={styles.pickerHeader}>
+                <Text style={styles.pickerTitle}>Select Task</Text>
+                <TouchableOpacity onPress={() => setShowTaskPicker(false)}>
+                  <X size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+              <FlatList
+                data={tasks}
+                renderItem={renderTaskItem}
+                keyExtractor={item => item.id}
+                contentContainerStyle={styles.pickerList}
+              />
+            </View>
+          </View>
+        </Modal>
       </View>
     </Modal>
   );
@@ -236,11 +292,27 @@ const styles = StyleSheet.create({
   inputGroup: {
     marginBottom: 16
   },
+  titleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8
+  },
   label: {
     fontSize: 16,
     fontWeight: '500',
-    color: colors.text,
-    marginBottom: 8
+    color: colors.text
+  },
+  selectButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: colors.categoryBackground,
+    borderRadius: 16
+  },
+  selectButtonText: {
+    color: colors.categoryText,
+    fontSize: 14,
+    fontWeight: '500'
   },
   input: {
     backgroundColor: colors.cardBackground,
@@ -298,5 +370,46 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.danger,
     marginLeft: 8
+  },
+  pickerContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end'
+  },
+  pickerContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '70%'
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border
+  },
+  pickerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text
+  },
+  pickerList: {
+    padding: 20
+  },
+  taskPickerItem: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border
+  },
+  taskPickerTitle: {
+    fontSize: 16,
+    color: colors.text,
+    marginBottom: 4
+  },
+  taskPickerCategory: {
+    fontSize: 14,
+    color: colors.textLight
   }
 });
