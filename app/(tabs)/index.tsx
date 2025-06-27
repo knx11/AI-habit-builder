@@ -13,20 +13,11 @@ type Filter = 'all' | 'active' | 'completed';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { tasks = [] } = useTaskStore(); // Provide fallback empty array if tasks is undefined
+  const { tasks = [] } = useTaskStore();
   const [filter, setFilter] = useState<Filter>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [showAddTask, setShowAddTask] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  
-  // Debug log to check if tasks are available
-  React.useEffect(() => {
-    if (!tasks || tasks.length === 0) {
-      console.log("Tasks are undefined or empty");
-    } else {
-      console.log(`Tasks loaded: ${tasks.length}`);
-    }
-  }, [tasks]);
   
   // Get unique categories from tasks, excluding duplicates
   const taskCategories = Array.from(new Set(tasks.map(task => task.category || 'Other')));
@@ -53,10 +44,18 @@ export default function HomeScreen() {
       filteredTasks = filteredTasks.filter(task => task.category === selectedCategory);
     }
     
-    // Sort by creation date, newest first
-    return filteredTasks.sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    // Sort by priority and creation date
+    return filteredTasks.sort((a, b) => {
+      const priorityOrder = { high: 0, medium: 1, low: 2, optional: 3 };
+      const aPriority = a.priority ? priorityOrder[a.priority] : 4;
+      const bPriority = b.priority ? priorityOrder[b.priority] : 4;
+      
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority;
+      }
+      
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   };
 
   return (

@@ -57,6 +57,19 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
     }
   }, [task.completed]);
 
+  const getPriorityColor = () => {
+    switch (task.priority) {
+      case 'high':
+        return colors.priorityHigh;
+      case 'medium':
+        return colors.priorityMedium;
+      case 'low':
+        return colors.priorityLow;
+      default:
+        return colors.priorityOptional;
+    }
+  };
+
   // Render the main task content
   const renderTaskContent = () => {
     return (
@@ -68,6 +81,7 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
         activeOpacity={0.7}
         style={[styles.container, animatedStyle]}
       >
+        <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor() }]} />
         <View style={styles.taskContent}>
           <View style={styles.headerRow}>
             <Text 
@@ -104,7 +118,7 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
     );
   };
 
-  // On web, don't use Swipeable and provide fallback animations
+  // On web, don't use Swipeable
   if (Platform.OS === 'web') {
     return (
       <Animated.View 
@@ -117,7 +131,6 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
     );
   }
 
-  // On native, use Swipeable with layout animations
   return (
     <Animated.View 
       style={styles.itemContainer}
@@ -168,6 +181,10 @@ const styles = StyleSheet.create({
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
       },
     }),
+  },
+  priorityIndicator: {
+    height: 4,
+    width: '100%',
   },
   taskContent: {
     padding: 20,
