@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, ScrollView } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { Settings } from 'lucide-react-native';
+import { Settings, Plus } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import TaskItem from '@/components/TaskItem';
 import TaskDetails from '@/components/TaskDetails';
 import TaskForm from '@/components/TaskForm';
-import Button from '@/components/Button';
 
 type Filter = 'all' | 'active' | 'completed';
 
@@ -20,11 +19,8 @@ export default function HomeScreen() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   
   // Get unique categories from tasks, excluding duplicates
-  const taskCategories = Array.from(new Set(tasks.map(task => task.category || 'Other')));
+  const categories = Array.from(new Set(tasks.map(task => task.category || 'Other')));
   
-  // Create a separate array for the category filter that includes 'All'
-  const filterCategories = ['All', ...taskCategories];
-
   // Filter tasks based on completion status and category
   const getFilteredTasks = () => {
     let filteredTasks = [...tasks];
@@ -40,22 +36,11 @@ export default function HomeScreen() {
     }
     
     // Then apply category filter if selected
-    if (selectedCategory && selectedCategory !== 'All') {
+    if (selectedCategory) {
       filteredTasks = filteredTasks.filter(task => task.category === selectedCategory);
     }
     
-    // Sort by priority and creation date
-    return filteredTasks.sort((a, b) => {
-      const priorityOrder = { high: 0, medium: 1, low: 2, optional: 3 };
-      const aPriority = a.priority ? priorityOrder[a.priority] : 4;
-      const bPriority = b.priority ? priorityOrder[b.priority] : 4;
-      
-      if (aPriority !== bPriority) {
-        return aPriority - bPriority;
-      }
-      
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
+    return filteredTasks;
   };
 
   return (
@@ -68,6 +53,8 @@ export default function HomeScreen() {
           },
           headerTitleStyle: {
             color: colors.text,
+            fontSize: 28,
+            fontWeight: 'bold',
           },
           headerRight: () => (
             <TouchableOpacity 
@@ -82,15 +69,11 @@ export default function HomeScreen() {
       
       <View style={styles.content}>
         <View style={styles.filters}>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            style={styles.filterScroll}
-          >
+          <View style={styles.filterTabs}>
             <TouchableOpacity
               style={[
-                styles.filterButton,
-                filter === 'all' && styles.activeFilter,
+                styles.filterTab,
+                filter === 'all' && styles.activeFilterTab,
               ]}
               onPress={() => setFilter('all')}
             >
@@ -106,8 +89,8 @@ export default function HomeScreen() {
             
             <TouchableOpacity
               style={[
-                styles.filterButton,
-                filter === 'active' && styles.activeFilter,
+                styles.filterTab,
+                filter === 'active' && styles.activeFilterTab,
               ]}
               onPress={() => setFilter('active')}
             >
@@ -123,8 +106,8 @@ export default function HomeScreen() {
             
             <TouchableOpacity
               style={[
-                styles.filterButton,
-                filter === 'completed' && styles.activeFilter,
+                styles.filterTab,
+                filter === 'completed' && styles.activeFilterTab,
               ]}
               onPress={() => setFilter('completed')}
             >
@@ -137,34 +120,50 @@ export default function HomeScreen() {
                 Completed
               </Text>
             </TouchableOpacity>
-          </ScrollView>
-        </View>
-        
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoriesScroll}
-        >
-          {filterCategories.map((category) => (
+          </View>
+          
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoryScroll}
+          >
             <TouchableOpacity
-              key={category}
               style={[
                 styles.categoryChip,
-                selectedCategory === category && styles.selectedCategory,
+                !selectedCategory && styles.selectedCategory,
               ]}
-              onPress={() => setSelectedCategory(category === selectedCategory ? '' : category)}
+              onPress={() => setSelectedCategory('')}
             >
               <Text
                 style={[
                   styles.categoryText,
-                  selectedCategory === category && styles.selectedCategoryText,
+                  !selectedCategory && styles.selectedCategoryText,
                 ]}
               >
-                {category}
+                All
               </Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+            {categories.map((category) => (
+              <TouchableOpacity
+                key={category}
+                style={[
+                  styles.categoryChip,
+                  selectedCategory === category && styles.selectedCategory,
+                ]}
+                onPress={() => setSelectedCategory(category)}
+              >
+                <Text
+                  style={[
+                    styles.categoryText,
+                    selectedCategory === category && styles.selectedCategoryText,
+                  ]}
+                >
+                  {category}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
         
         <FlatList
           data={getFilteredTasks()}
@@ -191,11 +190,12 @@ export default function HomeScreen() {
           )}
         />
         
-        <Button
-          title="Add New Task"
-          onPress={() => setShowAddTask(true)}
+        <TouchableOpacity 
           style={styles.addButton}
-        />
+          onPress={() => setShowAddTask(true)}
+        >
+          <Text style={styles.addButtonText}>Add New Task</Text>
+        </TouchableOpacity>
       </View>
       
       <TaskForm
@@ -228,32 +228,32 @@ const styles = StyleSheet.create({
   filters: {
     marginBottom: 16,
   },
-  filterScroll: {
-    flexGrow: 0,
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+  filterTabs: {
+    flexDirection: 'row',
+    marginBottom: 16,
     backgroundColor: colors.cardBackground,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: 24,
+    padding: 4,
   },
-  activeFilter: {
+  filterTab: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  activeFilterTab: {
     backgroundColor: colors.primary,
-    borderColor: colors.primary,
   },
   filterText: {
     color: colors.text,
     fontWeight: '500',
+    textAlign: 'center',
   },
   activeFilterText: {
     color: colors.background,
   },
-  categoriesScroll: {
+  categoryScroll: {
     flexGrow: 0,
-    marginBottom: 16,
   },
   categoryChip: {
     paddingHorizontal: 16,
@@ -296,5 +296,14 @@ const styles = StyleSheet.create({
     bottom: Platform.OS === 'ios' ? 34 : 24,
     left: 16,
     right: 16,
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  addButtonText: {
+    color: colors.background,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React from 'react';
 import { 
   View, 
   Text, 
@@ -6,19 +6,10 @@ import {
   TouchableOpacity,
   Platform
 } from 'react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
-  withTiming,
-  FadeIn,
-  FadeOut,
-  Layout
-} from 'react-native-reanimated';
 import { Task } from '@/types/task';
 import { colors } from '@/constants/colors';
 import { formatTime } from '@/utils/helpers';
-import { Swipeable } from 'react-native-gesture-handler';
+import { Circle, CheckCircle } from 'lucide-react-native';
 
 interface TaskItemProps {
   task: Task;
@@ -26,64 +17,25 @@ interface TaskItemProps {
   onLongPress: () => void;
 }
 
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
-
 export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) {
-  const swipeableRef = useRef<Swipeable>(null);
-  const [isSwiping, setIsSwiping] = useState(false);
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: scale.value }],
-      opacity: opacity.value,
-    };
-  });
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.98);
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1);
-  };
-
-  useEffect(() => {
-    if (task.completed) {
-      opacity.value = withTiming(0.6, { duration: 300 });
-    } else {
-      opacity.value = withTiming(1, { duration: 300 });
-    }
-  }, [task.completed]);
-
-  const getPriorityColor = () => {
-    switch (task.priority) {
-      case 'high':
-        return colors.priorityHigh;
-      case 'medium':
-        return colors.priorityMedium;
-      case 'low':
-        return colors.priorityLow;
-      default:
-        return colors.priorityOptional;
-    }
-  };
-
-  // Render the main task content
-  const renderTaskContent = () => {
-    return (
-      <AnimatedTouchableOpacity 
-        onPress={isSwiping ? undefined : onPress}
-        onLongPress={isSwiping ? undefined : onLongPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={0.7}
-        style={[styles.container, animatedStyle]}
-      >
-        <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor() }]} />
-        <View style={styles.taskContent}>
-          <View style={styles.headerRow}>
+  return (
+    <TouchableOpacity
+      style={styles.container}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.priorityLine, { backgroundColor: getPriorityColor(task.priority) }]} />
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <View style={styles.titleRow}>
+            <TouchableOpacity onPress={onPress}>
+              {task.completed ? (
+                <CheckCircle size={24} color={colors.primary} />
+              ) : (
+                <Circle size={24} color={colors.primary} />
+              )}
+            </TouchableOpacity>
             <Text 
               style={[
                 styles.title,
@@ -93,80 +45,50 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
             >
               {task.title}
             </Text>
-
-            {task.category && (
-              <View style={styles.categoryChip}>
-                <Text style={styles.categoryText}>{task.category}</Text>
-              </View>
-            )}
           </View>
-
-          {task.description ? (
-            <Text 
-              style={styles.description}
-              numberOfLines={2}
-            >
-              {task.description}
-            </Text>
-          ) : null}
-
-          <Text style={styles.timeText}>
-            {formatTime(task.estimatedMinutes)}
-          </Text>
+          {task.category && (
+            <View style={styles.categoryChip}>
+              <Text style={styles.categoryText}>{task.category}</Text>
+            </View>
+          )}
         </View>
-      </AnimatedTouchableOpacity>
-    );
-  };
-
-  // On web, don't use Swipeable
-  if (Platform.OS === 'web') {
-    return (
-      <Animated.View 
-        style={styles.itemContainer}
-        entering={FadeIn.duration(300)}
-        exiting={FadeOut.duration(200)}
-      >
-        {renderTaskContent()}
-      </Animated.View>
-    );
-  }
-
-  return (
-    <Animated.View 
-      style={styles.itemContainer}
-      entering={FadeIn.duration(300)}
-      exiting={FadeOut.duration(200)}
-      layout={Layout.springify()}
-    >
-      <Swipeable
-        ref={swipeableRef}
-        onSwipeableWillOpen={() => setIsSwiping(true)}
-        onSwipeableWillClose={() => setIsSwiping(false)}
-        containerStyle={styles.swipeableContainer}
-        childrenContainerStyle={styles.swipeableChildrenContainer}
-      >
-        {renderTaskContent()}
-      </Swipeable>
-    </Animated.View>
+        
+        {task.description ? (
+          <Text 
+            style={styles.description}
+            numberOfLines={2}
+          >
+            {task.description}
+          </Text>
+        ) : null}
+        
+        <Text style={styles.timeText}>
+          {formatTime(task.estimatedMinutes)}
+        </Text>
+      </View>
+    </TouchableOpacity>
   );
 }
 
+const getPriorityColor = (priority?: string) => {
+  switch (priority) {
+    case 'high':
+      return colors.priorityHigh;
+    case 'medium':
+      return colors.priorityMedium;
+    case 'low':
+      return colors.priorityLow;
+    default:
+      return colors.priorityOptional;
+  }
+};
+
 const styles = StyleSheet.create({
-  itemContainer: {
-    marginBottom: 16,
-  },
-  swipeableContainer: {
-    flex: 1,
-  },
-  swipeableChildrenContainer: {
-    backgroundColor: colors.background,
-  },
   container: {
     backgroundColor: colors.cardBackground,
     borderRadius: 16,
+    marginBottom: 12,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.border,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -182,26 +104,31 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  priorityIndicator: {
+  priorityLine: {
     height: 4,
     width: '100%',
   },
-  taskContent: {
-    padding: 20,
-    backgroundColor: colors.cardBackground,
+  content: {
+    padding: 16,
   },
-  headerRow: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 8,
   },
-  title: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: colors.text,
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
     marginRight: 12,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginLeft: 12,
+    flex: 1,
   },
   completedText: {
     textDecorationLine: 'line-through',
@@ -210,23 +137,22 @@ const styles = StyleSheet.create({
   categoryChip: {
     backgroundColor: colors.categoryBackground,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   categoryText: {
-    color: colors.categoryText,
     fontSize: 12,
-    fontWeight: '600',
+    color: colors.categoryText,
+    fontWeight: '500',
   },
   description: {
-    fontSize: 15,
+    fontSize: 14,
     color: colors.textLight,
-    marginBottom: 12,
+    marginBottom: 8,
     lineHeight: 20,
   },
   timeText: {
-    fontSize: 14,
+    fontSize: 12,
     color: colors.textLight,
     fontWeight: '500',
   },
