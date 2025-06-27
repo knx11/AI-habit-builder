@@ -18,19 +18,22 @@ import { useTaskStore } from '@/store/taskStore';
 import { formatTime, estimateTaskTime } from '@/utils/helpers';
 import { generateTaskBreakdown } from '@/services/aiService';
 import { TaskPriority } from '@/types/task';
+import { format } from 'date-fns';
 
 interface TaskFormProps {
   visible: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  initialDate?: Date;
 }
 
-export default function TaskForm({ visible, onClose, onSuccess }: TaskFormProps) {
+export default function TaskForm({ visible, onClose, onSuccess, initialDate }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [estimatedMinutes, setEstimatedMinutes] = useState(30);
   const [category, setCategory] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('medium');
+  const [dueDate, setDueDate] = useState<Date | undefined>(initialDate);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [error, setError] = useState('');
   
@@ -41,10 +44,10 @@ export default function TaskForm({ visible, onClose, onSuccess }: TaskFormProps)
   ];
   
   const priorities: { value: TaskPriority; label: string; color: string }[] = [
-    { value: 'high', label: 'High', color: '#3498db' }, // Blue
-    { value: 'medium', label: 'Medium', color: '#f1c40f' }, // Yellow
-    { value: 'low', label: 'Low', color: '#2ecc71' }, // Green
-    { value: 'optional', label: 'Optional', color: '#bdc3c7' }, // Light Gray
+    { value: 'high', label: 'High', color: '#3498db' },
+    { value: 'medium', label: 'Medium', color: '#f1c40f' },
+    { value: 'low', label: 'Low', color: '#2ecc71' },
+    { value: 'optional', label: 'Optional', color: '#bdc3c7' },
   ];
   
   const resetForm = () => {
@@ -53,6 +56,7 @@ export default function TaskForm({ visible, onClose, onSuccess }: TaskFormProps)
     setEstimatedMinutes(30);
     setCategory('');
     setPriority('medium');
+    setDueDate(undefined);
     setError('');
   };
   
@@ -73,6 +77,7 @@ export default function TaskForm({ visible, onClose, onSuccess }: TaskFormProps)
       estimatedMinutes,
       category: category || 'Other',
       priority,
+      dueDate: dueDate?.toISOString(),
     });
     
     resetForm();
@@ -98,6 +103,7 @@ export default function TaskForm({ visible, onClose, onSuccess }: TaskFormProps)
         estimatedMinutes: result.totalEstimatedMinutes,
         category: category || 'Other',
         priority,
+        dueDate: dueDate?.toISOString(),
       });
       
       addAIGeneratedSubTasks(
@@ -170,6 +176,19 @@ export default function TaskForm({ visible, onClose, onSuccess }: TaskFormProps)
               numberOfLines={4}
               textAlignVertical="top"
             />
+            
+            <Text style={styles.label}>Due Date</Text>
+            <View style={styles.dateContainer}>
+              <Text style={styles.dateText}>
+                {dueDate ? format(dueDate, 'MMM d, yyyy') : 'No due date set'}
+              </Text>
+              <TouchableOpacity 
+                style={styles.clearDateButton}
+                onPress={() => setDueDate(undefined)}
+              >
+                <Text style={styles.clearDateText}>Clear</Text>
+              </TouchableOpacity>
+            </View>
             
             <Text style={styles.label}>Category</Text>
             <View style={styles.categoryContainer}>
@@ -331,6 +350,29 @@ const styles = StyleSheet.create({
   },
   textArea: {
     minHeight: 100,
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  dateText: {
+    fontSize: 16,
+    color: colors.text,
+  },
+  clearDateButton: {
+    padding: 4,
+  },
+  clearDateText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '500',
   },
   categoryContainer: {
     flexDirection: 'row',

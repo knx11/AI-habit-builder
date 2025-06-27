@@ -26,7 +26,6 @@ interface TaskStore {
   updatePomodoroSettings: (settings: PomodoroSettings) => void;
   addAIGeneratedSubTasks: (taskId: string, subTasks: Array<{ title: string; estimatedMinutes: number }>) => void;
   
-  // Functions for task ordering and priority
   reorderTasks: (taskIds: string[]) => void;
   assignPriority: (taskId: string, priority: TaskPriority) => void;
   autoAssignPriorities: () => void;
@@ -40,24 +39,29 @@ const defaultPomodoroSettings: PomodoroSettings = {
   sessionsBeforeLongBreak: 4,
 };
 
+// Initialize with default values
+const initialState = {
+  tasks: [] as Task[],
+  timeBlocks: [] as TimeBlock[],
+  dailyStats: [] as DailyStats[],
+  pomodoroSettings: defaultPomodoroSettings,
+};
+
 export const useTaskStore = create<TaskStore>()(
   persist(
     (set, get) => ({
-      tasks: [],
-      timeBlocks: [],
-      dailyStats: [],
-      pomodoroSettings: defaultPomodoroSettings,
+      ...initialState,
       
       addTask: (task) => {
         const id = generateUniqueId();
-        const tasks = get().tasks;
+        const tasks = get().tasks || []; // Add null check
         const maxOrder = tasks.length > 0 
           ? Math.max(...tasks.map(t => t.order || 0)) 
           : 0;
           
         set((state) => ({
           tasks: [
-            ...state.tasks,
+            ...(state.tasks || []), // Add null check
             {
               ...task,
               id,
@@ -70,7 +74,6 @@ export const useTaskStore = create<TaskStore>()(
           ],
         }));
         
-        // Auto-assign priority to the new task
         setTimeout(() => {
           get().autoAssignPriorities();
         }, 100);
@@ -80,7 +83,7 @@ export const useTaskStore = create<TaskStore>()(
       
       updateTask: (taskId, updates) => {
         set((state) => ({
-          tasks: state.tasks.map((task) =>
+          tasks: (state.tasks || []).map((task) => // Add null check
             task.id === taskId ? { ...task, ...updates } : task
           ),
         }));
@@ -88,13 +91,13 @@ export const useTaskStore = create<TaskStore>()(
       
       deleteTask: (taskId) => {
         set((state) => ({
-          tasks: state.tasks.filter((task) => task.id !== taskId),
+          tasks: (state.tasks || []).filter((task) => task.id !== taskId), // Add null check
         }));
       },
       
       completeTask: (taskId, completed) => {
         set((state) => ({
-          tasks: state.tasks.map((task) =>
+          tasks: (state.tasks || []).map((task) => // Add null check
             task.id === taskId
               ? {
                   ...task,
@@ -111,12 +114,12 @@ export const useTaskStore = create<TaskStore>()(
       
       addSubTask: (taskId, subTask) => {
         set((state) => ({
-          tasks: state.tasks.map((task) =>
+          tasks: (state.tasks || []).map((task) => // Add null check
             task.id === taskId
               ? {
                   ...task,
                   subTasks: [
-                    ...task.subTasks,
+                    ...(task.subTasks || []), // Add null check
                     {
                       id: generateUniqueId(),
                       ...subTask,
@@ -131,11 +134,11 @@ export const useTaskStore = create<TaskStore>()(
       
       updateSubTask: (taskId, subTaskId, updates) => {
         set((state) => ({
-          tasks: state.tasks.map((task) =>
+          tasks: (state.tasks || []).map((task) => // Add null check
             task.id === taskId
               ? {
                   ...task,
-                  subTasks: task.subTasks.map((subTask) =>
+                  subTasks: (task.subTasks || []).map((subTask) => // Add null check
                     subTask.id === subTaskId
                       ? { ...subTask, ...updates }
                       : subTask
@@ -148,11 +151,11 @@ export const useTaskStore = create<TaskStore>()(
       
       deleteSubTask: (taskId, subTaskId) => {
         set((state) => ({
-          tasks: state.tasks.map((task) =>
+          tasks: (state.tasks || []).map((task) => // Add null check
             task.id === taskId
               ? {
                   ...task,
-                  subTasks: task.subTasks.filter(
+                  subTasks: (task.subTasks || []).filter( // Add null check
                     (subTask) => subTask.id !== subTaskId
                   ),
                 }
@@ -163,7 +166,7 @@ export const useTaskStore = create<TaskStore>()(
 
       deleteAllSubTasks: (taskId) => {
         set((state) => ({
-          tasks: state.tasks.map((task) =>
+          tasks: (state.tasks || []).map((task) => // Add null check
             task.id === taskId
               ? {
                   ...task,
@@ -176,18 +179,18 @@ export const useTaskStore = create<TaskStore>()(
       
       completeSubTask: (taskId, subTaskId, completed) => {
         set((state) => ({
-          tasks: state.tasks.map((task) =>
+          tasks: (state.tasks || []).map((task) => // Add null check
             task.id === taskId
               ? {
                   ...task,
-                  subTasks: task.subTasks.map((subTask) =>
+                  subTasks: (task.subTasks || []).map((subTask) => // Add null check
                     subTask.id === subTaskId
                       ? { ...subTask, completed }
                       : subTask
                   ),
                   completed:
                     completed &&
-                    task.subTasks
+                    (task.subTasks || []) // Add null check
                       .filter((st) => st.id !== subTaskId)
                       .every((st) => st.completed),
                 }
@@ -198,13 +201,13 @@ export const useTaskStore = create<TaskStore>()(
       
       addTimeBlock: (timeBlock) => {
         set((state) => ({
-          timeBlocks: [...state.timeBlocks, { ...timeBlock }],
+          timeBlocks: [...(state.timeBlocks || []), { ...timeBlock }], // Add null check
         }));
       },
       
       addDailyStats: (stats) => {
         set((state) => ({
-          dailyStats: [...state.dailyStats, stats],
+          dailyStats: [...(state.dailyStats || []), stats], // Add null check
         }));
       },
       
@@ -216,12 +219,12 @@ export const useTaskStore = create<TaskStore>()(
       
       addAIGeneratedSubTasks: (taskId, subTasks) => {
         set((state) => ({
-          tasks: state.tasks.map((task) =>
+          tasks: (state.tasks || []).map((task) => // Add null check
             task.id === taskId
               ? {
                   ...task,
                   subTasks: [
-                    ...task.subTasks,
+                    ...(task.subTasks || []), // Add null check
                     ...subTasks.map((st) => ({
                       id: generateUniqueId(),
                       title: st.title,
@@ -236,12 +239,10 @@ export const useTaskStore = create<TaskStore>()(
         }));
       },
       
-      // Function to reorder tasks
       reorderTasks: (taskIds) => {
         set((state) => {
-          const updatedTasks = [...state.tasks];
+          const updatedTasks = [...(state.tasks || [])]; // Add null check
           
-          // Update order property for each task based on new order
           taskIds.forEach((id, index) => {
             const taskIndex = updatedTasks.findIndex(task => task.id === id);
             if (taskIndex !== -1) {
@@ -256,10 +257,9 @@ export const useTaskStore = create<TaskStore>()(
         });
       },
       
-      // Assign priority to a task
       assignPriority: (taskId, priority) => {
         set((state) => ({
-          tasks: state.tasks.map((task) =>
+          tasks: (state.tasks || []).map((task) => // Add null check
             task.id === taskId
               ? { ...task, priority }
               : task
@@ -267,42 +267,33 @@ export const useTaskStore = create<TaskStore>()(
         }));
       },
       
-      // Auto-assign priorities based on task properties
       autoAssignPriorities: () => {
         set((state) => {
-          const updatedTasks = state.tasks.map(task => {
-            // Skip already completed tasks
+          const updatedTasks = (state.tasks || []).map(task => { // Add null check
             if (task.completed) {
               return { ...task, priority: 'low' as TaskPriority };
             }
             
-            // Analyze task to determine priority
             let score = 0;
             
-            // Check if task has a due date
             if (task.dueDate) {
               const dueDate = new Date(task.dueDate);
               const now = new Date();
               const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
               
-              // Higher score for tasks due soon
               if (daysUntilDue <= 1) score += 5;
               else if (daysUntilDue <= 3) score += 3;
               else if (daysUntilDue <= 7) score += 1;
             }
             
-            // Check estimated time (longer tasks might be more important)
             if (task.estimatedMinutes > 120) score += 2;
             else if (task.estimatedMinutes > 60) score += 1;
             
-            // Check if task has subtasks (more complex tasks might be more important)
             if (task.subTasks.length > 3) score += 2;
             else if (task.subTasks.length > 0) score += 1;
             
-            // Check category (work tasks might be more important)
             if (task.category === 'Work') score += 2;
             
-            // Assign priority based on score
             let priority: TaskPriority;
             if (score >= 5) priority = 'high';
             else if (score >= 3) priority = 'medium';
@@ -316,19 +307,17 @@ export const useTaskStore = create<TaskStore>()(
         });
       },
       
-      // Sort tasks by priority
       sortTasksByPriority: () => {
         set((state) => {
           const priorityOrder = { high: 0, medium: 1, low: 2, optional: 3 };
           
-          const sortedTasks = [...state.tasks].sort((a, b) => {
+          const sortedTasks = [...(state.tasks || [])].sort((a, b) => { // Add null check
             const aPriority = a.priority ? priorityOrder[a.priority] : 4;
             const bPriority = b.priority ? priorityOrder[b.priority] : 4;
             
             return aPriority - bPriority;
           });
           
-          // Update order property based on new sort
           const updatedTasks = sortedTasks.map((task, index) => ({
             ...task,
             order: index + 1

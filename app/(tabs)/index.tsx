@@ -1,62 +1,55 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, ScrollView } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { Plus, ChevronDown, Check } from 'lucide-react-native';
-import Animated, { 
-  FadeIn, 
-  FadeOut, 
-  Layout,
-  SlideInRight,
-  SlideOutLeft
-} from 'react-native-reanimated';
+import { Settings } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import TaskItem from '@/components/TaskItem';
-import TaskForm from '@/components/TaskForm';
 import TaskDetails from '@/components/TaskDetails';
-import FeedbackToast from '@/components/FeedbackToast';
-import useFeedback from '@/hooks/useFeedback';
+import TaskForm from '@/components/TaskForm';
+import Button from '@/components/Button';
 
-type FilterType = 'all' | 'active' | 'completed';
-
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+type Filter = 'all' | 'active' | 'completed';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { tasks } = useTaskStore();
-  const [showTaskForm, setShowTaskForm] = useState(false);
+  const { tasks = [] } = useTaskStore(); // Provide fallback empty array if tasks is undefined
+  const [filter, setFilter] = useState<Filter>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [showAddTask, setShowAddTask] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterType>('active');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
-  const { feedback, showFeedback, hideFeedback } = useFeedback();
   
-  // Get unique categories from tasks
-  const categories = ['All Categories', ...Array.from(new Set(tasks.map(task => task.category).filter(Boolean)))];
+  // Debug log to check if tasks are available
+  React.useEffect(() => {
+    if (!tasks || tasks.length === 0) {
+      console.log("Tasks are undefined or empty");
+    } else {
+      console.log(`Tasks loaded: ${tasks.length}`);
+    }
+  }, [tasks]);
   
-  // Filter tasks based on selected filter and category
+  // Get unique categories from tasks, excluding duplicates
+  const taskCategories = Array.from(new Set(tasks.map(task => task.category || 'Other')));
+  
+  // Create a separate array for the category filter that includes 'All'
+  const filterCategories = ['All', ...taskCategories];
+
+  // Filter tasks based on completion status and category
   const getFilteredTasks = () => {
     let filteredTasks = [...tasks];
     
+    // First filter by completion status
     switch (filter) {
-      case 'all':
-        // Show ALL tasks (both completed and incomplete)
-        filteredTasks = tasks;
-        break;
       case 'active':
-        // Show only non-completed tasks
         filteredTasks = tasks.filter(task => !task.completed);
         break;
       case 'completed':
-        // Show only completed tasks
         filteredTasks = tasks.filter(task => task.completed);
         break;
-      default:
-        filteredTasks = tasks;
     }
     
-    // Apply category filter if selected
-    if (selectedCategory && selectedCategory !== 'All Categories') {
+    // Then apply category filter if selected
+    if (selectedCategory && selectedCategory !== 'All') {
       filteredTasks = filteredTasks.filter(task => task.category === selectedCategory);
     }
     
@@ -64,84 +57,6 @@ export default function HomeScreen() {
     return filteredTasks.sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  };
-  
-  const filteredTasks = getFilteredTasks();
-  
-  const handleTaskFormSuccess = () => {
-    showFeedback('Task created successfully', 'success');
-  };
-
-  const handleCategorySelect = (category: string) => {
-    setSelectedCategory(category === 'All Categories' ? null : category);
-    setShowCategoryDropdown(false);
-  };
-
-  const renderFilterButton = (filterType: FilterType, label: string) => {
-    const isActive = filter === filterType;
-    
-    return (
-      <TouchableOpacity
-        style={[
-          styles.filterButton,
-          isActive && styles.activeFilterButton,
-        ]}
-        onPress={() => setFilter(filterType)}
-      >
-        <Text
-          style={[
-            styles.filterButtonText,
-            isActive && styles.activeFilterButtonText,
-          ]}
-        >
-          {label}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderCategoryButton = () => {
-    return (
-      <TouchableOpacity
-        style={[
-          styles.categoryFilterButton,
-          selectedCategory && styles.activeCategoryFilterButton,
-        ]}
-        onPress={() => setShowCategoryDropdown(true)}
-      >
-        <Text
-          style={[
-            styles.filterButtonText,
-            selectedCategory && styles.activeFilterButtonText,
-          ]}
-        >
-          {selectedCategory || 'All Categories'}
-        </Text>
-        <ChevronDown 
-          size={16} 
-          color={selectedCategory ? colors.background : colors.textLight} 
-          style={styles.dropdownIcon}
-        />
-      </TouchableOpacity>
-    );
-  };
-
-  const getEmptyMessage = () => {
-    if (filter === 'active') {
-      return selectedCategory 
-        ? `No active tasks in ${selectedCategory}`
-        : 'No active tasks';
-    } else if (filter === 'completed') {
-      return selectedCategory 
-        ? `No completed tasks in ${selectedCategory}`
-        : 'No completed tasks';
-    } else if (filter === 'all') {
-      return selectedCategory 
-        ? `No tasks in ${selectedCategory}`
-        : 'No tasks yet';
-    } else {
-      return 'No tasks yet';
-    }
   };
 
   return (
@@ -152,76 +67,141 @@ export default function HomeScreen() {
           headerStyle: {
             backgroundColor: colors.background,
           },
-          headerShadowVisible: false,
           headerTitleStyle: {
             color: colors.text,
-            fontSize: 28,
-            fontWeight: 'bold',
           },
+          headerRight: () => (
+            <TouchableOpacity 
+              onPress={() => router.push('/settings')}
+              style={styles.headerButton}
+            >
+              <Settings size={24} color={colors.text} />
+            </TouchableOpacity>
+          ),
         }}
       />
       
-      <Animated.View 
-        style={styles.header}
-        entering={FadeIn.duration(500)}
-      >
-        <View style={styles.filterContainer}>
-          {renderFilterButton('all', 'All')}
-          {renderFilterButton('active', 'Active')}
-          {renderFilterButton('completed', 'Completed')}
+      <View style={styles.content}>
+        <View style={styles.filters}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterScroll}
+          >
+            <TouchableOpacity
+              style={[
+                styles.filterButton,
+                filter === 'all' && styles.activeFilter,
+              ]}
+              onPress={() => setFilter('all')}
+            >
+              <Text
+                style={[
+                  styles.filterText,
+                  filter === 'all' && styles.activeFilterText,
+                ]}
+              >
+                All
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.filterButton,
+                filter === 'active' && styles.activeFilter,
+              ]}
+              onPress={() => setFilter('active')}
+            >
+              <Text
+                style={[
+                  styles.filterText,
+                  filter === 'active' && styles.activeFilterText,
+                ]}
+              >
+                Active
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.filterButton,
+                filter === 'completed' && styles.activeFilter,
+              ]}
+              onPress={() => setFilter('completed')}
+            >
+              <Text
+                style={[
+                  styles.filterText,
+                  filter === 'completed' && styles.activeFilterText,
+                ]}
+              >
+                Completed
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
         
-        <View style={styles.categoryContainer}>
-          {renderCategoryButton()}
-        </View>
-      </Animated.View>
-      
-      <FlatList
-        data={filteredTasks}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => (
-          <Animated.View
-            entering={Platform.OS === 'web' ? FadeIn.delay(index * 100) : SlideInRight.delay(index * 100)}
-            exiting={Platform.OS === 'web' ? FadeOut : SlideOutLeft}
-            layout={Platform.OS === 'web' ? undefined : Layout.springify()}
-          >
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoriesScroll}
+        >
+          {filterCategories.map((category) => (
+            <TouchableOpacity
+              key={category}
+              style={[
+                styles.categoryChip,
+                selectedCategory === category && styles.selectedCategory,
+              ]}
+              onPress={() => setSelectedCategory(category === selectedCategory ? '' : category)}
+            >
+              <Text
+                style={[
+                  styles.categoryText,
+                  selectedCategory === category && styles.selectedCategoryText,
+                ]}
+              >
+                {category}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        
+        <FlatList
+          data={getFilteredTasks()}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
             <TaskItem
               task={item}
               onPress={() => setSelectedTaskId(item.id)}
-              onLongPress={() => {}}
+              onLongPress={() => setSelectedTaskId(item.id)}
             />
-          </Animated.View>
-        )}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={() => (
-          <Animated.View 
-            style={styles.emptyContainer}
-            entering={FadeIn.duration(800)}
-          >
-            <Text style={styles.emptyText}>
-              {getEmptyMessage()}
-            </Text>
-            <Text style={styles.emptySubtext}>
-              Tap the + button to create your first task
-            </Text>
-          </Animated.View>
-        )}
-      />
-      
-      <AnimatedTouchableOpacity
-        style={styles.fab}
-        onPress={() => setShowTaskForm(true)}
-        activeOpacity={0.8}
-        entering={FadeIn.delay(600).duration(400)}
-      >
-        <Plus size={24} color="#fff" />
-      </AnimatedTouchableOpacity>
+          )}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={() => (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No tasks found</Text>
+              <Text style={styles.emptySubtext}>
+                {filter === 'all'
+                  ? "Add a new task to get started"
+                  : filter === 'active'
+                  ? "No active tasks"
+                  : "No completed tasks"}
+              </Text>
+            </View>
+          )}
+        />
+        
+        <Button
+          title="Add New Task"
+          onPress={() => setShowAddTask(true)}
+          style={styles.addButton}
+        />
+      </View>
       
       <TaskForm
-        visible={showTaskForm}
-        onClose={() => setShowTaskForm(false)}
-        onSuccess={handleTaskFormSuccess}
+        visible={showAddTask}
+        onClose={() => setShowAddTask(false)}
       />
       
       <TaskDetails
@@ -229,52 +209,6 @@ export default function HomeScreen() {
         taskId={selectedTaskId}
         onClose={() => setSelectedTaskId(null)}
       />
-      
-      <FeedbackToast
-        message={feedback.message}
-        visible={feedback.visible}
-        onHide={hideFeedback}
-        type={feedback.type}
-      />
-
-      {/* Category Dropdown Modal */}
-      <Modal
-        visible={showCategoryDropdown}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowCategoryDropdown(false)}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowCategoryDropdown(false)}
-        >
-          <Animated.View 
-            style={styles.dropdownModal}
-            entering={FadeIn.duration(200)}
-            exiting={FadeOut.duration(200)}
-          >
-            <Text style={styles.dropdownTitle}>Select Category</Text>
-            {categories.map((category, index) => (
-              <Animated.View
-                key={category}
-                entering={FadeIn.delay(index * 50)}
-              >
-                <TouchableOpacity
-                  style={styles.categoryOption}
-                  onPress={() => handleCategorySelect(category)}
-                >
-                  <Text style={styles.categoryOptionText}>{category}</Text>
-                  {((category === 'All Categories' && !selectedCategory) || 
-                    (selectedCategory !== null && category === selectedCategory)) && (
-                    <Check size={16} color={colors.primary} />
-                  )}
-                </TouchableOpacity>
-              </Animated.View>
-            ))}
-          </Animated.View>
-        </TouchableOpacity>
-      </Modal>
     </View>
   );
 }
@@ -284,147 +218,84 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
-    backgroundColor: colors.background,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+  content: {
+    flex: 1,
+    padding: 16,
   },
-  filterContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
+  headerButton: {
+    marginRight: 16,
+    padding: 8,
   },
-  categoryContainer: {
-    flexDirection: 'row',
+  filters: {
+    marginBottom: 16,
+  },
+  filterScroll: {
+    flexGrow: 0,
   },
   filterButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 25,
-    backgroundColor: colors.background,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.cardBackground,
+    marginRight: 8,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  categoryFilterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 25,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    minWidth: 140,
-  },
-  activeFilterButton: {
+  activeFilter: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
-  activeCategoryFilterButton: {
-    backgroundColor: colors.secondary,
-    borderColor: colors.secondary,
-  },
-  filterButtonText: {
-    fontSize: 15,
-    color: colors.textLight,
+  filterText: {
+    color: colors.text,
     fontWeight: '500',
   },
-  activeFilterButtonText: {
+  activeFilterText: {
     color: colors.background,
-    fontWeight: '600',
   },
-  dropdownIcon: {
-    marginLeft: 8,
+  categoriesScroll: {
+    flexGrow: 0,
+    marginBottom: 16,
   },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+  categoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.categoryBackground,
+    marginRight: 8,
+  },
+  selectedCategory: {
+    backgroundColor: colors.primary,
+  },
+  categoryText: {
+    color: colors.categoryText,
+    fontWeight: '500',
+  },
+  selectedCategoryText: {
+    color: colors.background,
+  },
+  list: {
     paddingBottom: Platform.OS === 'ios' ? 120 : 100,
   },
   emptyContainer: {
     alignItems: 'center',
-    marginTop: 60,
+    marginTop: 40,
     paddingHorizontal: 40,
   },
   emptyText: {
-    textAlign: 'center',
-    color: colors.text,
-    marginBottom: 8,
     fontSize: 18,
     fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
   },
   emptySubtext: {
-    textAlign: 'center',
-    color: colors.textLight,
     fontSize: 14,
-  },
-  fab: {
-    position: 'absolute',
-    right: 24,
-    bottom: Platform.OS === 'ios' ? 120 : 100,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dropdownModal: {
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: 16,
-    minWidth: 200,
-    maxWidth: 300,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-  dropdownTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 12,
+    color: colors.textLight,
     textAlign: 'center',
   },
-  categoryOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  categoryOptionText: {
-    fontSize: 16,
-    color: colors.text,
+  addButton: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 34 : 24,
+    left: 16,
+    right: 16,
   },
 });

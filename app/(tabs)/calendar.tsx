@@ -6,13 +6,15 @@ import { useTaskStore } from '@/store/taskStore';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import TaskItem from '@/components/TaskItem';
 import TaskDetails from '@/components/TaskDetails';
-import { Settings } from 'lucide-react-native';
+import TaskForm from '@/components/TaskForm';
+import { Settings, Plus } from 'lucide-react-native';
 
 export default function CalendarScreen() {
   const router = useRouter();
   const { tasks } = useTaskStore();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [showAddTask, setShowAddTask] = useState(false);
 
   // Get week dates
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
@@ -88,15 +90,29 @@ export default function CalendarScreen() {
           {tasksForDate.length === 0 && (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No tasks for this date</Text>
+              <Text style={styles.emptySubtext}>Add a task using the + button below</Text>
             </View>
           )}
         </ScrollView>
+
+        <TouchableOpacity 
+          style={styles.fab}
+          onPress={() => setShowAddTask(true)}
+        >
+          <Plus size={24} color={colors.background} />
+        </TouchableOpacity>
       </View>
 
       <TaskDetails
         visible={!!selectedTaskId}
         taskId={selectedTaskId}
         onClose={() => setSelectedTaskId(null)}
+      />
+
+      <TaskForm
+        visible={showAddTask}
+        onClose={() => setShowAddTask(false)}
+        initialDate={selectedDate}
       />
     </View>
   );
@@ -163,5 +179,37 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: colors.textLight,
     fontSize: 16,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    textAlign: 'center',
+    color: colors.textLight,
+    fontSize: 14,
+  },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: Platform.OS === 'ios' ? 34 : 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+      },
+      android: {
+        elevation: 5,
+      },
+      web: {
+        cursor: 'pointer',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+      },
+    }),
   },
 });
