@@ -17,7 +17,7 @@ import Button from './Button';
 import { useTaskStore } from '@/store/taskStore';
 import { generateTaskBreakdown } from '@/services/aiService';
 import * as Haptics from 'expo-haptics';
-import { Task } from '@/types/task';
+import { Task, TaskPriority } from '@/types/task';
 
 interface TaskFormProps {
   visible: boolean;
@@ -25,15 +25,24 @@ interface TaskFormProps {
   initialDate?: Date;
 }
 
+const CATEGORIES = ['Work', 'Personal', 'Study', 'Health', 'Home', 'Other'];
+const PRIORITIES: { value: TaskPriority; label: string; color: string }[] = [
+  { value: 'high', label: 'High', color: '#3498db' },
+  { value: 'medium', label: 'Medium', color: '#f1c40f' },
+  { value: 'low', label: 'Low', color: '#2ecc71' },
+  { value: 'optional', label: 'Optional', color: '#bdc3c7' }
+];
+
 export default function TaskForm({ visible, onClose, initialDate }: TaskFormProps) {
   const { addTask, tasks } = useTaskStore();
+  const [mode, setMode] = useState<'new' | 'existing'>('new');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
+  const [priority, setPriority] = useState<TaskPriority>('medium');
   const [estimatedMinutes, setEstimatedMinutes] = useState('30');
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
-  const [showTaskPicker, setShowTaskPicker] = useState(false);
 
   const handleSubmit = async () => {
     if (!title.trim()) return;
@@ -44,6 +53,7 @@ export default function TaskForm({ visible, onClose, initialDate }: TaskFormProp
       category: category.trim() || undefined,
       estimatedMinutes: parseInt(estimatedMinutes) || 30,
       dueDate: initialDate?.toISOString(),
+      priority
     });
 
     if (Platform.OS !== 'web') {
@@ -70,6 +80,9 @@ export default function TaskForm({ visible, onClose, initialDate }: TaskFormProp
     try {
       const result = await generateTaskBreakdown(title, description);
       setEstimatedMinutes(result.totalEstimatedMinutes.toString());
+      if (result.suggestedPriority) {
+        setPriority(result.suggestedPriority);
+      }
       
       if (Platform.OS !== 'web') {
         try {
@@ -90,30 +103,20 @@ export default function TaskForm({ visible, onClose, initialDate }: TaskFormProp
     setTitle('');
     setDescription('');
     setCategory('');
+    setPriority('medium');
     setEstimatedMinutes('30');
     setAiError(null);
-    setShowTaskPicker(false);
+    setMode('new');
   };
 
   const handleSelectTask = (task: Task) => {
     setTitle(task.title);
     setDescription(task.description);
     setCategory(task.category || '');
+    setPriority(task.priority || 'medium');
     setEstimatedMinutes(task.estimatedMinutes.toString());
-    setShowTaskPicker(false);
+    setMode('new');
   };
-
-  const renderTaskItem = ({ item }: { item: Task }) => (
-    <TouchableOpacity 
-      style={styles.taskPickerItem}
-      onPress={() => handleSelectTask(item)}
-    >
-      <Text style={styles.taskPickerTitle}>{item.title}</Text>
-      {item.category && (
-        <Text style={styles.taskPickerCategory}>{item.category}</Text>
-      )}
-    </TouchableOpacity>
-  );
 
   return (
     <Modal
@@ -128,130 +131,160 @@ export default function TaskForm({ visible, onClose, initialDate }: TaskFormProp
             <TouchableOpacity onPress={onClose}>
               <X size={24} color={colors.text} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>New Task</Text>
-            <View style={styles.headerRight} />
-          </View>
-
-          <ScrollView style={styles.form}>
-            <View style={styles.inputGroup}>
-              <View style={styles.titleHeader}>
-                <Text style={styles.label}>Title</Text>
-                <TouchableOpacity 
-                  onPress={() => setShowTaskPicker(true)}
-                  style={styles.selectButton}
-                >
-                  <Text style={styles.selectButtonText}>Select Existing</Text>
-                </TouchableOpacity>
-              </View>
-              <TextInput
-                style={styles.input}
-                value={title}
-                onChangeText={setTitle}
-                placeholder="Enter task title"
-                placeholderTextColor={colors.textLight}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Description</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={description}
-                onChangeText={setDescription}
-                placeholder="Enter task description"
-                placeholderTextColor={colors.textLight}
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Category</Text>
-              <TextInput
-                style={styles.input}
-                value={category}
-                onChangeText={setCategory}
-                placeholder="Enter category (optional)"
-                placeholderTextColor={colors.textLight}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Estimated Time (minutes)</Text>
-              <TextInput
-                style={styles.input}
-                value={estimatedMinutes}
-                onChangeText={setEstimatedMinutes}
-                keyboardType="number-pad"
-                placeholder="30"
-                placeholderTextColor={colors.textLight}
-              />
-            </View>
-
-            <View style={styles.aiSection}>
+            <View style={styles.modeButtons}>
               <TouchableOpacity 
-                style={[styles.aiButton, isGeneratingAI && styles.disabledButton]}
-                onPress={handleGenerateAI}
-                disabled={isGeneratingAI}
+                style={[styles.modeButton, mode === 'new' && styles.activeModeButton]}
+                onPress={() => setMode('new')}
               >
-                {isGeneratingAI ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-                  <>
-                    <Zap size={20} color={colors.primary} />
-                    <Text style={styles.aiButtonText}>AI Time Estimate</Text>
-                  </>
-                )}
+                <Text style={[styles.modeButtonText, mode === 'new' && styles.activeModeButtonText]}>
+                  New Task
+                </Text>
               </TouchableOpacity>
-
-              {aiError && (
-                <View style={styles.errorContainer}>
-                  <AlertTriangle size={16} color={colors.danger} />
-                  <Text style={styles.errorText}>{aiError}</Text>
-                </View>
-              )}
+              <TouchableOpacity 
+                style={[styles.modeButton, mode === 'existing' && styles.activeModeButton]}
+                onPress={() => setMode('existing')}
+              >
+                <Text style={[styles.modeButtonText, mode === 'existing' && styles.activeModeButtonText]}>
+                  Existing Tasks
+                </Text>
+              </TouchableOpacity>
             </View>
-          </ScrollView>
-
-          <View style={styles.footer}>
-            <Button
-              title="Cancel"
-              onPress={onClose}
-              variant="outline"
-              style={styles.footerButton}
-            />
-            <Button
-              title="Create Task"
-              onPress={handleSubmit}
-              style={styles.footerButton}
-            />
           </View>
-        </View>
 
-        <Modal
-          visible={showTaskPicker}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowTaskPicker(false)}
-        >
-          <View style={styles.pickerContainer}>
-            <View style={styles.pickerContent}>
-              <View style={styles.pickerHeader}>
-                <Text style={styles.pickerTitle}>Select Task</Text>
-                <TouchableOpacity onPress={() => setShowTaskPicker(false)}>
-                  <X size={24} color={colors.text} />
-                </TouchableOpacity>
+          {mode === 'new' ? (
+            <ScrollView style={styles.form}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Title</Text>
+                <TextInput
+                  style={styles.input}
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder="Enter task title"
+                  placeholderTextColor={colors.textLight}
+                />
               </View>
-              <FlatList
-                data={tasks}
-                renderItem={renderTaskItem}
-                keyExtractor={item => item.id}
-                contentContainerStyle={styles.pickerList}
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Description</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Enter task description"
+                  placeholderTextColor={colors.textLight}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Category</Text>
+                <View style={styles.categoryChips}>
+                  {CATEGORIES.map((cat) => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[
+                        styles.categoryChip,
+                        category === cat && styles.selectedCategoryChip
+                      ]}
+                      onPress={() => setCategory(cat)}
+                    >
+                      <Text style={[
+                        styles.categoryChipText,
+                        category === cat && styles.selectedCategoryChipText
+                      ]}>
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Priority</Text>
+                <View style={styles.priorityButtons}>
+                  {PRIORITIES.map((p) => (
+                    <TouchableOpacity
+                      key={p.value}
+                      style={[
+                        styles.priorityButton,
+                        { borderColor: p.color },
+                        priority === p.value && { backgroundColor: p.color }
+                      ]}
+                      onPress={() => setPriority(p.value)}
+                    >
+                      <Text style={[
+                        styles.priorityButtonText,
+                        { color: p.color },
+                        priority === p.value && { color: '#fff' }
+                      ]}>
+                        {p.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Estimated Time (minutes)</Text>
+                <View style={styles.timeInputContainer}>
+                  <TextInput
+                    style={[styles.input, styles.timeInput]}
+                    value={estimatedMinutes}
+                    onChangeText={setEstimatedMinutes}
+                    keyboardType="number-pad"
+                    placeholder="30"
+                    placeholderTextColor={colors.textLight}
+                  />
+                  <TouchableOpacity 
+                    style={[styles.aiButton, isGeneratingAI && styles.disabledButton]}
+                    onPress={handleGenerateAI}
+                    disabled={isGeneratingAI}
+                  >
+                    {isGeneratingAI ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <>
+                        <Zap size={20} color={colors.primary} />
+                        <Text style={styles.aiButtonText}>AI Estimate</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {aiError && (
+                  <View style={styles.errorContainer}>
+                    <AlertTriangle size={16} color={colors.danger} />
+                    <Text style={styles.errorText}>{aiError}</Text>
+                  </View>
+                )}
+              </View>
+
+              <Button
+                title="Create Task"
+                onPress={handleSubmit}
+                style={styles.submitButton}
               />
-            </View>
-          </View>
-        </Modal>
+            </ScrollView>
+          ) : (
+            <FlatList
+              data={tasks}
+              keyExtractor={item => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity 
+                  style={styles.existingTaskItem}
+                  onPress={() => handleSelectTask(item)}
+                >
+                  <Text style={styles.existingTaskTitle}>{item.title}</Text>
+                  {item.category && (
+                    <Text style={styles.existingTaskCategory}>{item.category}</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+              contentContainerStyle={styles.existingTasksList}
+            />
+          )}
+        </View>
       </View>
     </Modal>
   );
@@ -271,48 +304,50 @@ const styles = StyleSheet.create({
     maxHeight: '90%'
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border
+    borderBottomColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center'
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text
+  modeButtons: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+    marginLeft: 48 // To offset the close button and center the mode buttons
   },
-  headerRight: {
-    width: 24
+  modeButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  activeModeButton: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary
+  },
+  modeButtonText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '500'
+  },
+  activeModeButtonText: {
+    color: colors.background
   },
   form: {
     padding: 20
   },
   inputGroup: {
-    marginBottom: 16
-  },
-  titleHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8
+    marginBottom: 20
   },
   label: {
     fontSize: 16,
     fontWeight: '500',
-    color: colors.text
-  },
-  selectButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: colors.categoryBackground,
-    borderRadius: 16
-  },
-  selectButtonText: {
-    color: colors.categoryText,
-    fontSize: 14,
-    fontWeight: '500'
+    color: colors.text,
+    marginBottom: 8
   },
   input: {
     backgroundColor: colors.cardBackground,
@@ -327,18 +362,53 @@ const styles = StyleSheet.create({
     height: 100,
     paddingTop: 12
   },
-  footer: {
+  categoryChips: {
     flexDirection: 'row',
-    padding: 20,
-    paddingTop: 0,
-    gap: 12
+    flexWrap: 'wrap',
+    gap: 8
   },
-  footerButton: {
+  categoryChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: colors.categoryBackground,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  selectedCategoryChip: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary
+  },
+  categoryChipText: {
+    color: colors.categoryText,
+    fontSize: 14,
+    fontWeight: '500'
+  },
+  selectedCategoryChipText: {
+    color: colors.background
+  },
+  priorityButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  priorityButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1
+  },
+  priorityButtonText: {
+    fontSize: 14,
+    fontWeight: '500'
+  },
+  timeInputContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center'
+  },
+  timeInput: {
     flex: 1
-  },
-  aiSection: {
-    marginTop: 8,
-    marginBottom: 16
   },
   aiButton: {
     flexDirection: 'row',
@@ -348,13 +418,13 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: colors.primary
+    borderColor: colors.primary,
+    gap: 8
   },
   aiButtonText: {
-    marginLeft: 8,
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.primary
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '500'
   },
   disabledButton: {
     opacity: 0.6
@@ -371,44 +441,23 @@ const styles = StyleSheet.create({
     color: colors.danger,
     marginLeft: 8
   },
-  pickerContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end'
+  submitButton: {
+    marginTop: 8
   },
-  pickerContent: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '70%'
-  },
-  pickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border
-  },
-  pickerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text
-  },
-  pickerList: {
+  existingTasksList: {
     padding: 20
   },
-  taskPickerItem: {
+  existingTaskItem: {
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.border
   },
-  taskPickerTitle: {
+  existingTaskTitle: {
     fontSize: 16,
     color: colors.text,
     marginBottom: 4
   },
-  taskPickerCategory: {
+  existingTaskCategory: {
     fontSize: 14,
     color: colors.textLight
   }
