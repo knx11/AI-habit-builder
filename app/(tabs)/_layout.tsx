@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { Settings, CheckSquare, Calendar, BarChart } from 'lucide-react-native';
+import { Settings, CheckSquare, Calendar, BarChart, Home } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useRouter } from 'expo-router';
 
@@ -46,6 +46,13 @@ export default function TabLayout() {
         headerShadowVisible: false,
       }}
     >
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color }) => <Home size={24} color={color} />,
+        }}
+      />
       <Tabs.Screen
         name="index"
         options={{
