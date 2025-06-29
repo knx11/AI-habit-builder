@@ -14,7 +14,7 @@ type Filter = 'all' | 'active' | 'completed';
 export default function TasksScreen() {
   const router = useRouter();
   const { tasks, autoAssignPriorities, completeTask } = useTaskStore();
-  const [filter, setFilter] = useState<Filter>('all');
+  const [filter, setFilter] = useState<Filter>('active'); // Changed default from 'all' to 'active'
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [showAddTask, setShowAddTask] = useState(false);
 
