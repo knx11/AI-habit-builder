@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Settings, TrendingUp, CheckCircle2, Clock, Plus, Pencil } from 'lucide-react-native';
@@ -6,10 +6,12 @@ import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import TaskItem from '@/components/TaskItem';
 import AnalyticsCard from '@/components/AnalyticsCard';
+import BrainDumpModal from '@/components/BrainDumpModal';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { tasks, dailyStats } = useTaskStore();
+  const [showBrainDump, setShowBrainDump] = useState(false);
 
   // Get today's stats
   const todayStats = dailyStats.length > 0 ? dailyStats[dailyStats.length - 1] : null;
@@ -117,7 +119,7 @@ export default function HomeScreen() {
 
             <TouchableOpacity 
               style={styles.quickActionButton}
-              onPress={() => router.push('/index')}
+              onPress={() => setShowBrainDump(true)}
             >
               <View style={[styles.iconCircle, { backgroundColor: colors.accent }]}>
                 <Pencil size={24} color={colors.background} />
@@ -127,6 +129,11 @@ export default function HomeScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <BrainDumpModal
+        visible={showBrainDump}
+        onClose={() => setShowBrainDump(false)}
+      />
     </View>
   );
 }
