@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { Settings, TrendingUp, CheckCircle2, Clock } from 'lucide-react-native';
+import { Settings, TrendingUp, CheckCircle2, Clock, Plus, Pencil } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import TaskItem from '@/components/TaskItem';
@@ -101,6 +101,31 @@ export default function HomeScreen() {
             <Text style={styles.emptyText}>No high priority tasks</Text>
           )}
         </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.quickActions}>
+            <TouchableOpacity 
+              style={styles.quickActionButton}
+              onPress={() => router.push('/index')}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: colors.primary }]}>
+                <Plus size={24} color={colors.background} />
+              </View>
+              <Text style={styles.quickActionText}>New Task</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.quickActionButton}
+              onPress={() => router.push('/index')}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: colors.accent }]}>
+                <Pencil size={24} color={colors.background} />
+              </View>
+              <Text style={styles.quickActionText}>Brain Dump</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -171,6 +196,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 16,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -184,6 +210,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
+    marginBottom: 16,
   },
   seeAllText: {
     color: colors.primary,
@@ -193,5 +220,32 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: colors.textLight,
     marginTop: 16,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  quickActionButton: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  quickActionText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.text,
   },
 });
