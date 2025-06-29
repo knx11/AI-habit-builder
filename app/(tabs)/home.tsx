@@ -87,7 +87,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>High Priority Tasks</Text>
-            <TouchableOpacity onPress={() => router.push('/index')}>
+            <TouchableOpacity onPress={() => router.push('/(tabs)')}>
               <Text style={styles.seeAllText}>See All</Text>
             </TouchableOpacity>
           </View>
@@ -95,7 +95,7 @@ export default function HomeScreen() {
             <TaskItem
               key={task.id}
               task={task}
-              onPress={() => router.push('/index')}
+              onPress={() => router.push('/(tabs)')}
               onLongPress={() => {}}
             />
           ))}
@@ -109,7 +109,7 @@ export default function HomeScreen() {
           <View style={styles.quickActions}>
             <TouchableOpacity 
               style={styles.quickActionButton}
-              onPress={() => router.push('/index')}
+              onPress={() => router.push('/(tabs)')}
             >
               <View style={[styles.iconCircle, { backgroundColor: colors.primary }]}>
                 <Plus size={24} color={colors.background} />
