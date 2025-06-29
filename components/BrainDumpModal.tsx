@@ -15,6 +15,7 @@ import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import Button from '@/components/Button';
 import * as Haptics from 'expo-haptics';
+import { parseISO } from 'date-fns';
 
 interface BrainDumpModalProps {
   visible: boolean;
@@ -50,11 +51,19 @@ export default function BrainDumpModal({ visible, onClose }: BrainDumpModalProps
           messages: [
             {
               role: 'system',
-              content: 'You are a task organization assistant. Analyze the user\'s brain dump and break it down into clear, actionable tasks with priorities and time estimates.'
+              content: `You are a task organization assistant. Analyze the user's brain dump and break it down into clear, actionable tasks.
+              Extract any date-related information and set due dates accordingly.
+              Look for keywords like "tomorrow", "next week", "on Friday", etc.
+              Convert relative dates to ISO date strings based on current date.`
             },
             {
               role: 'user',
-              content: `Please analyze this brain dump and organize it into tasks. For each task, provide a title, estimated time in minutes, and priority (high, medium, low, or optional):
+              content: `Please analyze this brain dump and organize it into tasks. For each task, provide:
+              - A clear title
+              - Estimated time in minutes
+              - Priority (high, medium, low, or optional)
+              - Due date if mentioned (in ISO format)
+              - A more detailed description
 
 ${thoughts}
 
@@ -64,7 +73,8 @@ Format your response as a JSON array of tasks:
     "title": "Task title",
     "description": "More detailed description",
     "estimatedMinutes": 30,
-    "priority": "high"
+    "priority": "high",
+    "dueDate": "2025-07-01T00:00:00.000Z" // Include only if date is mentioned
   }
 ]`
             }
@@ -88,11 +98,22 @@ Format your response as a JSON array of tasks:
 
       // Add each task to the store
       tasks.forEach((task: any) => {
+        // Validate the date if present
+        let dueDate = undefined;
+        if (task.dueDate) {
+          try {
+            dueDate = parseISO(task.dueDate).toISOString();
+          } catch (e) {
+            console.warn('Invalid date format:', task.dueDate);
+          }
+        }
+
         addTask({
           title: task.title,
           description: task.description,
           estimatedMinutes: task.estimatedMinutes,
           priority: task.priority,
+          dueDate,
           aiGenerated: true,
         });
       });
@@ -137,14 +158,14 @@ Format your response as a JSON array of tasks:
 
           <ScrollView style={styles.body}>
             <Text style={styles.description}>
-              Type out everything on your mind, and I'll organize it into actionable tasks for you.
+              Type out everything on your mind, including any deadlines or dates. I'll organize it into actionable tasks and add them to your calendar.
             </Text>
 
             <TextInput
               style={styles.input}
               value={thoughts}
               onChangeText={setThoughts}
-              placeholder="Start typing what's on your mind... For example: I need to finish the project report by Friday, call mom for her birthday, schedule dentist appointment, buy groceries for dinner..."
+              placeholder="Start typing what's on your mind... For example: I need to finish the project report by Friday, call mom for her birthday next Tuesday, schedule dentist appointment for next month..."
               placeholderTextColor={colors.textLight}
               multiline
               numberOfLines={8}
@@ -178,25 +199,25 @@ Format your response as a JSON array of tasks:
               <View style={styles.step}>
                 <Text style={styles.stepNumber}>1</Text>
                 <Text style={styles.stepText}>
-                  Type everything on your mind without worrying about format
+                  Type everything on your mind, including any dates or deadlines
                 </Text>
               </View>
               <View style={styles.step}>
                 <Text style={styles.stepNumber}>2</Text>
                 <Text style={styles.stepText}>
-                  Our AI analyzes your thoughts and organizes them
+                  Our AI analyzes your thoughts and organizes them into tasks
                 </Text>
               </View>
               <View style={styles.step}>
                 <Text style={styles.stepNumber}>3</Text>
                 <Text style={styles.stepText}>
-                  Review the automatically created tasks with time estimates
+                  Tasks with dates are automatically added to your calendar
                 </Text>
               </View>
               <View style={styles.step}>
                 <Text style={styles.stepNumber}>4</Text>
                 <Text style={styles.stepText}>
-                  Edit if needed, then add them to your task list
+                  Review and edit tasks in your task list or calendar
                 </Text>
               </View>
             </View>
