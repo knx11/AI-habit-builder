@@ -42,28 +42,45 @@ export default function HomeScreen() {
       />
 
       <ScrollView style={styles.content}>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today's Overview</Text>
-          <View style={styles.cards}>
-            <AnalyticsCard
-              title="Tasks Completed"
-              value={todayStats?.totalTasksCompleted || 0}
-              icon={<CheckCircle2 size={24} color={colors.primary} />}
-            />
-            <AnalyticsCard
-              title="Time Spent"
-              value={todayStats ? `${Math.floor(todayStats.totalTimeSpent / 60)}h ${todayStats.totalTimeSpent % 60}m` : "0h 0m"}
-              icon={<Clock size={24} color={colors.secondary} />}
-              color={colors.secondary}
-            />
-            <AnalyticsCard
-              title="Productivity"
-              value={`${todayStats?.productivityScore || 0}%`}
-              icon={<TrendingUp size={24} color={colors.accent} />}
-              color={colors.accent}
-            />
+        <TouchableOpacity 
+          style={styles.overviewCard}
+          onPress={() => router.push('/analytics')}
+        >
+          <View style={styles.overviewHeader}>
+            <Text style={styles.overviewTitle}>Today's Overview</Text>
+            <Text style={styles.seeMoreText}>See More</Text>
           </View>
-        </View>
+          
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <CheckCircle2 size={20} color={colors.primary} />
+              <Text style={styles.statValue}>
+                {todayStats?.totalTasksCompleted || 0}
+              </Text>
+              <Text style={styles.statLabel}>Tasks Done</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.statItem}>
+              <Clock size={20} color={colors.secondary} />
+              <Text style={styles.statValue}>
+                {todayStats ? `${Math.floor(todayStats.totalTimeSpent / 60)}h ${todayStats.totalTimeSpent % 60}m` : "0h"}
+              </Text>
+              <Text style={styles.statLabel}>Time Spent</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.statItem}>
+              <TrendingUp size={20} color={colors.accent} />
+              <Text style={styles.statValue}>
+                {todayStats?.productivityScore || 0}%
+              </Text>
+              <Text style={styles.statLabel}>Productivity</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -102,8 +119,55 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
+  overviewCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  overviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  overviewTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  seeMoreText: {
+    color: colors.primary,
+    fontWeight: '500',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  divider: {
+    width: 1,
+    height: 40,
+    backgroundColor: colors.border,
+    marginHorizontal: 8,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginVertical: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: colors.textLight,
+  },
   section: {
-    marginBottom: 24,
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 16,
@@ -120,9 +184,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
-  },
-  cards: {
-    marginTop: 16,
   },
   seeAllText: {
     color: colors.primary,
