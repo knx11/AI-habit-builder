@@ -10,38 +10,37 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import { X, Mic, Zap } from 'lucide-react-native';
+import { X, Mic, Zap, AlertTriangle } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import Button from '@/components/Button';
 import * as Haptics from 'expo-haptics';
 import { parseISO } from 'date-fns';
+import useFeedback from '@/hooks/useFeedback';
 
 interface BrainDumpModalProps {
   visible: boolean;
   onClose: () => void;
 }
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
 export default function BrainDumpModal({ visible, onClose }: BrainDumpModalProps) {
   const [thoughts, setThoughts] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const { addTask } = useTaskStore();
+  const { showFeedback } = useFeedback();
 
-  const handleOrganize = async () => {
-    if (!thoughts.trim()) return;
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-    if (Platform.OS !== 'web') {
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } catch (error) {
-        console.log('Haptics not available');
-      }
-    }
-
-    setIsProcessing(true);
-
+  const makeRequest = async (retryCount = 0): Promise<any> => {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       const response = await fetch('https://toolkit.rork.com/text/llm/', {
         method: 'POST',
         headers: {
@@ -79,10 +78,44 @@ Format your response as a JSON array of tasks:
 ]`
             }
           ]
-        })
+        }),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
+      return data;
+
+    } catch (error) {
+      if (retryCount < MAX_RETRIES) {
+        await sleep(RETRY_DELAY * (retryCount + 1)); // Exponential backoff
+        return makeRequest(retryCount + 1);
+      }
+      throw error;
+    }
+  };
+
+  const handleOrganize = async () => {
+    if (!thoughts.trim()) return;
+
+    if (Platform.OS !== 'web') {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } catch (error) {
+        console.log('Haptics not available');
+      }
+    }
+
+    setIsProcessing(true);
+    setRetryCount(0);
+
+    try {
+      const data = await makeRequest();
       
       if (!data.completion) {
         throw new Error('Invalid AI response');
@@ -122,13 +155,15 @@ Format your response as a JSON array of tasks:
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
 
+      showFeedback('Tasks created successfully!', 'success');
+
       // Close the modal
       onClose();
       setThoughts('');
 
     } catch (error) {
       console.error('Error organizing thoughts:', error);
-      // Handle error - show error message to user
+      showFeedback('Failed to create tasks. Please try again.', 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -185,7 +220,7 @@ Format your response as a JSON array of tasks:
               </TouchableOpacity>
 
               <Button
-                title="Organize My Thoughts"
+                title={isProcessing ? `Processing${retryCount > 0 ? ` (Retry ${retryCount}/${MAX_RETRIES})` : ''}` : 'Organize My Thoughts'}
                 onPress={handleOrganize}
                 disabled={!thoughts.trim() || isProcessing}
                 loading={isProcessing}
