@@ -2,19 +2,74 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Task } from '@/types/task';
 import { colors } from '@/constants/colors';
-import { Clock, CheckCircle2 } from 'lucide-react-native';
+import { Clock, CheckCircle2, Circle } from 'lucide-react-native';
 import ProgressBar from './ProgressBar';
 import { calculateTaskProgress, formatTime } from '@/utils/helpers';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { 
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  runOnJS
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 interface TaskItemProps {
   task: Task;
   onPress: () => void;
   onLongPress: () => void;
+  onComplete?: (completed: boolean) => void;
 }
 
-export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) {
+const SWIPE_THRESHOLD = 80;
+
+export default function TaskItem({ task, onPress, onLongPress, onComplete }: TaskItemProps) {
   const progress = calculateTaskProgress(task);
+  const translateX = useSharedValue(0);
+  const itemHeight = useSharedValue(72); // Approximate height of the item
   
+  const handleComplete = async (completed: boolean) => {
+    if (Platform.OS !== 'web') {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch (error) {
+        console.log('Haptics not available');
+      }
+    }
+    onComplete?.(completed);
+  };
+
+  const gesture = Gesture.Pan()
+    .onUpdate((event) => {
+      // Only allow right swipe
+      const newTranslateX = Math.max(0, event.translationX);
+      translateX.value = newTranslateX;
+    })
+    .onEnd((event) => {
+      if (event.translationX >= SWIPE_THRESHOLD) {
+        translateX.value = withSpring(SWIPE_THRESHOLD);
+        if (!task.completed) {
+          runOnJS(handleComplete)(true);
+        }
+      } else {
+        translateX.value = withSpring(0);
+      }
+    });
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  const backgroundStyle = useAnimatedStyle(() => ({
+    position: 'absolute',
+    width: '100%',
+    height: itemHeight.value,
+    backgroundColor: colors.success + '20',
+    opacity: translateX.value / SWIPE_THRESHOLD,
+    borderRadius: 12,
+  }));
+
   // Get priority color
   const getPriorityColor = () => {
     switch (task.priority) {
@@ -32,57 +87,66 @@ export default function TaskItem({ task, onPress, onLongPress }: TaskItemProps) 
   };
 
   return (
-    <TouchableOpacity
-      style={[
-        styles.container,
-        task.completed && styles.completedContainer,
-      ]}
-      onPress={onPress}
-      onLongPress={onLongPress}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.priorityLine, { backgroundColor: getPriorityColor() }]} />
-      
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text 
-            style={[
-              styles.title,
-              task.completed && styles.completedText
-            ]}
-            numberOfLines={2}
-          >
-            {task.title}
-          </Text>
+    <View>
+      <Animated.View style={backgroundStyle} />
+      <GestureDetector gesture={gesture}>
+        <Animated.View style={[styles.container, task.completed && styles.completedContainer, animatedStyle]}>
+          <View style={[styles.priorityLine, { backgroundColor: getPriorityColor() }]} />
           
-          {task.completed && (
-            <CheckCircle2 size={20} color={colors.success} />
-          )}
-        </View>
-
-        {task.category && (
-          <View style={styles.categoryContainer}>
-            <Text style={styles.category}>{task.category}</Text>
-          </View>
-        )}
-
-        <View style={styles.footer}>
-          <View style={styles.timeContainer}>
-            <Clock size={16} color={colors.textLight} />
-            <Text style={styles.time}>
-              {formatTime(task.estimatedMinutes)}
-            </Text>
-          </View>
-
-          {task.subTasks.length > 0 && (
-            <View style={styles.progressContainer}>
-              <ProgressBar progress={progress} />
-              <Text style={styles.progressText}>{progress}%</Text>
+          <TouchableOpacity 
+            style={styles.checkbox}
+            onPress={() => handleComplete(!task.completed)}
+          >
+            {task.completed ? (
+              <CheckCircle2 size={20} color={colors.success} />
+            ) : (
+              <Circle size={20} color={colors.primary} />
+            )}
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.content}
+            onPress={onPress}
+            onLongPress={onLongPress}
+            activeOpacity={0.7}
+          >
+            <View style={styles.header}>
+              <Text 
+                style={[
+                  styles.title,
+                  task.completed && styles.completedText
+                ]}
+                numberOfLines={2}
+              >
+                {task.title}
+              </Text>
             </View>
-          )}
-        </View>
-      </View>
-    </TouchableOpacity>
+
+            {task.category && (
+              <View style={styles.categoryContainer}>
+                <Text style={styles.category}>{task.category}</Text>
+              </View>
+            )}
+
+            <View style={styles.footer}>
+              <View style={styles.timeContainer}>
+                <Clock size={16} color={colors.textLight} />
+                <Text style={styles.time}>
+                  {formatTime(task.estimatedMinutes)}
+                </Text>
+              </View>
+
+              {task.subTasks.length > 0 && (
+                <View style={styles.progressContainer}>
+                  <ProgressBar progress={progress} />
+                  <Text style={styles.progressText}>{progress}%</Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+      </GestureDetector>
+    </View>
   );
 }
 
@@ -113,6 +177,10 @@ const styles = StyleSheet.create({
   priorityLine: {
     width: 4,
     backgroundColor: colors.primary,
+  },
+  checkbox: {
+    paddingHorizontal: 12,
+    justifyContent: 'center',
   },
   content: {
     flex: 1,

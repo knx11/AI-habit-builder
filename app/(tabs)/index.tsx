@@ -7,12 +7,13 @@ import { useTaskStore } from '@/store/taskStore';
 import TaskItem from '@/components/TaskItem';
 import TaskDetails from '@/components/TaskDetails';
 import TaskForm from '@/components/TaskForm';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 type Filter = 'all' | 'active' | 'completed';
 
 export default function TasksScreen() {
   const router = useRouter();
-  const { tasks, autoAssignPriorities } = useTaskStore();
+  const { tasks, autoAssignPriorities, completeTask } = useTaskStore();
   const [filter, setFilter] = useState<Filter>('all');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [showAddTask, setShowAddTask] = useState(false);
@@ -34,7 +35,7 @@ export default function TasksScreen() {
   });
 
   return (
-    <View style={styles.container}>
+    <GestureHandlerRootView style={styles.container}>
       <Stack.Screen
         options={{
           headerTitle: 'Tasks',
@@ -82,6 +83,7 @@ export default function TasksScreen() {
             task={item}
             onPress={() => setSelectedTaskId(item.id)}
             onLongPress={() => setSelectedTaskId(item.id)}
+            onComplete={(completed) => completeTask(item.id, completed)}
           />
         )}
         contentContainerStyle={styles.list}
@@ -105,7 +107,7 @@ export default function TasksScreen() {
         visible={showAddTask}
         onClose={() => setShowAddTask(false)}
       />
-    </View>
+    </GestureHandlerRootView>
   );
 }
 
