@@ -27,7 +27,7 @@ const SWIPE_THRESHOLD = 80;
 export default function TaskItem({ task, onPress, onLongPress, onComplete }: TaskItemProps) {
   const progress = calculateTaskProgress(task);
   const translateX = useSharedValue(0);
-  const itemHeight = useSharedValue(72); // Approximate height of the item
+  const itemHeight = useSharedValue(72);
   
   const handleComplete = async (completed: boolean) => {
     if (Platform.OS !== 'web') {
@@ -41,18 +41,36 @@ export default function TaskItem({ task, onPress, onLongPress, onComplete }: Tas
   };
 
   const gesture = Gesture.Pan()
+    .activeOffsetX([-10, 10]) // Only activate after 10px horizontal movement
+    .failOffsetY([-15, 15]) // Cancel if vertical movement exceeds 15px
     .onUpdate((event) => {
-      // Only allow right swipe
-      const newTranslateX = Math.max(0, event.translationX);
+      // Only allow right swipe and ensure it's primarily horizontal
+      if (Math.abs(event.velocityY) > Math.abs(event.velocityX)) {
+        return; // Prioritize vertical scrolling
+      }
+      
+      const newTranslateX = Math.max(0, Math.min(event.translationX, SWIPE_THRESHOLD * 1.2));
       translateX.value = newTranslateX;
     })
     .onEnd((event) => {
+      // Check if it's primarily a horizontal gesture
+      if (Math.abs(event.velocityY) > Math.abs(event.velocityX)) {
+        translateX.value = withSpring(0);
+        return;
+      }
+
       if (event.translationX >= SWIPE_THRESHOLD) {
         translateX.value = withSpring(SWIPE_THRESHOLD);
         if (!task.completed) {
           runOnJS(handleComplete)(true);
         }
       } else {
+        translateX.value = withSpring(0);
+      }
+    })
+    .onFinalize(() => {
+      // Always reset position when gesture ends
+      if (translateX.value < SWIPE_THRESHOLD) {
         translateX.value = withSpring(0);
       }
     });
