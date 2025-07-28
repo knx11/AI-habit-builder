@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import { SubTask } from '@/types/task';
@@ -141,6 +142,26 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
     }
   };
 
+  const goToPreviousSession = () => {
+    if (currentSessionIndex > 0) {
+      const prevSessionIndex = currentSessionIndex - 1;
+      setCurrentSessionIndex(prevSessionIndex);
+      setCurrentStage('work');
+      setTimeLeft(sessions[prevSessionIndex].duration);
+      setIsRunning(false);
+    }
+  };
+
+  const goToNextSession = () => {
+    if (currentSessionIndex < sessions.length - 1) {
+      const nextSessionIndex = currentSessionIndex + 1;
+      setCurrentSessionIndex(nextSessionIndex);
+      setCurrentStage('work');
+      setTimeLeft(sessions[nextSessionIndex].duration);
+      setIsRunning(false);
+    }
+  };
+
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -199,17 +220,48 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
           </Text>
         </View>
 
-        {/* Timer Circle */}
-        <View style={[styles.timerCircle, { borderColor: getStageColor() }]}>
-          <Text style={styles.timeText}>{formatTime(timeLeft)}</Text>
-          <Text style={[styles.phaseText, { color: getStageColor() }]}>
-            {getStageText()}
-          </Text>
-          {currentStage === 'work' && (
-            <Text style={styles.estimatedText}>
-              Est: {sessions[currentSessionIndex]?.subTask.estimatedMinutes}min
+        {/* Navigation Controls */}
+        <View style={styles.navigationContainer}>
+          <TouchableOpacity 
+            style={[
+              styles.navButton, 
+              currentSessionIndex === 0 && styles.navButtonDisabled
+            ]} 
+            onPress={goToPreviousSession}
+            disabled={currentSessionIndex === 0}
+          >
+            <ChevronLeft 
+              size={24} 
+              color={currentSessionIndex === 0 ? colors.textLight : colors.text} 
+            />
+          </TouchableOpacity>
+
+          {/* Timer Circle */}
+          <View style={[styles.timerCircle, { borderColor: getStageColor() }]}>
+            <Text style={styles.timeText}>{formatTime(timeLeft)}</Text>
+            <Text style={[styles.phaseText, { color: getStageColor() }]}>
+              {getStageText()}
             </Text>
-          )}
+            {currentStage === 'work' && (
+              <Text style={styles.estimatedText}>
+                Est: {sessions[currentSessionIndex]?.subTask.estimatedMinutes}min
+              </Text>
+            )}
+          </View>
+
+          <TouchableOpacity 
+            style={[
+              styles.navButton, 
+              currentSessionIndex === sessions.length - 1 && styles.navButtonDisabled
+            ]} 
+            onPress={goToNextSession}
+            disabled={currentSessionIndex === sessions.length - 1}
+          >
+            <ChevronRight 
+              size={24} 
+              color={currentSessionIndex === sessions.length - 1 ? colors.textLight : colors.text} 
+            />
+          </TouchableOpacity>
         </View>
 
         {/* Controls */}
@@ -450,5 +502,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textLight,
     textAlign: 'center',
+  },
+  navigationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    width: '100%',
+  },
+  navButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  navButtonDisabled: {
+    opacity: 0.3,
   },
 });
