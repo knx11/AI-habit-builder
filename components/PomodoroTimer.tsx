@@ -91,7 +91,7 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   }, [currentStage, sessions, currentSessionIndex, task, updateSubTask, timeLeft, completedSessions, pomodoroSettings]);
 
   useEffect(() => {
-    let interval: number;
+    let interval: NodeJS.Timeout;
 
     if (isRunning && timeLeft > 0) {
       interval = setInterval(() => {
