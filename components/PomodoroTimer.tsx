@@ -128,13 +128,18 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
     }
   };
 
-  const skipToNextSession = () => {
+  const markCurrentSubtaskDone = () => {
     if (currentStage === 'work') {
-      // Skip current work session
-      const nextSessionIndex = currentSessionIndex + 1;
-      if (nextSessionIndex < sessions.length) {
-        setCurrentSessionIndex(nextSessionIndex);
-        setTimeLeft(sessions[nextSessionIndex].duration);
+      const currentSession = sessions[currentSessionIndex];
+      if (currentSession && task) {
+        // Mark current subtask as completed
+        updateSubTask(task.id, currentSession.subTask.id, {
+          completed: true,
+          actualMinutes: Math.ceil((currentSession.duration - timeLeft) / 60)
+        });
+        
+        // Move to next session or break
+        handleStageComplete();
       }
     } else {
       // Skip break
@@ -276,10 +281,12 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.button, styles.skipButton]} 
-            onPress={skipToNextSession}
+            style={[styles.button, styles.doneButton]} 
+            onPress={markCurrentSubtaskDone}
           >
-            <Text style={styles.buttonText}>Skip</Text>
+            <Text style={styles.buttonText}>
+              {currentStage === 'work' ? 'Done' : 'Skip Break'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -290,51 +297,7 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
           </TouchableOpacity>
         </View>
 
-        {/* Subtasks List */}
-        <View style={styles.subtasksSection}>
-          <Text style={styles.subtasksTitle}>Subtasks Queue</Text>
-          {sessions.map((session, index) => {
-            const isActive = index === currentSessionIndex && currentStage === 'work';
-            const isCompleted = session.subTask.completed;
-            const isPast = index < currentSessionIndex;
-            
-            return (
-              <View 
-                key={session.subTask.id} 
-                style={[
-                  styles.subtaskItem,
-                  isActive && styles.activeSubtask,
-                  isCompleted && styles.completedSubtask,
-                  isPast && styles.pastSubtask
-                ]}
-              >
-                <View style={styles.subtaskInfo}>
-                  <Text style={[
-                    styles.subtaskTitle,
-                    isCompleted && styles.completedText,
-                    isActive && styles.activeText
-                  ]}>
-                    {session.subTask.title}
-                  </Text>
-                  <Text style={[
-                    styles.subtaskDuration,
-                    isCompleted && styles.completedText,
-                    isActive && styles.activeText
-                  ]}>
-                    {session.subTask.estimatedMinutes}min
-                    {session.subTask.actualMinutes && ` (${session.subTask.actualMinutes}min actual)`}
-                  </Text>
-                </View>
-                <View style={[
-                  styles.statusIndicator,
-                  isCompleted && styles.completedIndicator,
-                  isActive && styles.activeIndicator,
-                  isPast && styles.pastIndicator
-                ]} />
-              </View>
-            );
-          })}
-        </View>
+
       </View>
     </ScrollView>
   );
@@ -408,8 +371,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     minWidth: 80,
   },
-  skipButton: {
-    backgroundColor: colors.warning,
+  doneButton: {
+    backgroundColor: colors.success,
   },
   resetButton: {
     backgroundColor: colors.textLight,
@@ -420,74 +383,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  subtasksSection: {
-    width: '100%',
-    maxWidth: 400,
-  },
-  subtasksTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  subtaskItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  activeSubtask: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
-  },
-  completedSubtask: {
-    backgroundColor: colors.successLight,
-    borderColor: colors.success,
-  },
-  pastSubtask: {
-    opacity: 0.6,
-  },
-  subtaskInfo: {
-    flex: 1,
-  },
-  subtaskTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  subtaskDuration: {
-    fontSize: 14,
-    color: colors.textLight,
-  },
-  activeText: {
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  completedText: {
-    color: colors.success,
-    textDecorationLine: 'line-through',
-  },
-  statusIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.textLight,
-  },
-  activeIndicator: {
-    backgroundColor: colors.primary,
-  },
-  completedIndicator: {
-    backgroundColor: colors.success,
-  },
-  pastIndicator: {
-    backgroundColor: colors.textLight,
-  },
+
   emptyState: {
     alignItems: 'center',
     padding: 40,
