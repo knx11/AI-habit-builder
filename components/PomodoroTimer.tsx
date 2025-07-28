@@ -619,6 +619,8 @@ const styles = StyleSheet.create({
   },
   fullscreenNavigationContainer: {
     marginBottom: 50,
+    width: '100%',
+    paddingHorizontal: 20,
   },
   navButton: {
     width: 40,
@@ -641,6 +643,9 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 32,
     marginHorizontal: 30,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.border,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
