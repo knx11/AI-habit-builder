@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
-import { ChevronLeft, ChevronRight, Edit3 } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Modal } from 'react-native';
+import { ChevronLeft, ChevronRight, Edit3, Maximize2, X } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import { SubTask } from '@/types/task';
@@ -45,6 +45,7 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   const [totalTimeSpent, setTotalTimeSpent] = useState(0);
   const [isEditingTime, setIsEditingTime] = useState(false);
   const [editTimeValue, setEditTimeValue] = useState('');
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handleStageComplete = React.useCallback(() => {
     if (currentStage === 'work') {
@@ -239,19 +240,28 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
     );
   }
 
-  return (
-    <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-      <View style={styles.container}>
-        {/* Progress Overview */}
-        <View style={styles.progressSection}>
-          <Text style={styles.progressTitle}>Session Progress</Text>
-          <Text style={styles.progressText}>
-            {currentSessionIndex + 1} of {sessions.length} subtasks
-          </Text>
-          <Text style={styles.timeSpentText}>
-            Total time: {formatTime(totalTimeSpent)}
-          </Text>
+  const renderTimerContent = (fullscreen = false) => (
+    <View style={fullscreen ? styles.fullscreenContainer : styles.container}>
+      {/* Progress Overview */}
+      <View style={styles.progressSection}>
+        <View style={styles.titleRow}>
+          <Text style={[styles.progressTitle, fullscreen && styles.fullscreenTitle]}>Session Progress</Text>
+          {!fullscreen && (
+            <TouchableOpacity 
+              style={styles.expandButton}
+              onPress={() => setIsFullscreen(true)}
+            >
+              <Maximize2 size={20} color={colors.textLight} />
+            </TouchableOpacity>
+          )}
         </View>
+        <Text style={[styles.progressText, fullscreen && styles.fullscreenText]}>
+          {currentSessionIndex + 1} of {sessions.length} subtasks
+        </Text>
+        <Text style={[styles.timeSpentText, fullscreen && styles.fullscreenText]}>
+          Total time: {formatTime(totalTimeSpent)}
+        </Text>
+      </View>
 
         {/* Navigation Controls */}
         <View style={styles.navigationContainer}>
@@ -270,7 +280,7 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
           </TouchableOpacity>
 
           {/* Timer Circle */}
-          <View style={[styles.timerCircle, { borderColor: getStageColor() }]}>
+          <View style={[styles.timerCircle, { borderColor: getStageColor() }, fullscreen && styles.fullscreenTimerCircle]}>
             {isEditingTime ? (
               <View style={styles.editTimeContainer}>
                 <TextInput
@@ -294,14 +304,14 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
             ) : (
               <>
                 <TouchableOpacity onPress={handleTimeEdit} style={styles.timeContainer}>
-                  <Text style={styles.timeText}>{formatTime(timeLeft)}</Text>
-                  <Edit3 size={16} color={colors.textLight} style={styles.editIcon} />
+                  <Text style={[styles.timeText, fullscreen && styles.fullscreenTimeText]}>{formatTime(timeLeft)}</Text>
+                  <Edit3 size={fullscreen ? 20 : 16} color={colors.textLight} style={styles.editIcon} />
                 </TouchableOpacity>
-                <Text style={[styles.phaseText, { color: getStageColor() }]}>
+                <Text style={[styles.phaseText, { color: getStageColor() }, fullscreen && styles.fullscreenPhaseText]}>
                   {getStageText()}
                 </Text>
                 {currentStage === 'work' && (
-                  <Text style={styles.estimatedText}>
+                  <Text style={[styles.estimatedText, fullscreen && styles.fullscreenEstimatedText]}>
                     Est: {sessions[currentSessionIndex]?.subTask.estimatedMinutes}min
                   </Text>
                 )}
@@ -325,36 +335,67 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
         </View>
 
         {/* Controls */}
-        <View style={styles.controls}>
+        <View style={[styles.controls, fullscreen && styles.fullscreenControls]}>
           <TouchableOpacity 
-            style={[styles.button, { backgroundColor: getStageColor() }]} 
+            style={[styles.button, { backgroundColor: getStageColor() }, fullscreen && styles.fullscreenButton]} 
             onPress={toggleTimer}
           >
-            <Text style={styles.buttonText}>
+            <Text style={[styles.buttonText, fullscreen && styles.fullscreenButtonText]}>
               {isRunning ? 'Pause' : 'Start'}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.button, styles.doneButton]} 
+            style={[styles.button, styles.doneButton, fullscreen && styles.fullscreenButton]} 
             onPress={markCurrentSubtaskDone}
           >
-            <Text style={styles.buttonText}>
+            <Text style={[styles.buttonText, fullscreen && styles.fullscreenButtonText]}>
               {currentStage === 'work' ? 'Done' : 'Skip Break'}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.button, styles.resetButton]} 
+            style={[styles.button, styles.resetButton, fullscreen && styles.fullscreenButton]} 
             onPress={resetTimer}
           >
-            <Text style={styles.buttonText}>Reset</Text>
+            <Text style={[styles.buttonText, fullscreen && styles.fullscreenButtonText]}>Reset</Text>
           </TouchableOpacity>
         </View>
+    </View>
+  );
 
+  return (
+    <>
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        {renderTimerContent(false)}
+      </ScrollView>
 
-      </View>
-    </ScrollView>
+      {/* Fullscreen Modal */}
+      <Modal
+        visible={isFullscreen}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        statusBarTranslucent
+      >
+        <View style={styles.fullscreenModal}>
+          <View style={styles.fullscreenHeader}>
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setIsFullscreen(false)}
+            >
+              <X size={24} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView 
+            style={styles.fullscreenScrollContainer} 
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.fullscreenScrollContent}
+          >
+            {renderTimerContent(true)}
+          </ScrollView>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -367,6 +408,50 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
   },
+  fullscreenModal: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  fullscreenHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 10,
+  },
+  closeButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  fullscreenScrollContainer: {
+    flex: 1,
+  },
+  fullscreenScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  fullscreenContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  expandButton: {
+    marginLeft: 12,
+    padding: 4,
+  },
   progressSection: {
     alignItems: 'center',
     marginBottom: 20,
@@ -375,12 +460,19 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 4,
+  },
+  fullscreenTitle: {
+    fontSize: 24,
+    marginBottom: 8,
   },
   progressText: {
     fontSize: 16,
     color: colors.textLight,
     marginBottom: 2,
+  },
+  fullscreenText: {
+    fontSize: 20,
+    marginBottom: 4,
   },
   timeSpentText: {
     fontSize: 14,
@@ -397,10 +489,20 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     marginBottom: 20,
   },
+  fullscreenTimerCircle: {
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    borderWidth: 8,
+    marginBottom: 40,
+  },
   timeText: {
     fontSize: 48,
     fontWeight: 'bold',
     color: colors.text,
+  },
+  fullscreenTimeText: {
+    fontSize: 64,
   },
   phaseText: {
     fontSize: 16,
@@ -409,15 +511,27 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 20,
   },
+  fullscreenPhaseText: {
+    fontSize: 20,
+    marginTop: 12,
+  },
   estimatedText: {
     fontSize: 12,
     color: colors.textLight,
     marginTop: 4,
   },
+  fullscreenEstimatedText: {
+    fontSize: 16,
+    marginTop: 6,
+  },
   controls: {
     flexDirection: 'row',
     marginBottom: 30,
     gap: 12,
+  },
+  fullscreenControls: {
+    gap: 20,
+    marginBottom: 0,
   },
   button: {
     backgroundColor: colors.primary,
@@ -425,6 +539,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     minWidth: 80,
+  },
+  fullscreenButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    minWidth: 120,
   },
   doneButton: {
     backgroundColor: colors.success,
@@ -438,7 +558,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-
+  fullscreenButtonText: {
+    fontSize: 18,
+  },
   emptyState: {
     alignItems: 'center',
     padding: 40,
