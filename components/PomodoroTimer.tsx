@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
+import { ChevronLeft, ChevronRight, Edit3 } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import { SubTask } from '@/types/task';
@@ -43,6 +43,8 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
   const [isRunning, setIsRunning] = useState(false);
   const [completedSessions, setCompletedSessions] = useState(0);
   const [totalTimeSpent, setTotalTimeSpent] = useState(0);
+  const [isEditingTime, setIsEditingTime] = useState(false);
+  const [editTimeValue, setEditTimeValue] = useState('');
 
   const handleStageComplete = React.useCallback(() => {
     if (currentStage === 'work') {
@@ -66,6 +68,7 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
       
       setCurrentStage(nextStage);
       setTimeLeft(breakDuration);
+      setIsRunning(true); // Auto-start break timer
     } else {
       // Break finished, move to next work session
       const nextSessionIndex = currentSessionIndex + 1;
@@ -138,13 +141,38 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
           actualMinutes: Math.ceil((currentSession.duration - timeLeft) / 60)
         });
         
-        // Move to next session or break
+        // Move to next session or break and auto-start break
+        setIsRunning(false); // Stop current timer first
         handleStageComplete();
       }
     } else {
       // Skip break
       handleStageComplete();
     }
+  };
+
+  const handleTimeEdit = () => {
+    const currentMinutes = Math.ceil(timeLeft / 60);
+    setEditTimeValue(currentMinutes.toString());
+    setIsEditingTime(true);
+  };
+
+  const saveTimeEdit = () => {
+    const newMinutes = parseInt(editTimeValue);
+    if (isNaN(newMinutes) || newMinutes <= 0) {
+      Alert.alert('Invalid Time', 'Please enter a valid number of minutes.');
+      return;
+    }
+    
+    const newTimeInSeconds = newMinutes * 60;
+    setTimeLeft(newTimeInSeconds);
+    setIsEditingTime(false);
+    setEditTimeValue('');
+  };
+
+  const cancelTimeEdit = () => {
+    setIsEditingTime(false);
+    setEditTimeValue('');
   };
 
   const goToPreviousSession = () => {
@@ -243,14 +271,41 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
 
           {/* Timer Circle */}
           <View style={[styles.timerCircle, { borderColor: getStageColor() }]}>
-            <Text style={styles.timeText}>{formatTime(timeLeft)}</Text>
-            <Text style={[styles.phaseText, { color: getStageColor() }]}>
-              {getStageText()}
-            </Text>
-            {currentStage === 'work' && (
-              <Text style={styles.estimatedText}>
-                Est: {sessions[currentSessionIndex]?.subTask.estimatedMinutes}min
-              </Text>
+            {isEditingTime ? (
+              <View style={styles.editTimeContainer}>
+                <TextInput
+                  style={styles.timeInput}
+                  value={editTimeValue}
+                  onChangeText={setEditTimeValue}
+                  keyboardType="numeric"
+                  placeholder="Minutes"
+                  placeholderTextColor={colors.textLight}
+                  autoFocus
+                />
+                <View style={styles.editTimeButtons}>
+                  <TouchableOpacity style={styles.editTimeButton} onPress={saveTimeEdit}>
+                    <Text style={styles.editTimeButtonText}>Save</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.editTimeButton, styles.cancelButton]} onPress={cancelTimeEdit}>
+                    <Text style={styles.editTimeButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <>
+                <TouchableOpacity onPress={handleTimeEdit} style={styles.timeContainer}>
+                  <Text style={styles.timeText}>{formatTime(timeLeft)}</Text>
+                  <Edit3 size={16} color={colors.textLight} style={styles.editIcon} />
+                </TouchableOpacity>
+                <Text style={[styles.phaseText, { color: getStageColor() }]}>
+                  {getStageText()}
+                </Text>
+                {currentStage === 'work' && (
+                  <Text style={styles.estimatedText}>
+                    Est: {sessions[currentSessionIndex]?.subTask.estimatedMinutes}min
+                  </Text>
+                )}
+              </>
             )}
           </View>
 
@@ -419,5 +474,48 @@ const styles = StyleSheet.create({
   },
   navButtonDisabled: {
     opacity: 0.3,
+  },
+  timeContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editIcon: {
+    marginTop: 4,
+    opacity: 0.6,
+  },
+  editTimeContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '80%',
+  },
+  timeInput: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: colors.text,
+    textAlign: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: colors.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    minWidth: 100,
+    marginBottom: 20,
+  },
+  editTimeButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  editTimeButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  cancelButton: {
+    backgroundColor: colors.textLight,
+  },
+  editTimeButtonText: {
+    color: colors.background,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
