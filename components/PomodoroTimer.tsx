@@ -1,26 +1,104 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
+import { SubTask } from '@/types/task';
+
+type PomodoroStage = 'work' | 'shortBreak' | 'longBreak';
+
+interface PomodoroSession {
+  subTask: SubTask;
+  duration: number; // in seconds
+  completed: boolean;
+}
 
 interface PomodoroTimerProps {
   taskId: string;
 }
 
 export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
-  const { pomodoroSettings } = useTaskStore();
-  const [timeLeft, setTimeLeft] = useState(pomodoroSettings.workDuration * 60);
+  const { tasks, pomodoroSettings, updateSubTask } = useTaskStore();
+  
+  const task = tasks.find(t => t.id === taskId);
+  
+  // Create sessions for each subtask
+  const sessions: PomodoroSession[] = useMemo(() => {
+    const incompletedSubTasks = task?.subTasks.filter(st => !st.completed) || [];
+    return incompletedSubTasks.map(subTask => ({
+      subTask,
+      duration: subTask.estimatedMinutes * 60,
+      completed: false
+    }));
+  }, [task?.subTasks]);
+  
+  const [currentSessionIndex, setCurrentSessionIndex] = useState(0);
+  const [currentStage, setCurrentStage] = useState<PomodoroStage>('work');
+  const [timeLeft, setTimeLeft] = useState(() => {
+    if (sessions.length > 0) {
+      return sessions[0].duration;
+    }
+    return pomodoroSettings.workDuration * 60;
+  });
   const [isRunning, setIsRunning] = useState(false);
-  const [isWorkTime, setIsWorkTime] = useState(true);
-  const [sessionCount, setSessionCount] = useState(0);
+  const [completedSessions, setCompletedSessions] = useState(0);
+  const [totalTimeSpent, setTotalTimeSpent] = useState(0);
+
+  const handleStageComplete = React.useCallback(() => {
+    if (currentStage === 'work') {
+      // Mark current subtask as completed
+      const currentSession = sessions[currentSessionIndex];
+      if (currentSession && task) {
+        updateSubTask(task.id, currentSession.subTask.id, {
+          completed: true,
+          actualMinutes: Math.ceil((currentSession.duration - timeLeft) / 60)
+        });
+      }
+      
+      setCompletedSessions(prev => prev + 1);
+      
+      // Determine break type
+      const shouldTakeLongBreak = (completedSessions + 1) % pomodoroSettings.sessionsBeforeLongBreak === 0;
+      const nextStage: PomodoroStage = shouldTakeLongBreak ? 'longBreak' : 'shortBreak';
+      const breakDuration = shouldTakeLongBreak 
+        ? pomodoroSettings.longBreakDuration * 60 
+        : pomodoroSettings.shortBreakDuration * 60;
+      
+      setCurrentStage(nextStage);
+      setTimeLeft(breakDuration);
+    } else {
+      // Break finished, move to next work session
+      const nextSessionIndex = currentSessionIndex + 1;
+      
+      if (nextSessionIndex < sessions.length) {
+        setCurrentSessionIndex(nextSessionIndex);
+        setCurrentStage('work');
+        setTimeLeft(sessions[nextSessionIndex].duration);
+      } else {
+        // All sessions completed
+        setIsRunning(false);
+        setCurrentStage('work');
+        setCurrentSessionIndex(0);
+        if (sessions.length > 0) {
+          setTimeLeft(sessions[0].duration);
+        }
+      }
+    }
+  }, [currentStage, sessions, currentSessionIndex, task, updateSubTask, timeLeft, completedSessions, pomodoroSettings]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
     if (isRunning && timeLeft > 0) {
       interval = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
+        setTimeLeft((prev) => {
+          const newTime = prev - 1;
+          setTotalTimeSpent(total => total + 1);
+          return newTime;
+        });
       }, 1000);
+    } else if (isRunning && timeLeft === 0) {
+      // Timer finished, move to next stage
+      handleStageComplete();
     }
 
     return () => {
@@ -28,17 +106,39 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
         clearInterval(interval);
       }
     };
-  }, [isRunning, timeLeft]);
+  }, [isRunning, timeLeft, handleStageComplete]);
+
+
 
   const toggleTimer = () => {
     setIsRunning(!isRunning);
   };
 
   const resetTimer = () => {
-    setTimeLeft(pomodoroSettings.workDuration * 60);
+    setCurrentSessionIndex(0);
+    setCurrentStage('work');
     setIsRunning(false);
-    setIsWorkTime(true);
-    setSessionCount(0);
+    setCompletedSessions(0);
+    setTotalTimeSpent(0);
+    if (sessions.length > 0) {
+      setTimeLeft(sessions[0].duration);
+    } else {
+      setTimeLeft(pomodoroSettings.workDuration * 60);
+    }
+  };
+
+  const skipToNextSession = () => {
+    if (currentStage === 'work') {
+      // Skip current work session
+      const nextSessionIndex = currentSessionIndex + 1;
+      if (nextSessionIndex < sessions.length) {
+        setCurrentSessionIndex(nextSessionIndex);
+        setTimeLeft(sessions[nextSessionIndex].duration);
+      }
+    } else {
+      // Skip break
+      handleStageComplete();
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -47,50 +147,185 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  const getStageText = () => {
+    switch (currentStage) {
+      case 'work':
+        const currentSession = sessions[currentSessionIndex];
+        return currentSession ? `Working on: ${currentSession.subTask.title}` : 'Work Time';
+      case 'shortBreak':
+        return 'Short Break';
+      case 'longBreak':
+        return 'Long Break';
+      default:
+        return 'Work Time';
+    }
+  };
+
+  const getStageColor = () => {
+    switch (currentStage) {
+      case 'work':
+        return colors.primary;
+      case 'shortBreak':
+        return colors.success;
+      case 'longBreak':
+        return colors.warning;
+      default:
+        return colors.primary;
+    }
+  };
+
+  if (!task || sessions.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>No subtasks available</Text>
+          <Text style={styles.emptySubtext}>Add subtasks to start a Pomodoro session</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <View style={styles.timerCircle}>
-        <Text style={styles.timeText}>{formatTime(timeLeft)}</Text>
-        <Text style={styles.phaseText}>
-          {isWorkTime ? 'Work Time' : 'Break Time'}
-        </Text>
-      </View>
-
-      <View style={styles.controls}>
-        <TouchableOpacity 
-          style={styles.button} 
-          onPress={toggleTimer}
-        >
-          <Text style={styles.buttonText}>
-            {isRunning ? 'Pause' : 'Start'}
+    <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <View style={styles.container}>
+        {/* Progress Overview */}
+        <View style={styles.progressSection}>
+          <Text style={styles.progressTitle}>Session Progress</Text>
+          <Text style={styles.progressText}>
+            {currentSessionIndex + 1} of {sessions.length} subtasks
           </Text>
-        </TouchableOpacity>
+          <Text style={styles.timeSpentText}>
+            Total time: {formatTime(totalTimeSpent)}
+          </Text>
+        </View>
 
-        <TouchableOpacity 
-          style={[styles.button, styles.resetButton]} 
-          onPress={resetTimer}
-        >
-          <Text style={styles.buttonText}>Reset</Text>
-        </TouchableOpacity>
+        {/* Timer Circle */}
+        <View style={[styles.timerCircle, { borderColor: getStageColor() }]}>
+          <Text style={styles.timeText}>{formatTime(timeLeft)}</Text>
+          <Text style={[styles.phaseText, { color: getStageColor() }]}>
+            {getStageText()}
+          </Text>
+          {currentStage === 'work' && (
+            <Text style={styles.estimatedText}>
+              Est: {sessions[currentSessionIndex]?.subTask.estimatedMinutes}min
+            </Text>
+          )}
+        </View>
+
+        {/* Controls */}
+        <View style={styles.controls}>
+          <TouchableOpacity 
+            style={[styles.button, { backgroundColor: getStageColor() }]} 
+            onPress={toggleTimer}
+          >
+            <Text style={styles.buttonText}>
+              {isRunning ? 'Pause' : 'Start'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.button, styles.skipButton]} 
+            onPress={skipToNextSession}
+          >
+            <Text style={styles.buttonText}>Skip</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.button, styles.resetButton]} 
+            onPress={resetTimer}
+          >
+            <Text style={styles.buttonText}>Reset</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Subtasks List */}
+        <View style={styles.subtasksSection}>
+          <Text style={styles.subtasksTitle}>Subtasks Queue</Text>
+          {sessions.map((session, index) => {
+            const isActive = index === currentSessionIndex && currentStage === 'work';
+            const isCompleted = session.subTask.completed;
+            const isPast = index < currentSessionIndex;
+            
+            return (
+              <View 
+                key={session.subTask.id} 
+                style={[
+                  styles.subtaskItem,
+                  isActive && styles.activeSubtask,
+                  isCompleted && styles.completedSubtask,
+                  isPast && styles.pastSubtask
+                ]}
+              >
+                <View style={styles.subtaskInfo}>
+                  <Text style={[
+                    styles.subtaskTitle,
+                    isCompleted && styles.completedText,
+                    isActive && styles.activeText
+                  ]}>
+                    {session.subTask.title}
+                  </Text>
+                  <Text style={[
+                    styles.subtaskDuration,
+                    isCompleted && styles.completedText,
+                    isActive && styles.activeText
+                  ]}>
+                    {session.subTask.estimatedMinutes}min
+                    {session.subTask.actualMinutes && ` (${session.subTask.actualMinutes}min actual)`}
+                  </Text>
+                </View>
+                <View style={[
+                  styles.statusIndicator,
+                  isCompleted && styles.completedIndicator,
+                  isActive && styles.activeIndicator,
+                  isPast && styles.pastIndicator
+                ]} />
+              </View>
+            );
+          })}
+        </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContainer: {
+    flex: 1,
+  },
   container: {
     alignItems: 'center',
     padding: 20,
+    paddingBottom: 40,
+  },
+  progressSection: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  progressTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  progressText: {
+    fontSize: 16,
+    color: colors.textLight,
+    marginBottom: 2,
+  },
+  timeSpentText: {
+    fontSize: 14,
+    color: colors.textLight,
   },
   timerCircle: {
-    width: 220,
-    height: 220,
-    borderRadius: 110,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
     backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 8,
+    borderWidth: 6,
     borderColor: colors.primary,
+    marginBottom: 20,
   },
   timeText: {
     fontSize: 48,
@@ -98,21 +333,31 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   phaseText: {
-    fontSize: 18,
+    fontSize: 16,
     color: colors.textLight,
     marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  estimatedText: {
+    fontSize: 12,
+    color: colors.textLight,
+    marginTop: 4,
   },
   controls: {
     flexDirection: 'row',
-    marginTop: 20,
+    marginBottom: 30,
     gap: 12,
   },
   button: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
-    minWidth: 100,
+    minWidth: 80,
+  },
+  skipButton: {
+    backgroundColor: colors.warning,
   },
   resetButton: {
     backgroundColor: colors.textLight,
@@ -121,6 +366,89 @@ const styles = StyleSheet.create({
     color: colors.background,
     fontSize: 16,
     fontWeight: '600',
+    textAlign: 'center',
+  },
+  subtasksSection: {
+    width: '100%',
+    maxWidth: 400,
+  },
+  subtasksTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  subtaskItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  activeSubtask: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  completedSubtask: {
+    backgroundColor: colors.successLight,
+    borderColor: colors.success,
+  },
+  pastSubtask: {
+    opacity: 0.6,
+  },
+  subtaskInfo: {
+    flex: 1,
+  },
+  subtaskTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  subtaskDuration: {
+    fontSize: 14,
+    color: colors.textLight,
+  },
+  activeText: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  completedText: {
+    color: colors.success,
+    textDecorationLine: 'line-through',
+  },
+  statusIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.textLight,
+  },
+  activeIndicator: {
+    backgroundColor: colors.primary,
+  },
+  completedIndicator: {
+    backgroundColor: colors.success,
+  },
+  pastIndicator: {
+    backgroundColor: colors.textLight,
+  },
+  emptyState: {
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: colors.textLight,
     textAlign: 'center',
   },
 });

@@ -3,6 +3,7 @@ export const colors = {
   secondary: '#8BBAB4', // Light teal for category chips
   background: '#FFFFFF', // White background
   cardBackground: '#FFFFFF', // White for cards
+  surface: '#F8F9FA', // Light surface color for cards
   text: '#333333', // Dark text
   textLight: '#777777', // Light gray text
   border: '#F0F0F0', // Very light border
@@ -10,6 +11,11 @@ export const colors = {
   danger: '#F44336',
   warning: '#FFC107',
   accent: '#F9B293', // Peach/coral
+  
+  // Light variants for backgrounds
+  primaryLight: '#E8F2F0', // Very light teal
+  successLight: '#E8F5E8', // Very light green
+  warningLight: '#FFF8E1', // Very light yellow
   
   // Soft teal category colors
   categoryBackground: '#E8F5F3', // Very soft teal background
@@ -20,4 +26,4 @@ export const colors = {
   priorityMedium: '#f1c40f',  // Yellow
   priorityLow: '#bdc3c7',     // Light Gray
   priorityOptional: '#bdc3c7', // Light Gray
-};
+} as const;
