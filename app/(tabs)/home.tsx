@@ -10,7 +10,7 @@ import BrainDumpModal from '@/components/BrainDumpModal';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { tasks, dailyStats } = useTaskStore();
+  const { tasks, dailyStats, completeTask } = useTaskStore();
   const [showBrainDump, setShowBrainDump] = useState(false);
 
   // Get today's stats
@@ -97,6 +97,7 @@ export default function HomeScreen() {
               task={task}
               onPress={() => router.push('/(tabs)')}
               onLongPress={() => {}}
+              onComplete={(completed) => completeTask(task.id, completed)}
             />
           ))}
           {highPriorityTasks.length === 0 && (
