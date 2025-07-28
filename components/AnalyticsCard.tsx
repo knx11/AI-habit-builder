@@ -8,6 +8,8 @@ interface AnalyticsCardProps {
   subtitle?: string;
   icon?: React.ReactNode;
   color?: string;
+  isLoading?: boolean;
+  fullWidth?: boolean;
 }
 
 export default function AnalyticsCard({
@@ -16,12 +18,29 @@ export default function AnalyticsCard({
   subtitle,
   icon,
   color = colors.primary,
+  isLoading = false,
+  fullWidth = false,
 }: AnalyticsCardProps) {
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { borderLeftColor: color }, fullWidth && styles.fullWidth]}>
+        <View style={styles.content}>
+          <Text style={styles.title}>{title}</Text>
+          <View style={styles.loadingContainer}>
+            <View style={[styles.loadingBar, { backgroundColor: color }]} />
+            <Text style={styles.loadingText}>Analyzing...</Text>
+          </View>
+        </View>
+        {icon && <View style={styles.iconContainer}>{icon}</View>}
+      </View>
+    );
+  }
+
   return (
-    <View style={[styles.container, { borderLeftColor: color }]}>
+    <View style={[styles.container, { borderLeftColor: color }, fullWidth && styles.fullWidth]}>
       <View style={styles.content}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={[styles.value, { color }]}>{value}</Text>
+        <Text style={[styles.value, { color }, fullWidth && styles.fullWidthValue]}>{value}</Text>
         {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       </View>
       {icon && <View style={styles.iconContainer}>{icon}</View>}
@@ -58,5 +77,29 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     marginLeft: 12,
+  },
+  fullWidth: {
+    marginBottom: 16,
+  },
+  fullWidthValue: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  loadingBar: {
+    width: 20,
+    height: 3,
+    borderRadius: 2,
+    marginRight: 8,
+    opacity: 0.6,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: colors.textLight,
+    fontStyle: 'italic',
   },
 });

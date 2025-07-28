@@ -18,6 +18,7 @@ import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import AnalyticsCard from '@/components/AnalyticsCard';
 import BarChart from '@/components/BarChart';
+import AIAnalytics from '@/components/AIAnalytics';
 import { generateWeeklyStats } from '@/utils/helpers';
 
 export default function AnalyticsScreen() {
@@ -53,6 +54,9 @@ export default function AnalyticsScreen() {
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
       >
+        {/* AI Analytics Section */}
+        <AIAnalytics />
+        
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Weekly Overview</Text>
           <BarChart 

@@ -9,6 +9,7 @@ export const colors = {
   border: '#F0F0F0', // Very light border
   success: '#4CAF50',
   danger: '#F44336',
+  error: '#F44336',
   warning: '#FFC107',
   accent: '#F9B293', // Peach/coral
   
