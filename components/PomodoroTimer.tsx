@@ -242,135 +242,134 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
 
   const renderTimerContent = (fullscreen = false) => (
     <View style={fullscreen ? styles.fullscreenContainer : styles.container}>
-      {/* Progress Overview */}
-      <View style={[styles.progressSection, fullscreen && styles.fullscreenProgressSection]}>
-        <View style={styles.titleRow}>
-          <Text style={[styles.progressTitle, fullscreen && styles.fullscreenTitle]}>Session Progress</Text>
+      {/* Compact Header */}
+      <View style={[styles.compactHeader, fullscreen && styles.fullscreenProgressSection]}>
+        <View style={styles.headerRow}>
+          <Text style={[styles.progressText, fullscreen && styles.fullscreenProgressText]}>
+            {currentSessionIndex + 1} of {sessions.length}
+          </Text>
+          <Text style={[styles.timeSpentText, fullscreen && styles.fullscreenTimeSpentText]}>
+            Total: {formatTime(totalTimeSpent)}
+          </Text>
           {!fullscreen && (
             <TouchableOpacity 
               style={styles.expandButton}
               onPress={() => setIsFullscreen(true)}
             >
-              <Maximize2 size={20} color={colors.textLight} />
+              <Maximize2 size={18} color={colors.textLight} />
             </TouchableOpacity>
           )}
         </View>
-        <Text style={[styles.progressText, fullscreen && styles.fullscreenProgressText]}>
-          {currentSessionIndex + 1} of {sessions.length} subtasks
-        </Text>
-        <Text style={[styles.timeSpentText, fullscreen && styles.fullscreenTimeSpentText]}>
-          Total time: {formatTime(totalTimeSpent)}
-        </Text>
       </View>
 
-        {/* Navigation Controls */}
-        <View style={[styles.navigationContainer, fullscreen && styles.fullscreenNavigationContainer]}>
-          <TouchableOpacity 
-            style={[
-              styles.navButton, 
-              fullscreen && styles.fullscreenNavButton,
-              currentSessionIndex === 0 && styles.navButtonDisabled
-            ]} 
-            onPress={goToPreviousSession}
-            disabled={currentSessionIndex === 0}
-          >
-            <ChevronLeft 
-              size={fullscreen ? 32 : 24} 
-              color={currentSessionIndex === 0 ? colors.textLight : colors.text} 
-            />
-          </TouchableOpacity>
+      {/* Navigation Controls with Timer */}
+      <View style={[styles.navigationContainer, fullscreen && styles.fullscreenNavigationContainer]}>
+        <TouchableOpacity 
+          style={[
+            styles.navButton, 
+            fullscreen && styles.fullscreenNavButton,
+            currentSessionIndex === 0 && styles.navButtonDisabled
+          ]} 
+          onPress={goToPreviousSession}
+          disabled={currentSessionIndex === 0}
+        >
+          <ChevronLeft 
+            size={fullscreen ? 32 : 20} 
+            color={currentSessionIndex === 0 ? colors.textLight : colors.text} 
+          />
+        </TouchableOpacity>
 
-          {/* Timer Circle */}
-          <View style={[styles.timerCircle, { borderColor: getStageColor() }, fullscreen && styles.fullscreenTimerCircle]}>
-            {isEditingTime ? (
-              <View style={[styles.editTimeContainer, fullscreen && styles.fullscreenEditTimeContainer]}>
-                <TextInput
-                  style={[styles.timeInput, fullscreen && styles.fullscreenTimeInput]}
-                  value={editTimeValue}
-                  onChangeText={setEditTimeValue}
-                  keyboardType="numeric"
-                  placeholder="Minutes"
-                  placeholderTextColor={colors.textLight}
-                  autoFocus
-                />
-                <View style={styles.editTimeButtons}>
-                  <TouchableOpacity style={[styles.editTimeButton, fullscreen && styles.fullscreenEditTimeButton]} onPress={saveTimeEdit}>
-                    <Text style={[styles.editTimeButtonText, fullscreen && styles.fullscreenEditTimeButtonText]}>Save</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.editTimeButton, styles.cancelButton, fullscreen && styles.fullscreenEditTimeButton]} onPress={cancelTimeEdit}>
-                    <Text style={[styles.editTimeButtonText, fullscreen && styles.fullscreenEditTimeButtonText]}>Cancel</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              <>
-                <TouchableOpacity onPress={handleTimeEdit} style={styles.timeContainer}>
-                  <Text style={[styles.timeText, fullscreen && styles.fullscreenTimeText]}>{formatTime(timeLeft)}</Text>
-                  <Edit3 size={fullscreen ? 24 : 16} color={colors.textLight} style={[styles.editIcon, fullscreen && styles.fullscreenEditIcon]} />
+        {/* Timer Circle */}
+        <View style={[styles.timerCircle, { borderColor: getStageColor() }, fullscreen && styles.fullscreenTimerCircle]}>
+          {isEditingTime ? (
+            <View style={[styles.editTimeContainer, fullscreen && styles.fullscreenEditTimeContainer]}>
+              <TextInput
+                style={[styles.timeInput, fullscreen && styles.fullscreenTimeInput]}
+                value={editTimeValue}
+                onChangeText={setEditTimeValue}
+                keyboardType="numeric"
+                placeholder="Minutes"
+                placeholderTextColor={colors.textLight}
+                autoFocus
+              />
+              <View style={styles.editTimeButtons}>
+                <TouchableOpacity style={[styles.editTimeButton, fullscreen && styles.fullscreenEditTimeButton]} onPress={saveTimeEdit}>
+                  <Text style={[styles.editTimeButtonText, fullscreen && styles.fullscreenEditTimeButtonText]}>Save</Text>
                 </TouchableOpacity>
-                <Text style={[styles.phaseText, { color: getStageColor() }, fullscreen && styles.fullscreenPhaseText]}>
-                  {getStageText()}
+                <TouchableOpacity style={[styles.editTimeButton, styles.cancelButton, fullscreen && styles.fullscreenEditTimeButton]} onPress={cancelTimeEdit}>
+                  <Text style={[styles.editTimeButtonText, fullscreen && styles.fullscreenEditTimeButtonText]}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <>
+              <TouchableOpacity onPress={handleTimeEdit} style={styles.timeContainer}>
+                <Text style={[styles.timeText, fullscreen && styles.fullscreenTimeText]}>{formatTime(timeLeft)}</Text>
+                <Edit3 size={fullscreen ? 20 : 14} color={colors.textLight} style={[styles.editIcon, fullscreen && styles.fullscreenEditIcon]} />
+              </TouchableOpacity>
+              <Text style={[styles.phaseText, { color: getStageColor() }, fullscreen && styles.fullscreenPhaseText]}>
+                {getStageText()}
+              </Text>
+              {currentStage === 'work' && (
+                <Text style={[styles.estimatedText, fullscreen && styles.fullscreenEstimatedText]}>
+                  Est: {sessions[currentSessionIndex]?.subTask.estimatedMinutes}min
                 </Text>
-                {currentStage === 'work' && (
-                  <Text style={[styles.estimatedText, fullscreen && styles.fullscreenEstimatedText]}>
-                    Est: {sessions[currentSessionIndex]?.subTask.estimatedMinutes}min
-                  </Text>
-                )}
-              </>
-            )}
-          </View>
-
-          <TouchableOpacity 
-            style={[
-              styles.navButton, 
-              fullscreen && styles.fullscreenNavButton,
-              currentSessionIndex === sessions.length - 1 && styles.navButtonDisabled
-            ]} 
-            onPress={goToNextSession}
-            disabled={currentSessionIndex === sessions.length - 1}
-          >
-            <ChevronRight 
-              size={fullscreen ? 32 : 24} 
-              color={currentSessionIndex === sessions.length - 1 ? colors.textLight : colors.text} 
-            />
-          </TouchableOpacity>
+              )}
+            </>
+          )}
         </View>
 
-        {/* Controls */}
-        <View style={[styles.controls, fullscreen && styles.fullscreenControls]}>
-          <TouchableOpacity 
-            style={[styles.button, { backgroundColor: getStageColor() }, fullscreen && styles.fullscreenButton]} 
-            onPress={toggleTimer}
-          >
-            <Text style={[styles.buttonText, fullscreen && styles.fullscreenButtonText]}>
-              {isRunning ? 'Pause' : 'Start'}
-            </Text>
-          </TouchableOpacity>
+        <TouchableOpacity 
+          style={[
+            styles.navButton, 
+            fullscreen && styles.fullscreenNavButton,
+            currentSessionIndex === sessions.length - 1 && styles.navButtonDisabled
+          ]} 
+          onPress={goToNextSession}
+          disabled={currentSessionIndex === sessions.length - 1}
+        >
+          <ChevronRight 
+            size={fullscreen ? 32 : 20} 
+            color={currentSessionIndex === sessions.length - 1 ? colors.textLight : colors.text} 
+          />
+        </TouchableOpacity>
+      </View>
 
-          <TouchableOpacity 
-            style={[styles.button, styles.doneButton, fullscreen && styles.fullscreenButton]} 
-            onPress={markCurrentSubtaskDone}
-          >
-            <Text style={[styles.buttonText, fullscreen && styles.fullscreenButtonText]}>
-              {currentStage === 'work' ? 'Done' : 'Skip Break'}
-            </Text>
-          </TouchableOpacity>
+      {/* Controls */}
+      <View style={[styles.controls, fullscreen && styles.fullscreenControls]}>
+        <TouchableOpacity 
+          style={[styles.button, { backgroundColor: getStageColor() }, fullscreen && styles.fullscreenButton]} 
+          onPress={toggleTimer}
+        >
+          <Text style={[styles.buttonText, fullscreen && styles.fullscreenButtonText]}>
+            {isRunning ? 'Pause' : 'Start'}
+          </Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.button, styles.resetButton, fullscreen && styles.fullscreenButton]} 
-            onPress={resetTimer}
-          >
-            <Text style={[styles.buttonText, fullscreen && styles.fullscreenButtonText]}>Reset</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity 
+          style={[styles.button, styles.doneButton, fullscreen && styles.fullscreenButton]} 
+          onPress={markCurrentSubtaskDone}
+        >
+          <Text style={[styles.buttonText, fullscreen && styles.fullscreenButtonText]}>
+            {currentStage === 'work' ? 'Done' : 'Skip Break'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.button, styles.resetButton, fullscreen && styles.fullscreenButton]} 
+          onPress={resetTimer}
+        >
+          <Text style={[styles.buttonText, fullscreen && styles.fullscreenButtonText]}>Reset</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
   return (
     <>
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <View style={styles.compactContainer}>
         {renderTimerContent(false)}
-      </ScrollView>
+      </View>
 
       {/* Fullscreen Modal */}
       <Modal
@@ -402,13 +401,14 @@ export default function PomodoroTimer({ taskId }: PomodoroTimerProps) {
 }
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flex: 1,
+  compactContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   container: {
     alignItems: 'center',
-    padding: 20,
-    paddingBottom: 40,
+    width: '100%',
   },
   fullscreenModal: {
     flex: 1,
@@ -457,30 +457,25 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   expandButton: {
-    marginLeft: 12,
     padding: 4,
   },
-  progressSection: {
+  compactHeader: {
+    width: '100%',
+    marginBottom: 12,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    paddingHorizontal: 4,
   },
   fullscreenProgressSection: {
     marginBottom: 40,
   },
-  progressTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  fullscreenTitle: {
-    fontSize: 28,
-    marginBottom: 12,
-    fontWeight: '700',
-  },
   progressText: {
-    fontSize: 16,
+    fontSize: 14,
     color: colors.textLight,
-    marginBottom: 2,
+    fontWeight: '500',
   },
   fullscreenProgressText: {
     fontSize: 22,
@@ -492,24 +487,23 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   timeSpentText: {
-    fontSize: 14,
+    fontSize: 12,
     color: colors.textLight,
   },
   timerCircle: {
-    width: 240,
-    height: 240,
-    borderRadius: 120,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
     backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 6,
+    borderWidth: 4,
     borderColor: colors.primary,
-    marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 4,
+    elevation: 3,
   },
   fullscreenTimerCircle: {
     width: 340,
@@ -523,7 +517,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   timeText: {
-    fontSize: 48,
+    fontSize: 36,
     fontWeight: 'bold',
     color: colors.text,
   },
@@ -532,11 +526,11 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   phaseText: {
-    fontSize: 16,
+    fontSize: 14,
     color: colors.textLight,
-    marginTop: 8,
+    marginTop: 6,
     textAlign: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   fullscreenPhaseText: {
     fontSize: 24,
@@ -544,9 +538,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   estimatedText: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.textLight,
-    marginTop: 4,
+    marginTop: 3,
   },
   fullscreenEstimatedText: {
     fontSize: 18,
@@ -555,8 +549,8 @@ const styles = StyleSheet.create({
   },
   controls: {
     flexDirection: 'row',
-    marginBottom: 30,
-    gap: 12,
+    marginTop: 16,
+    gap: 8,
   },
   fullscreenControls: {
     gap: 24,
@@ -565,14 +559,14 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    minWidth: 80,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 6,
+    minWidth: 70,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 2,
     elevation: 2,
   },
   fullscreenButton: {
@@ -593,7 +587,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: colors.background,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -620,20 +614,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 12,
     width: '100%',
   },
   fullscreenNavigationContainer: {
     marginBottom: 50,
   },
   navButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     borderWidth: 1,
     borderColor: colors.border,
     shadowColor: '#000',
