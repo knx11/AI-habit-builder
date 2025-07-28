@@ -54,9 +54,6 @@ export default function AnalyticsScreen() {
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* AI Analytics Section */}
-        <AIAnalytics />
-        
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Weekly Overview</Text>
           <BarChart 
@@ -92,6 +89,9 @@ export default function AnalyticsScreen() {
             color={colors.accent}
           />
         </View>
+        
+        {/* AI Analytics Section - Moved to bottom */}
+        <AIAnalytics />
       </ScrollView>
     </View>
   );
