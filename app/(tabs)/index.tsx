@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Text } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Plus, Settings } from 'lucide-react-native';
@@ -11,28 +11,44 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 type Filter = 'all' | 'active' | 'completed';
 
+type CategoryFilter = 'all' | string;
+
 export default function TasksScreen() {
   const router = useRouter();
   const { tasks, autoAssignPriorities, completeTask } = useTaskStore();
-  const [filter, setFilter] = useState<Filter>('active'); // Changed default from 'all' to 'active'
+  const [filter, setFilter] = useState<Filter>('active');
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [showAddTask, setShowAddTask] = useState(false);
+  const [showCategoryMenu, setShowCategoryMenu] = useState<boolean>(false);
 
   // Auto-sort tasks by priority when the component mounts or tasks change
   useEffect(() => {
     autoAssignPriorities();
   }, [tasks.length]);
 
-  const filteredTasks = tasks.filter((task) => {
-    switch (filter) {
-      case 'active':
-        return !task.completed;
-      case 'completed':
-        return task.completed;
-      default:
-        return true;
-    }
-  });
+  const categories = useMemo<string[]>(() => {
+    const set = new Set<string>();
+    tasks.forEach(t => { if (t.category && t.category.trim().length > 0) set.add(t.category.trim()); });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [tasks]);
+
+  const filteredTasks = useMemo(() => {
+    const base = tasks.filter((task) => {
+      switch (filter) {
+        case 'active':
+          return !task.completed;
+        case 'completed':
+          return task.completed;
+        default:
+          return true;
+      }
+    });
+
+    const byCategory = categoryFilter === 'all' ? base : base.filter(t => (t.category ?? '').trim() === categoryFilter);
+
+    return byCategory;
+  }, [tasks, filter, categoryFilter]);
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -57,22 +73,64 @@ export default function TasksScreen() {
       />
 
       <View style={styles.filters}>
-        {(['all', 'active', 'completed'] as Filter[]).map((f) => (
-          <TouchableOpacity
-            key={f}
-            style={[styles.filterButton, filter === f && styles.activeFilter]}
-            onPress={() => setFilter(f)}
-          >
-            <Text 
-              style={[
-                styles.filterText,
-                filter === f && styles.activeFilterText
-              ]}
+        <View style={styles.filterChips}>
+          {(['all', 'active', 'completed'] as Filter[]).map((f) => (
+            <TouchableOpacity
+              key={f}
+              style={[styles.filterButton, filter === f && styles.activeFilter]}
+              onPress={() => setFilter(f)}
+              testID={`filter-${f}`}
             >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
+              <Text 
+                style={[
+                  styles.filterText,
+                  filter === f && styles.activeFilterText
+                ]}
+              >
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.categoryWrapper}>
+          <TouchableOpacity
+            style={[styles.filterButton, styles.categoryButton, showCategoryMenu && styles.activeFilter]}
+            onPress={() => setShowCategoryMenu(v => !v)}
+            accessibilityRole="button"
+            testID="category-dropdown-toggle"
+          >
+            <Text style={[styles.filterText, showCategoryMenu && styles.activeFilterText]}>
+              {categoryFilter === 'all' ? 'All Categories' : categoryFilter}
             </Text>
           </TouchableOpacity>
-        ))}
+          {showCategoryMenu && (
+            <View style={styles.dropdown} testID="category-dropdown-menu">
+              <TouchableOpacity
+                onPress={() => { setCategoryFilter('all'); setShowCategoryMenu(false); }}
+                style={styles.dropdownItem}
+                testID="category-option-all"
+              >
+                <Text style={styles.dropdownText}>All Categories</Text>
+              </TouchableOpacity>
+              {categories.map((c) => (
+                <TouchableOpacity
+                  key={c}
+                  onPress={() => { setCategoryFilter(c); setShowCategoryMenu(false); }}
+                  style={styles.dropdownItem}
+                  testID={`category-option-${c}`}
+                >
+                  <Text style={styles.dropdownText}>{c}</Text>
+                </TouchableOpacity>
+              ))}
+              {categories.length === 0 && (
+                <View style={styles.dropdownItem}>
+                  <Text style={styles.dropdownTextMuted}>No categories</Text>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
       </View>
 
       <FlatList
@@ -122,8 +180,14 @@ const styles = StyleSheet.create({
   },
   filters: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     padding: 16,
     gap: 8,
+  },
+  filterChips: {
+    flexDirection: 'row',
+    gap: 8,
+    flexShrink: 1,
   },
   filterButton: {
     paddingVertical: 8,
@@ -147,6 +211,38 @@ const styles = StyleSheet.create({
   list: {
     padding: 16,
     paddingBottom: 100,
+  },
+  categoryWrapper: {
+    marginLeft: 'auto',
+    position: 'relative',
+  },
+  categoryButton: {
+    minWidth: 140,
+    alignItems: 'center',
+  },
+  dropdown: {
+    position: 'absolute',
+    top: 44,
+    right: 0,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingVertical: 4,
+    minWidth: 180,
+    zIndex: 10,
+  },
+  dropdownItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  dropdownText: {
+    color: colors.text,
+    fontSize: 14,
+  },
+  dropdownTextMuted: {
+    color: colors.textLight,
+    fontSize: 14,
   },
   fab: {
     position: 'absolute',
