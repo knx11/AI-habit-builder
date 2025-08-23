@@ -151,14 +151,30 @@ export default function TasksScreen() {
 
           const colorFor = (prio: PriorityFilter) => {
             switch (prio) {
-              case 'high':
-                return { base: colors.priorityHigh, textOn: colors.text } as const;
-              case 'medium':
-                return { base: colors.priorityMedium, textOn: colors.background } as const;
-              case 'low':
-                return { base: colors.priorityLow, textOn: colors.background } as const;
-              default:
-                return { base: colors.primary, textOn: colors.background } as const;
+              case 'high': {
+                const base = colors.priorityHigh;
+                const border = '#F59E0B' as const;
+                const inactiveBg = '#FFFBEB' as const;
+                return { base, textOn: colors.text, border, inactiveBg } as const;
+              }
+              case 'medium': {
+                const base = colors.priorityMedium;
+                const border = '#2563EB' as const;
+                const inactiveBg = '#EFF6FF' as const;
+                return { base, textOn: colors.background, border, inactiveBg } as const;
+              }
+              case 'low': {
+                const base = colors.priorityLow;
+                const border = '#16A34A' as const;
+                const inactiveBg = '#ECFDF5' as const;
+                return { base, textOn: colors.background, border, inactiveBg } as const;
+              }
+              default: {
+                const base = colors.primary;
+                const border = colors.primary;
+                const inactiveBg = colors.cardBackground;
+                return { base, textOn: colors.background, border, inactiveBg } as const;
+              }
             }
           };
           const c = colorFor(p);
@@ -171,12 +187,12 @@ export default function TasksScreen() {
                   { backgroundColor: isActive ? c.textOn : c.base, borderColor: isActive ? c.base : colors.border },
                 ]} />
               )}
-              {p === 'high' && <Flame size={16} color={isActive ? c.textOn : c.base} />}
+              {p === 'high' && <Flame size={16} color={isActive ? c.textOn : c.border} />}
               <Text
                 style={[
                   styles.filterText,
                   isActive && styles.activeFilterText,
-                  p !== 'all' && !isActive && { color: c.base },
+                  p !== 'all' && !isActive && { color: p === 'high' ? c.border : c.base },
                   isActive && p !== 'all' && { color: c.textOn },
                 ]}
               >
@@ -195,7 +211,8 @@ export default function TasksScreen() {
                 styles.filterButton,
                 isActive && styles.activeFilter,
                 p !== 'all' && {
-                  borderColor: c.base,
+                  borderColor: c.border,
+                  backgroundColor: c.inactiveBg,
                 },
                 isActive && p !== 'all' && {
                   backgroundColor: c.base,
