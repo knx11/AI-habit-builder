@@ -23,8 +23,8 @@ export const colors = {
   categoryText: '#2D4A43', // Dark teal text
   
   // Priority colors
-  priorityHigh: '#f1c40f',    // Yellow/orange
-  priorityMedium: '#f1c40f',  // Yellow
-  priorityLow: '#bdc3c7',     // Light Gray
-  priorityOptional: '#bdc3c7', // Light Gray
+  priorityHigh: '#F97316',    // Orange
+  priorityMedium: '#3B82F6',  // Blue
+  priorityLow: '#22C55E',     // Green
+  priorityOptional: '#9CA3AF', // Gray
 } as const;
