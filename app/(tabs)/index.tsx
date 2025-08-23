@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Text, Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { Plus, Settings, Check, ChevronDown, Flame } from 'lucide-react-native';
+import { Plus, Settings, Check } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import TaskItem from '@/components/TaskItem';
@@ -181,13 +181,8 @@ export default function TasksScreen() {
 
           const content = (
             <View style={styles.filterContentRow}>
-              {p !== 'all' && (
-                <View style={[
-                  styles.dot,
-                  { backgroundColor: isActive ? c.textOn : c.base, borderColor: isActive ? c.base : colors.border },
-                ]} />
-              )}
-              {p === 'high' && <Flame size={16} color={isActive ? c.textOn : c.border} />}
+              
+              
               <Text
                 style={[
                   styles.filterText,
@@ -198,9 +193,7 @@ export default function TasksScreen() {
               >
                 {label}
               </Text>
-              {p === 'all' && (
-                <ChevronDown size={16} color={isActive ? colors.background : colors.text} />
-              )}
+              
             </View>
           );
 
