@@ -56,6 +56,13 @@ export default function TasksScreen() {
       return (task.priority ?? 'low') === priorityFilter;
     });
 
+  const currentAllLabel = useMemo(() => {
+    if (filter === 'active') return 'Active';
+    if (filter === 'completed') return 'Completed';
+    if (category !== 'all') return category;
+    return 'All';
+  }, [filter, category]);
+
   return (
     <GestureHandlerRootView style={styles.container}>
       <Stack.Screen
@@ -79,60 +86,68 @@ export default function TasksScreen() {
       />
 
       <View style={styles.filters}>
-        {(['all', 'active', 'completed'] as Filter[]).map((f) => {
-          const isAll = f === 'all';
-          const isActive = filter === f;
-          return (
-            <TouchableOpacity
-              key={f}
-              style={[styles.filterButton, isActive && styles.activeFilter]}
-              onPress={() => {
-                setFilter(f);
-                if (isAll) {
-                  setShowCategoryMenu(prev => !prev || !isActive);
-                } else {
-                  setShowCategoryMenu(false);
-                }
-              }}
-              testID={`filter-${f}`}
-            >
-              <View style={styles.filterContentRow}>
-                <Text
-                  style={[
-                    styles.filterText,
-                    isActive && styles.activeFilterText,
-                  ]}
-                >
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
-                </Text>
-                {isAll && (
-                  <ChevronDown size={16} color={isActive ? colors.background : colors.text} />
-                )}
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+        <TouchableOpacity
+          style={[styles.filterButton, styles.activeFilter]}
+          onPress={() => setShowCategoryMenu(prev => !prev)}
+          testID={`filter-combined-all`}
+        >
+          <View style={styles.filterContentRow}>
+            <Text style={[styles.filterText, styles.activeFilterText]}>{currentAllLabel}</Text>
+            <ChevronDown size={16} color={colors.background} />
+          </View>
+        </TouchableOpacity>
       </View>
 
-      {filter === 'all' && showCategoryMenu && (
+      {showCategoryMenu && (
         <View style={styles.dropdownContainer} testID="category-dropdown">
+          <View style={styles.dropdownGroupHeader}>
+            <Text style={styles.dropdownGroupHeaderText}>Status</Text>
+          </View>
           <TouchableOpacity
-            style={[styles.dropdownItem, category === 'all' && styles.dropdownItemActive]}
-            onPress={() => { setCategory('all'); setShowCategoryMenu(false); }}
+            style={[styles.dropdownItem, filter === 'all' && category === 'all' && styles.dropdownItemActive]}
+            onPress={() => { setFilter('all'); setCategory('all'); setShowCategoryMenu(false); }}
+            testID="status-option-all"
+          >
+            <Text style={[styles.dropdownText, filter === 'all' && category === 'all' && styles.dropdownTextActive]}>All</Text>
+            {filter === 'all' && category === 'all' && <Check size={16} color={colors.primary} />}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.dropdownItem, filter === 'active' && styles.dropdownItemActive]}
+            onPress={() => { setFilter('active'); setShowCategoryMenu(false); }}
+            testID="status-option-active"
+          >
+            <Text style={[styles.dropdownText, filter === 'active' && styles.dropdownTextActive]}>Active</Text>
+            {filter === 'active' && <Check size={16} color={colors.primary} />}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.dropdownItem, filter === 'completed' && styles.dropdownItemActive]}
+            onPress={() => { setFilter('completed'); setShowCategoryMenu(false); }}
+            testID="status-option-completed"
+          >
+            <Text style={[styles.dropdownText, filter === 'completed' && styles.dropdownTextActive]}>Completed</Text>
+            {filter === 'completed' && <Check size={16} color={colors.primary} />}
+          </TouchableOpacity>
+
+          <View style={styles.dropdownGroupHeader}>
+            <Text style={styles.dropdownGroupHeaderText}>Categories</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.dropdownItem, filter === 'all' && category === 'all' && styles.dropdownItemActive]}
+            onPress={() => { setFilter('all'); setCategory('all'); setShowCategoryMenu(false); }}
             testID="category-option-all"
           >
-            <Text style={[styles.dropdownText, category === 'all' && styles.dropdownTextActive]}>All Categories</Text>
-            {category === 'all' && <Check size={16} color={colors.primary} />}
+            <Text style={[styles.dropdownText, filter === 'all' && category === 'all' && styles.dropdownTextActive]}>All Categories</Text>
+            {filter === 'all' && category === 'all' && <Check size={16} color={colors.primary} />}
           </TouchableOpacity>
           {categories.map((c) => (
             <TouchableOpacity
               key={c}
-              style={[styles.dropdownItem, category === c && styles.dropdownItemActive]}
-              onPress={() => { setCategory(c); setShowCategoryMenu(false); }}
+              style={[styles.dropdownItem, filter === 'all' && category === c && styles.dropdownItemActive]}
+              onPress={() => { setFilter('all'); setCategory(c); setShowCategoryMenu(false); }}
               testID={`category-option-${c.replace(/\s+/g, '-').toLowerCase()}`}
             >
-              <Text style={[styles.dropdownText, category === c && styles.dropdownTextActive]}>{c}</Text>
-              {category === c && <Check size={16} color={colors.primary} />}
+              <Text style={[styles.dropdownText, filter === 'all' && category === c && styles.dropdownTextActive]}>{c}</Text>
+              {filter === 'all' && category === c && <Check size={16} color={colors.primary} />}
             </TouchableOpacity>
           ))}
           {categories.length === 0 && (
@@ -330,6 +345,19 @@ const styles = StyleSheet.create({
   },
   dropdownEmpty: {
     padding: 12,
+  },
+  dropdownGroupHeader: {
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 6,
+    backgroundColor: colors.surface,
+  },
+  dropdownGroupHeaderText: {
+    color: colors.textLight,
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
   dropdownEmptyText: {
     color: colors.textLight,
