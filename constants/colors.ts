@@ -23,7 +23,7 @@ export const colors = {
   categoryText: '#2D4A43', // Dark teal text
   
   // Priority colors
-  priorityHigh: '#F97316',    // Orange
+  priorityHigh: '#FDBA74',    // Lighter Orange
   priorityMedium: '#3B82F6',  // Blue
   priorityLow: '#22C55E',     // Green
   priorityOptional: '#9CA3AF', // Gray
