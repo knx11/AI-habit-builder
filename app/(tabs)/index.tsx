@@ -83,18 +83,6 @@ export default function TasksScreen() {
         }}
       />
 
-      <View style={styles.filters}>
-        <TouchableOpacity
-          style={[styles.filterButton, styles.activeFilter]}
-          onPress={() => setShowCategoryMenu(prev => !prev)}
-          testID={`filter-combined-all`}
-        >
-          <View style={styles.filterContentRow}>
-            <Text style={[styles.filterText, styles.activeFilterText]}>{currentAllLabel}</Text>
-            <ChevronDown size={16} color={colors.background} />
-          </View>
-        </TouchableOpacity>
-      </View>
 
       {showCategoryMenu && (
         <View style={styles.dropdownContainer} testID="category-dropdown">
@@ -159,7 +147,7 @@ export default function TasksScreen() {
       <View style={styles.priorityFilters}>
         {(['all','high','medium','low'] as PriorityFilter[]).map((p) => {
           const isActive = priorityFilter === p;
-          const label = p === 'all' ? 'All' : p.charAt(0).toUpperCase() + p.slice(1);
+          const label = p === 'all' ? currentAllLabel : p.charAt(0).toUpperCase() + p.slice(1);
 
           const colorFor = (prio: PriorityFilter) => {
             switch (prio) {
@@ -175,6 +163,24 @@ export default function TasksScreen() {
           };
           const c = colorFor(p);
 
+          const content = (
+            <View style={styles.filterContentRow}>
+              <Text
+                style={[
+                  styles.filterText,
+                  isActive && styles.activeFilterText,
+                  p !== 'all' && !isActive && { color: c.base },
+                  isActive && p !== 'all' && { color: c.textOn },
+                ]}
+              >
+                {label}
+              </Text>
+              {p === 'all' && (
+                <ChevronDown size={16} color={isActive ? colors.background : colors.text} />
+              )}
+            </View>
+          );
+
           return (
             <TouchableOpacity
               key={p}
@@ -189,19 +195,18 @@ export default function TasksScreen() {
                   borderColor: c.base,
                 },
               ]}
-              onPress={() => setPriorityFilter(p)}
-              testID={`priority-${p}`}
+              onPress={() => {
+                if (p === 'all') {
+                  setPriorityFilter('all');
+                  setShowCategoryMenu(prev => !prev);
+                } else {
+                  setShowCategoryMenu(false);
+                  setPriorityFilter(p);
+                }
+              }}
+              testID={p === 'all' ? 'filter-combined-all' : `priority-${p}`}
             >
-              <Text
-                style={[
-                  styles.filterText,
-                  isActive && styles.activeFilterText,
-                  p !== 'all' && !isActive && { color: c.base },
-                  isActive && p !== 'all' && { color: c.textOn },
-                ]}
-              >
-                {label}
-              </Text>
+              {content}
             </TouchableOpacity>
           );
         })}
@@ -314,7 +319,7 @@ const styles = StyleSheet.create({
   },
   dropdownContainer: {
     marginHorizontal: 16,
-    marginTop: -8,
+    marginTop: 8,
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
     borderWidth: 1,
