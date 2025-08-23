@@ -147,14 +147,46 @@ export default function TasksScreen() {
         {(['all','high','medium','low'] as PriorityFilter[]).map((p) => {
           const isActive = priorityFilter === p;
           const label = p === 'all' ? 'All' : p.charAt(0).toUpperCase() + p.slice(1);
+
+          const colorFor = (prio: PriorityFilter) => {
+            switch (prio) {
+              case 'high':
+                return { base: colors.priorityHigh, textOn: colors.background } as const;
+              case 'medium':
+                return { base: colors.priorityMedium, textOn: colors.background } as const;
+              case 'low':
+                return { base: colors.priorityLow, textOn: colors.background } as const;
+              default:
+                return { base: colors.primary, textOn: colors.background } as const;
+            }
+          };
+          const c = colorFor(p);
+
           return (
             <TouchableOpacity
               key={p}
-              style={[styles.filterButton, isActive && styles.activeFilter]}
+              style={[
+                styles.filterButton,
+                isActive && styles.activeFilter,
+                p !== 'all' && {
+                  borderColor: c.base,
+                },
+                isActive && p !== 'all' && {
+                  backgroundColor: c.base,
+                  borderColor: c.base,
+                },
+              ]}
               onPress={() => setPriorityFilter(p)}
               testID={`priority-${p}`}
             >
-              <Text style={[styles.filterText, isActive && styles.activeFilterText]}>
+              <Text
+                style={[
+                  styles.filterText,
+                  isActive && styles.activeFilterText,
+                  p !== 'all' && !isActive && { color: c.base },
+                  isActive && p !== 'all' && { color: c.textOn },
+                ]}
+              >
                 {label}
               </Text>
             </TouchableOpacity>
