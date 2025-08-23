@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, FlatList, TouchableOpacity, Text, Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { Plus, Settings, Check, ChevronDown } from 'lucide-react-native';
+import { Plus, Settings, Check, ChevronDown, Flame } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import TaskItem from '@/components/TaskItem';
@@ -152,7 +152,7 @@ export default function TasksScreen() {
           const colorFor = (prio: PriorityFilter) => {
             switch (prio) {
               case 'high':
-                return { base: colors.priorityHigh, textOn: colors.background } as const;
+                return { base: colors.priorityHigh, textOn: colors.text } as const;
               case 'medium':
                 return { base: colors.priorityMedium, textOn: colors.background } as const;
               case 'low':
@@ -165,6 +165,13 @@ export default function TasksScreen() {
 
           const content = (
             <View style={styles.filterContentRow}>
+              {p !== 'all' && (
+                <View style={[
+                  styles.dot,
+                  { backgroundColor: isActive ? c.textOn : c.base, borderColor: isActive ? c.base : colors.border },
+                ]} />
+              )}
+              {p === 'high' && <Flame size={16} color={isActive ? c.textOn : c.base} />}
               <Text
                 style={[
                   styles.filterText,
@@ -271,12 +278,23 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   filterButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 24,
     backgroundColor: colors.cardBackground,
     borderWidth: 1,
     borderColor: colors.border,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOpacity: 0.06,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   activeFilter: {
     backgroundColor: colors.primary,
@@ -315,7 +333,7 @@ const styles = StyleSheet.create({
   filterContentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   dropdownContainer: {
     marginHorizontal: 16,
@@ -325,6 +343,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOpacity: 0.06,
+        shadowOffset: { width: 0, height: 4 },
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   dropdownItem: {
     paddingVertical: 12,
@@ -366,5 +395,11 @@ const styles = StyleSheet.create({
     color: colors.textLight,
     fontSize: 12,
     textAlign: 'center',
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1,
   },
 });
