@@ -84,65 +84,6 @@ export default function TasksScreen() {
       />
 
 
-      {showCategoryMenu && (
-        <View style={styles.dropdownContainer} testID="category-dropdown">
-          <View style={styles.dropdownGroupHeader}>
-            <Text style={styles.dropdownGroupHeaderText}>Status</Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.dropdownItem, filter === 'all' && category === 'all' && styles.dropdownItemActive]}
-            onPress={() => { setFilter('all'); setCategory('all'); setShowCategoryMenu(false); }}
-            testID="status-option-all"
-          >
-            <Text style={[styles.dropdownText, filter === 'all' && category === 'all' && styles.dropdownTextActive]}>All</Text>
-            {filter === 'all' && category === 'all' && <Check size={16} color={colors.primary} />}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.dropdownItem, filter === 'active' && styles.dropdownItemActive]}
-            onPress={() => { setFilter('active'); setShowCategoryMenu(false); }}
-            testID="status-option-active"
-          >
-            <Text style={[styles.dropdownText, filter === 'active' && styles.dropdownTextActive]}>Active</Text>
-            {filter === 'active' && <Check size={16} color={colors.primary} />}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.dropdownItem, filter === 'completed' && styles.dropdownItemActive]}
-            onPress={() => { setFilter('completed'); setShowCategoryMenu(false); }}
-            testID="status-option-completed"
-          >
-            <Text style={[styles.dropdownText, filter === 'completed' && styles.dropdownTextActive]}>Completed</Text>
-            {filter === 'completed' && <Check size={16} color={colors.primary} />}
-          </TouchableOpacity>
-
-          <View style={styles.dropdownGroupHeader}>
-            <Text style={styles.dropdownGroupHeaderText}>Categories</Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.dropdownItem, filter === 'all' && category === 'all' && styles.dropdownItemActive]}
-            onPress={() => { setFilter('all'); setCategory('all'); setShowCategoryMenu(false); }}
-            testID="category-option-all"
-          >
-            <Text style={[styles.dropdownText, filter === 'all' && category === 'all' && styles.dropdownTextActive]}>All Categories</Text>
-            {filter === 'all' && category === 'all' && <Check size={16} color={colors.primary} />}
-          </TouchableOpacity>
-          {categories.map((c) => (
-            <TouchableOpacity
-              key={c}
-              style={[styles.dropdownItem, filter === 'all' && category === c && styles.dropdownItemActive]}
-              onPress={() => { setFilter('all'); setCategory(c); setShowCategoryMenu(false); }}
-              testID={`category-option-${c.replace(/\s+/g, '-').toLowerCase()}`}
-            >
-              <Text style={[styles.dropdownText, filter === 'all' && category === c && styles.dropdownTextActive]}>{c}</Text>
-              {filter === 'all' && category === c && <Check size={16} color={colors.primary} />}
-            </TouchableOpacity>
-          ))}
-          {categories.length === 0 && (
-            <View style={styles.dropdownEmpty}>
-              <Text style={styles.dropdownEmptyText}>No categories yet</Text>
-            </View>
-          )}
-        </View>
-      )}
 
       <View style={styles.priorityFilters}>
         {(['all','high','medium','low'] as PriorityFilter[]).map((p) => {
@@ -228,6 +169,66 @@ export default function TasksScreen() {
           );
         })}
       </View>
+
+      {showCategoryMenu && (
+        <View style={styles.dropdownContainer} testID="category-dropdown">
+          <View style={styles.dropdownGroupHeader}>
+            <Text style={styles.dropdownGroupHeaderText}>Categories</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.dropdownItem, filter === 'all' && category === 'all' && styles.dropdownItemActive]}
+            onPress={() => { setFilter('all'); setCategory('all'); setShowCategoryMenu(false); }}
+            testID="category-option-all"
+          >
+            <Text style={[styles.dropdownText, filter === 'all' && category === 'all' && styles.dropdownTextActive]}>All Categories</Text>
+            {filter === 'all' && category === 'all' && <Check size={16} color={colors.primary} />}
+          </TouchableOpacity>
+          {categories.map((c) => (
+            <TouchableOpacity
+              key={c}
+              style={[styles.dropdownItem, filter === 'all' && category === c && styles.dropdownItemActive]}
+              onPress={() => { setFilter('all'); setCategory(c); setShowCategoryMenu(false); }}
+              testID={`category-option-${c.replace(/\s+/g, '-').toLowerCase()}`}
+            >
+              <Text style={[styles.dropdownText, filter === 'all' && category === c && styles.dropdownTextActive]}>{c}</Text>
+              {filter === 'all' && category === c && <Check size={16} color={colors.primary} />}
+            </TouchableOpacity>
+          ))}
+          {categories.length === 0 && (
+            <View style={styles.dropdownEmpty}>
+              <Text style={styles.dropdownEmptyText}>No categories yet</Text>
+            </View>
+          )}
+
+          <View style={styles.dropdownGroupHeader}>
+            <Text style={styles.dropdownGroupHeaderText}>Status</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.dropdownItem, filter === 'all' && category === 'all' && styles.dropdownItemActive]}
+            onPress={() => { setFilter('all'); setCategory('all'); setShowCategoryMenu(false); }}
+            testID="status-option-all"
+          >
+            <Text style={[styles.dropdownText, filter === 'all' && category === 'all' && styles.dropdownTextActive]}>All</Text>
+            {filter === 'all' && category === 'all' && <Check size={16} color={colors.primary} />}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.dropdownItem, filter === 'active' && styles.dropdownItemActive]}
+            onPress={() => { setFilter('active'); setShowCategoryMenu(false); }}
+            testID="status-option-active"
+          >
+            <Text style={[styles.dropdownText, filter === 'active' && styles.dropdownTextActive]}>Active</Text>
+            {filter === 'active' && <Check size={16} color={colors.primary} />}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.dropdownItem, filter === 'completed' && styles.dropdownItemActive]}
+            onPress={() => { setFilter('completed'); setShowCategoryMenu(false); }}
+            testID="status-option-completed"
+          >
+            <Text style={[styles.dropdownText, filter === 'completed' && styles.dropdownTextActive]}>Completed</Text>
+            {filter === 'completed' && <Check size={16} color={colors.primary} />}
+          </TouchableOpacity>
+        </View>
+      )}
 
       <FlatList
         data={filteredTasks}
