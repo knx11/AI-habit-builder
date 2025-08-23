@@ -8,8 +8,7 @@ import {
   Modal,
   TextInput,
   Platform,
-  ActivityIndicator,
-  Alert
+  ActivityIndicator
 } from 'react-native';
 import { 
   X, 
@@ -73,10 +72,6 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
   
   const task = tasks.find((t) => t.id === taskId);
   
-  if (!task) {
-    return null;
-  }
-  
   const priorities: { value: TaskPriority; label: string; color: string }[] = [
     { value: 'high', label: 'High', color: '#3498db' }, // Blue
     { value: 'medium', label: 'Medium', color: '#f1c40f' }, // Yellow
@@ -88,21 +83,21 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    completeTask(task.id, !task.completed);
+    completeTask(task!.id, !task!.completed);
   };
   
   const handleToggleSubTaskComplete = (subTaskId: string, completed: boolean) => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    completeSubTask(task.id, subTaskId, !completed);
+    completeSubTask(task!.id, subTaskId, !completed);
   };
   
   const handleDeleteTask = () => {
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     }
-    deleteTask(task.id);
+    deleteTask(task!.id);
     onClose();
   };
   
@@ -110,7 +105,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    deleteSubTask(task.id, subTaskId);
+    deleteSubTask(task!.id, subTaskId);
   };
   
   const handleDeleteAllSubTasks = () => {
@@ -119,9 +114,9 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
     }
     
     // Direct implementation without using Alert for better compatibility
-    if (task.subTasks.length > 0) {
+    if (task && task.subTasks.length > 0) {
       // Call the deleteAllSubTasks function directly
-      deleteAllSubTasks(task.id);
+      deleteAllSubTasks(task!.id);
       
       // Provide feedback that deletion was successful
       if (Platform.OS !== 'web') {
@@ -131,26 +126,26 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
   };
   
   const handleEditTitle = () => {
-    setNewTitle(task.title);
+    setNewTitle(task!.title);
     setEditingTitle(true);
   };
   
   const saveTitle = () => {
     if (newTitle.trim()) {
-      updateTask(task.id, { title: newTitle });
+      updateTask(task!.id, { title: newTitle });
     }
     setEditingTitle(false);
   };
   
   const handleEditTime = () => {
-    setNewEstimatedTime(task.estimatedMinutes.toString());
+    setNewEstimatedTime(task!.estimatedMinutes.toString());
     setEditingTime(true);
   };
   
   const saveTime = () => {
     const time = parseInt(newEstimatedTime);
     if (!isNaN(time) && time > 0) {
-      updateTask(task.id, { estimatedMinutes: time });
+      updateTask(task!.id, { estimatedMinutes: time });
     }
     setEditingTime(false);
   };
@@ -163,7 +158,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
   
   const saveSubTask = () => {
     if (editingSubTaskId && newSubTaskTitle.trim()) {
-      updateSubTask(task.id, editingSubTaskId, { 
+      updateSubTask(task!.id, editingSubTaskId, { 
         title: newSubTaskTitle,
         estimatedMinutes: parseInt(newSubTaskTime) || 15
       });
@@ -179,7 +174,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
   
   const saveNewSubTask = () => {
     if (newSubTaskTitle.trim()) {
-      addSubTask(task.id, {
+      addSubTask(task!.id, {
         title: newSubTaskTitle,
         estimatedMinutes: parseInt(newSubTaskTime) || 15
       });
@@ -188,7 +183,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
   };
   
   const handleChangePriority = (priority: TaskPriority) => {
-    assignPriority(task.id, priority);
+    assignPriority(task!.id, priority);
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -203,16 +198,16 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
     setAiError(null);
     
     try {
-      const result = await generateTaskBreakdown(task.title, task.description);
+      const result = await generateTaskBreakdown(task!.title, task!.description);
       
       // Update the main task's estimated time
-      updateTask(task.id, { 
+      updateTask(task!.id, { 
         estimatedMinutes: result.totalEstimatedMinutes,
         aiGenerated: true
       });
       
       // Add the generated subtasks
-      addAIGeneratedSubTasks(task.id, result.subTasks);
+      addAIGeneratedSubTasks(task!.id, result.subTasks);
       
     } catch (error) {
       console.error('Error generating AI subtasks:', error);
@@ -232,10 +227,10 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
   };
   
   // Check if the task has subtasks
-  const hasSubTasks = task.subTasks && task.subTasks.length > 0;
+  const hasSubTasks = !!task && task.subTasks && task.subTasks.length > 0;
   
   const saveDescription = () => {
-    updateTask(task.id, { description: newDescription });
+    updateTask(task!.id, { description: newDescription });
     setEditingDescription(false);
   };
 
@@ -248,20 +243,23 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
     }
   }, []);
 
-  // Build subtask tree
   const subTaskTree = useMemo(() => {
+    if (!task) {
+      return { roots: [] as any[], childrenMap: {} as Record<string, any[]> };
+    }
     const roots = task.subTasks.filter(st => !st.parentId);
-    const childrenMap: Record<string, typeof task.subTasks> = {};
+    const childrenMap: Record<string, typeof task.subTasks> = {} as Record<string, typeof task.subTasks>;
     task.subTasks.forEach(st => {
       if (st.parentId) {
-        if (!childrenMap[st.parentId]) childrenMap[st.parentId] = [];
+        if (!childrenMap[st.parentId]) childrenMap[st.parentId] = [] as typeof task.subTasks;
         childrenMap[st.parentId].push(st);
       }
     });
     return { roots, childrenMap };
-  }, [task.subTasks]);
+  }, [task?.subTasks]);
 
   const renderSubTask = useCallback((subTask: any, level: number) => {
+    if (!task) return null;
     const children = subTaskTree.childrenMap[subTask.id] ?? [];
     return (
       <View key={subTask.id} style={[styles.subTaskItem, { paddingLeft: 12 + level * 16 }]}
@@ -372,7 +370,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
               </TouchableOpacity>
               <TouchableOpacity onPress={() => {
                 if (newSubTaskTitle.trim()) {
-                  addSubTask(task.id, {
+                  addSubTask(task!.id, {
                     title: newSubTaskTitle,
                     estimatedMinutes: parseInt(newSubTaskTime) || 15,
                     parentId: subTask.id,
@@ -393,9 +391,13 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
 
   // Get priority color
   const getPriorityColor = () => {
-    const priority = priorities.find(p => p.value === task.priority);
+    const priority = priorities.find(p => p.value === task?.priority);
     return priority ? priority.color : colors.border;
   };
+  
+  if (!task) {
+    return null;
+  }
   
   return (
     <Modal
@@ -615,7 +617,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                     <Text style={styles.hideText}>Hide</Text>
                   </TouchableOpacity>
                 </View>
-                <PomodoroTimer taskId={task.id} />
+                <PomodoroTimer taskId={task!.id} />
               </View>
             ) : (
               <Button
