@@ -15,7 +15,7 @@ type Filter = 'all' | 'active' | 'completed';
 export default function TasksScreen() {
   const router = useRouter();
   const { tasks, autoAssignPriorities, completeTask } = useTaskStore();
-  const [filter, setFilter] = useState<Filter>('active');
+  const [filter, setFilter] = useState<Filter>('all');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [showAddTask, setShowAddTask] = useState<boolean>(false);
   const [category, setCategory] = useState<string>('all');
@@ -57,11 +57,9 @@ export default function TasksScreen() {
     });
 
   const currentAllLabel = useMemo(() => {
-    if (filter === 'active') return 'Active';
-    if (filter === 'completed') return 'Completed';
     if (category !== 'all') return category;
     return 'All';
-  }, [filter, category]);
+  }, [category]);
 
   return (
     <GestureHandlerRootView style={styles.container}>
