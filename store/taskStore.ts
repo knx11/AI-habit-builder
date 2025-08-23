@@ -58,6 +58,11 @@ export const useTaskStore = create<TaskStore>()(
 
       addTask: (task) => {
         const id = generateUniqueId();
+        const estimated = task.estimatedMinutes ?? 30;
+        const shouldBeProject = estimated >= 600;
+
+        const scaffoldSubtasks: SubTask[] = shouldBeProject ? generateProjectSubtasks(estimated) : [];
+
         const newTask: Task = {
           id,
           title: task.title || '',
@@ -65,12 +70,13 @@ export const useTaskStore = create<TaskStore>()(
           createdAt: new Date().toISOString(),
           completed: false,
           category: task.category,
-          estimatedMinutes: task.estimatedMinutes || 30,
-          subTasks: [],
+          estimatedMinutes: estimated,
+          subTasks: scaffoldSubtasks,
           aiGenerated: false,
           priority: task.priority || 'medium',
           dueDate: task.dueDate,
           order: get().tasks.length + 1,
+          isProject: shouldBeProject,
         };
 
         set((state) => ({
@@ -95,11 +101,27 @@ export const useTaskStore = create<TaskStore>()(
       },
 
       updateTask: (id, updates) => {
-        set((state) => ({
-          tasks: state.tasks.map((task) =>
-            task.id === id ? { ...task, ...updates } : task
-          ),
-        }));
+        set((state) => {
+          return {
+            tasks: state.tasks.map((task) => {
+              if (task.id !== id) return task;
+
+              const next: Task = { ...task, ...updates };
+
+              if (!task.isProject) {
+                const est = next.estimatedMinutes;
+                if (typeof est === 'number' && est >= 600) {
+                  next.isProject = true;
+                  if (!next.subTasks || next.subTasks.length === 0) {
+                    next.subTasks = generateProjectSubtasks(est);
+                  }
+                }
+              }
+
+              return next;
+            }),
+          };
+        });
       },
 
       addSubTask: (taskId, subTask) => {
@@ -115,6 +137,7 @@ export const useTaskStore = create<TaskStore>()(
                       title: subTask.title || '',
                       completed: false,
                       estimatedMinutes: subTask.estimatedMinutes || 15,
+                      parentId: subTask.parentId,
                     },
                   ],
                 }
@@ -247,3 +270,30 @@ export const useTaskStore = create<TaskStore>()(
     }
   )
 );
+
+function generateProjectSubtasks(totalMinutes: number): SubTask[] {
+  const phases = ['Planning', 'Execution', 'Review'] as const;
+  const weights = [0.2, 0.7, 0.1];
+  const result: SubTask[] = [];
+
+  phases.forEach((phase, idx) => {
+    const phaseId = generateUniqueId();
+    const phaseMinutes = Math.max(30, Math.round(totalMinutes * weights[idx]));
+    result.push({ id: phaseId, title: `${phase} Phase`, completed: false, estimatedMinutes: phaseMinutes, parentId: undefined });
+
+    const childrenCount = phase === 'Execution' ? 3 : 2;
+    const childMinutes = Math.max(15, Math.floor(phaseMinutes / (childrenCount + 1)));
+
+    for (let i = 1; i <= childrenCount; i++) {
+      result.push({
+        id: generateUniqueId(),
+        title: `${phase} Task ${i}`,
+        completed: false,
+        estimatedMinutes: childMinutes,
+        parentId: phaseId,
+      });
+    }
+  });
+
+  return result;
+}

@@ -4,6 +4,7 @@ export interface SubTask {
   completed: boolean;
   estimatedMinutes: number;
   actualMinutes?: number;
+  parentId?: string;
 }
 
 export type TaskPriority = 'high' | 'medium' | 'low' | 'optional';
@@ -22,6 +23,7 @@ export interface Task {
   aiGenerated: boolean;
   priority?: TaskPriority;
   order?: number;
+  isProject?: boolean;
 }
 
 export interface TimeBlock {

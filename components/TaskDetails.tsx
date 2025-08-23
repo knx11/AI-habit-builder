@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -20,7 +20,9 @@ import {
   Share2, 
   Zap,
   Trash,
-  AlertTriangle
+  AlertTriangle,
+  FolderKanban,
+  Plus,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { colors } from '@/constants/colors';
@@ -55,14 +57,19 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
   const [showTimer, setShowTimer] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingSubTaskId, setEditingSubTaskId] = useState<string | null>(null);
-  const [newTitle, setNewTitle] = useState('');
-  const [newSubTaskTitle, setNewSubTaskTitle] = useState('');
-  const [newSubTaskTime, setNewSubTaskTime] = useState('');
-  const [editingTime, setEditingTime] = useState(false);
-  const [newEstimatedTime, setNewEstimatedTime] = useState('');
-  const [addingSubTask, setAddingSubTask] = useState(false);
-  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [newTitle, setNewTitle] = useState<string>('');
+  const [newSubTaskTitle, setNewSubTaskTitle] = useState<string>('');
+  const [newSubTaskTime, setNewSubTaskTime] = useState<string>('');
+  const [editingTime, setEditingTime] = useState<boolean>(false);
+  const [newEstimatedTime, setNewEstimatedTime] = useState<string>('');
+  const [addingSubTask, setAddingSubTask] = useState<boolean>(false);
+  const [addingChildFor, setAddingChildFor] = useState<string | null>(null);
+  const [isGeneratingAI, setIsGeneratingAI] = useState<boolean>(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [editingDescription, setEditingDescription] = useState<boolean>(false);
+  const [newDescription, setNewDescription] = useState<string>('');
+  const [descExpanded, setDescExpanded] = useState<boolean>(false);
+  const [descHasMore, setDescHasMore] = useState<boolean>(false);
   
   const task = tasks.find((t) => t.id === taskId);
   
@@ -227,6 +234,163 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
   // Check if the task has subtasks
   const hasSubTasks = task.subTasks && task.subTasks.length > 0;
   
+  const saveDescription = () => {
+    updateTask(task.id, { description: newDescription });
+    setEditingDescription(false);
+  };
+
+  const onDescriptionTextLayout = useCallback((e: any) => {
+    try {
+      const lines = e?.nativeEvent?.lines?.length ?? 0;
+      setDescHasMore(lines > 5);
+    } catch (err) {
+      console.log('onDescriptionTextLayout error', err);
+    }
+  }, []);
+
+  // Build subtask tree
+  const subTaskTree = useMemo(() => {
+    const roots = task.subTasks.filter(st => !st.parentId);
+    const childrenMap: Record<string, typeof task.subTasks> = {};
+    task.subTasks.forEach(st => {
+      if (st.parentId) {
+        if (!childrenMap[st.parentId]) childrenMap[st.parentId] = [];
+        childrenMap[st.parentId].push(st);
+      }
+    });
+    return { roots, childrenMap };
+  }, [task.subTasks]);
+
+  const renderSubTask = useCallback((subTask: any, level: number) => {
+    const children = subTaskTree.childrenMap[subTask.id] ?? [];
+    return (
+      <View key={subTask.id} style={[styles.subTaskItem, { paddingLeft: 12 + level * 16 }]}
+        testID={`subtask-item-${subTask.id}`}>
+        {editingSubTaskId === subTask.id ? (
+          <View style={styles.editSubTaskContainer}>
+            <TextInput
+              style={styles.editSubTaskInput}
+              value={newSubTaskTitle}
+              onChangeText={setNewSubTaskTitle}
+              autoFocus
+              testID="edit-subtask-title"
+            />
+            <View style={styles.editSubTaskTime}>
+              <TextInput
+                style={styles.editSubTaskTimeInput}
+                value={newSubTaskTime}
+                onChangeText={setNewSubTaskTime}
+                keyboardType="number-pad"
+                testID="edit-subtask-time"
+              />
+              <Text style={styles.minutesText}>min</Text>
+            </View>
+            <TouchableOpacity onPress={saveSubTask} testID="save-subtask">
+              <Text style={styles.saveButton}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <TouchableOpacity 
+              onPress={() => handleToggleSubTaskComplete(subTask.id, subTask.completed)}
+              hitSlop={10}
+              accessibilityRole="button"
+              testID={`toggle-subtask-${subTask.id}`}
+            >
+              {subTask.completed ? (
+                <CheckCircle size={20} color={colors.primary} />
+              ) : (
+                <Circle size={20} color={colors.primary} />
+              )}
+            </TouchableOpacity>
+            
+            <View style={styles.subTaskContent}>
+              <Text 
+                style={[styles.subTaskTitle, subTask.completed && styles.completedText]}
+              >
+                {subTask.title}
+              </Text>
+              <Text style={styles.subTaskTime}>
+                {formatTime(subTask.estimatedMinutes)}
+              </Text>
+            </View>
+            
+            <View style={styles.subTaskActions}>
+              <TouchableOpacity 
+                onPress={() => handleEditSubTask(subTask.id, subTask.title, subTask.estimatedMinutes)}
+                hitSlop={10}
+                style={styles.actionButton}
+                testID={`edit-subtask-${subTask.id}`}
+              >
+                <Text style={styles.editText}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={() => setAddingChildFor(subTask.id)}
+                hitSlop={10}
+                style={styles.actionButton}
+                testID={`add-child-${subTask.id}`}
+              >
+                <Plus size={16} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={() => handleDeleteSubTask(subTask.id)}
+                hitSlop={10}
+                style={styles.actionButton}
+                testID={`delete-subtask-${subTask.id}`}
+              >
+                <Text style={styles.deleteText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+        {addingChildFor === subTask.id && (
+          <View style={styles.addSubTaskContainer}>
+            <TextInput
+              style={styles.editSubTaskInput}
+              value={newSubTaskTitle}
+              onChangeText={setNewSubTaskTitle}
+              placeholder="Subtask title"
+              placeholderTextColor={colors.textLight}
+              autoFocus
+              testID="child-title-input"
+            />
+            <View style={styles.editSubTaskTime}>
+              <TextInput
+                style={styles.editSubTaskTimeInput}
+                value={newSubTaskTime}
+                onChangeText={setNewSubTaskTime}
+                keyboardType="number-pad"
+                placeholder="15"
+                placeholderTextColor={colors.textLight}
+                testID="child-time-input"
+              />
+              <Text style={styles.minutesText}>min</Text>
+            </View>
+            <View style={styles.addSubTaskActions}>
+              <TouchableOpacity onPress={() => { setAddingChildFor(null); setNewSubTaskTitle(''); }}>
+                <Text style={styles.cancelButton}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => {
+                if (newSubTaskTitle.trim()) {
+                  addSubTask(task.id, {
+                    title: newSubTaskTitle,
+                    estimatedMinutes: parseInt(newSubTaskTime) || 15,
+                    parentId: subTask.id,
+                  });
+                }
+                setAddingChildFor(null);
+                setNewSubTaskTitle('');
+              }} testID="add-child-save">
+                <Text style={styles.saveButton}>Add</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+        {children.map((c: any) => renderSubTask(c, level + 1))}
+      </View>
+    );
+  }, [addSubTask, colors.primary, editingSubTaskId, newSubTaskTime, newSubTaskTitle, subTaskTree.childrenMap, handleToggleSubTaskComplete]);
+
   // Get priority color
   const getPriorityColor = () => {
     const priority = priorities.find(p => p.value === task.priority);
@@ -264,7 +428,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
             </View>
           </View>
           
-          <ScrollView style={styles.body}>
+          <ScrollView style={styles.body} testID="task-details-scroll">
             <View style={styles.titleSection}>
               {editingTitle ? (
                 <View style={styles.editTitleContainer}>
@@ -311,10 +475,17 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                       styles.priorityChip,
                       { backgroundColor: getPriorityColor() }
                     ]}
+                    testID="priority-chip"
                   >
                     <Text style={styles.priorityText}>
                       {priorities.find(p => p.value === task.priority)?.label || 'Medium'}
                     </Text>
+                  </View>
+                )}
+                {task.isProject && (
+                  <View style={styles.projectChip} testID="project-chip">
+                    <FolderKanban size={14} color={colors.background} />
+                    <Text style={styles.projectText}>Project</Text>
                   </View>
                 )}
               </View>
@@ -384,12 +555,57 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
               </View>
             </View>
             
-            {task.description ? (
-              <View style={styles.descriptionSection}>
+            <View style={styles.descriptionSection}>
+              <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Description</Text>
-                <Text style={styles.description}>{task.description}</Text>
+                {!editingDescription && (
+                  <TouchableOpacity onPress={() => { setNewDescription(task.description); setEditingDescription(true); }} testID="edit-description">
+                    <Text style={styles.editText}>Edit</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-            ) : null}
+              {editingDescription ? (
+                <View>
+                  <TextInput
+                    style={[styles.inputDescription]}
+                    value={newDescription}
+                    onChangeText={setNewDescription}
+                    multiline
+                    numberOfLines={6}
+                    textAlignVertical="top"
+                    autoFocus
+                    testID="description-input"
+                  />
+                  <View style={styles.addSubTaskActions}>
+                    <TouchableOpacity onPress={() => setEditingDescription(false)}>
+                      <Text style={styles.cancelButton}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={saveDescription} testID="save-description">
+                      <Text style={styles.saveButton}>Save</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                task.description ? (
+                  <>
+                    <Text
+                      style={styles.description}
+                      numberOfLines={descExpanded ? undefined : 5}
+                      onTextLayout={onDescriptionTextLayout}
+                    >
+                      {task.description}
+                    </Text>
+                    {descHasMore && (
+                      <TouchableOpacity onPress={() => setDescExpanded(!descExpanded)} testID="toggle-description">
+                        <Text style={styles.showMoreText}>{descExpanded ? 'Show less' : 'See more'}</Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                ) : (
+                  <Text style={styles.emptyText}>No description</Text>
+                )
+              )}
+            </View>
             
             {showTimer ? (
               <View style={styles.timerSection}>
@@ -454,81 +670,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                 <Text style={styles.emptyText}>No subtasks yet</Text>
               ) : (
                 <>
-                  {task.subTasks.map((subTask) => (
-                    <View key={subTask.id} style={styles.subTaskItem}>
-                      {editingSubTaskId === subTask.id ? (
-                        <View style={styles.editSubTaskContainer}>
-                          <TextInput
-                            style={styles.editSubTaskInput}
-                            value={newSubTaskTitle}
-                            onChangeText={setNewSubTaskTitle}
-                            autoFocus
-                          />
-                          <View style={styles.editSubTaskTime}>
-                            <TextInput
-                              style={styles.editSubTaskTimeInput}
-                              value={newSubTaskTime}
-                              onChangeText={setNewSubTaskTime}
-                              keyboardType="number-pad"
-                            />
-                            <Text style={styles.minutesText}>min</Text>
-                          </View>
-                          <TouchableOpacity onPress={saveSubTask}>
-                            <Text style={styles.saveButton}>Save</Text>
-                          </TouchableOpacity>
-                        </View>
-                      ) : (
-                        <>
-                          <TouchableOpacity 
-                            onPress={() => handleToggleSubTaskComplete(subTask.id, subTask.completed)}
-                            hitSlop={10}
-                          >
-                            {subTask.completed ? (
-                              <CheckCircle size={20} color={colors.primary} />
-                            ) : (
-                              <Circle size={20} color={colors.primary} />
-                            )}
-                          </TouchableOpacity>
-                          
-                          <View style={styles.subTaskContent}>
-                            <Text 
-                              style={[
-                                styles.subTaskTitle, 
-                                subTask.completed && styles.completedText
-                              ]}
-                            >
-                              {subTask.title}
-                            </Text>
-                            <Text style={styles.subTaskTime}>
-                              {formatTime(subTask.estimatedMinutes)}
-                            </Text>
-                          </View>
-                          
-                          <View style={styles.subTaskActions}>
-                            <TouchableOpacity 
-                              onPress={() => handleEditSubTask(
-                                subTask.id, 
-                                subTask.title, 
-                                subTask.estimatedMinutes
-                              )}
-                              hitSlop={10}
-                              style={styles.actionButton}
-                            >
-                              <Text style={styles.editText}>Edit</Text>
-                            </TouchableOpacity>
-                            
-                            <TouchableOpacity 
-                              onPress={() => handleDeleteSubTask(subTask.id)}
-                              hitSlop={10}
-                              style={styles.actionButton}
-                            >
-                              <Text style={styles.deleteText}>Delete</Text>
-                            </TouchableOpacity>
-                          </View>
-                        </>
-                      )}
-                    </View>
-                  ))}
+                  {subTaskTree.roots.map((st) => renderSubTask(st, 0))}
                 </>
               )}
               
@@ -541,6 +683,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                     placeholder="Subtask title"
                     placeholderTextColor={colors.textLight}
                     autoFocus
+                    testID="root-subtask-title"
                   />
                   <View style={styles.editSubTaskTime}>
                     <TextInput
@@ -550,6 +693,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                       keyboardType="number-pad"
                       placeholder="15"
                       placeholderTextColor={colors.textLight}
+                      testID="root-subtask-time"
                     />
                     <Text style={styles.minutesText}>min</Text>
                   </View>
@@ -557,7 +701,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
                     <TouchableOpacity onPress={() => setAddingSubTask(false)}>
                       <Text style={styles.cancelButton}>Cancel</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={saveNewSubTask}>
+                    <TouchableOpacity onPress={saveNewSubTask} testID="root-subtask-save">
                       <Text style={styles.saveButton}>Add</Text>
                     </TouchableOpacity>
                   </View>
@@ -669,6 +813,22 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginBottom: 8,
   },
+  projectChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.success,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  projectText: {
+    color: colors.background,
+    fontWeight: '600',
+    marginLeft: 6,
+    fontSize: 12,
+  },
   priorityText: {
     color: colors.background,
     fontWeight: '500',
@@ -742,6 +902,20 @@ const styles = StyleSheet.create({
   description: {
     color: colors.text,
     lineHeight: 22,
+  },
+  showMoreText: {
+    color: colors.primary,
+    marginTop: 6,
+    fontWeight: '500',
+  },
+  inputDescription: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 8,
+    padding: 12,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+    minHeight: 120,
   },
   timerSection: {
     marginBottom: 20,
