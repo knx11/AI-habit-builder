@@ -10,6 +10,7 @@ import TaskForm from '@/components/TaskForm';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 type Filter = 'all' | 'active' | 'completed';
+ type PriorityFilter = 'all' | 'high' | 'medium' | 'low';
 
 export default function TasksScreen() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function TasksScreen() {
   const [showAddTask, setShowAddTask] = useState<boolean>(false);
   const [category, setCategory] = useState<string>('all');
   const [showCategoryMenu, setShowCategoryMenu] = useState<boolean>(false);
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
 
   // Auto-sort tasks by priority when the component mounts or tasks change
   useEffect(() => {
@@ -48,6 +50,10 @@ export default function TasksScreen() {
       if (filter !== 'all') return true;
       if (category === 'all') return true;
       return (task.category ?? '').trim() === category;
+    })
+    .filter((task) => {
+      if (priorityFilter === 'all') return true;
+      return (task.priority ?? 'low') === priorityFilter;
     });
 
   return (
@@ -137,6 +143,25 @@ export default function TasksScreen() {
         </View>
       )}
 
+      <View style={styles.priorityFilters}>
+        {(['all','high','medium','low'] as PriorityFilter[]).map((p) => {
+          const isActive = priorityFilter === p;
+          const label = p === 'all' ? 'All' : p.charAt(0).toUpperCase() + p.slice(1);
+          return (
+            <TouchableOpacity
+              key={p}
+              style={[styles.filterButton, isActive && styles.activeFilter]}
+              onPress={() => setPriorityFilter(p)}
+              testID={`priority-${p}`}
+            >
+              <Text style={[styles.filterText, isActive && styles.activeFilterText]}>
+                {label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       <FlatList
         data={filteredTasks}
         keyExtractor={(item) => item.id}
@@ -187,6 +212,13 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 8,
     zIndex: 2,
+  },
+  priorityFilters: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    gap: 8,
+    zIndex: 1,
   },
   filterButton: {
     paddingVertical: 8,
