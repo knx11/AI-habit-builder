@@ -22,6 +22,8 @@ import {
   AlertTriangle,
   FolderKanban,
   Plus,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { colors } from '@/constants/colors';
@@ -69,6 +71,7 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
   const [newDescription, setNewDescription] = useState<string>('');
   const [descExpanded, setDescExpanded] = useState<boolean>(false);
   const [descHasMore, setDescHasMore] = useState<boolean>(false);
+  const [subtaskOptionsOpen, setSubtaskOptionsOpen] = useState<boolean>(false);
   
   const task = tasks.find((t) => t.id === taskId);
   
@@ -630,36 +633,56 @@ export default function TaskDetails({ visible, taskId, onClose }: TaskDetailsPro
             <View style={styles.subTasksSection}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Subtasks</Text>
-                <View style={styles.subTaskActions}>
-                  {hasSubTasks ? (
+                <TouchableOpacity 
+                  onPress={() => setSubtaskOptionsOpen(!subtaskOptionsOpen)}
+                  hitSlop={10}
+                  testID="subtask-options-toggle"
+                >
+                  {subtaskOptionsOpen ? (
+                    <ChevronUp size={18} color={colors.textLight} />
+                  ) : (
+                    <ChevronDown size={18} color={colors.textLight} />
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {subtaskOptionsOpen && (
+                <View style={styles.optionsContainer} testID="subtask-options">
+                  <TouchableOpacity 
+                    style={styles.optionRow}
+                    onPress={handleAddSubTask}
+                    testID="subtask-add"
+                  >
+                    <Plus size={16} color={colors.primary} />
+                    <Text style={styles.optionText}>Add subtask</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={[styles.optionRow, isGeneratingAI && styles.disabledButton]}
+                    onPress={handleGenerateAISubtasks}
+                    disabled={isGeneratingAI}
+                    testID="subtask-ai-generate"
+                  >
+                    {isGeneratingAI ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <Zap size={16} color={colors.primary} />
+                    )}
+                    <Text style={styles.optionText}>AI generate subtasks</Text>
+                  </TouchableOpacity>
+
+                  {hasSubTasks && (
                     <TouchableOpacity 
+                      style={styles.optionRow}
                       onPress={handleDeleteAllSubTasks}
-                      style={styles.deleteAllButton}
+                      testID="subtask-delete-all"
                     >
                       <Trash size={16} color={colors.danger} />
-                      <Text style={styles.deleteAllText}>Delete All</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity 
-                      onPress={handleGenerateAISubtasks}
-                      disabled={isGeneratingAI}
-                      style={[styles.aiButton, isGeneratingAI && styles.disabledButton]}
-                    >
-                      {isGeneratingAI ? (
-                        <ActivityIndicator size="small" color={colors.primary} />
-                      ) : (
-                        <>
-                          <Zap size={16} color={colors.primary} />
-                          <Text style={styles.aiButtonText}>AI Generate</Text>
-                        </>
-                      )}
+                      <Text style={[styles.optionText, { color: colors.danger }]}>Delete all subtasks</Text>
                     </TouchableOpacity>
                   )}
-                  <TouchableOpacity onPress={handleAddSubTask}>
-                    <Text style={styles.addText}>+ Add</Text>
-                  </TouchableOpacity>
                 </View>
-              </View>
+              )}
               
               {aiError && (
                 <View style={styles.errorContainer}>
@@ -941,39 +964,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  aiButton: {
+  optionsContainer: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    marginRight: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
-  aiButtonText: {
-    color: colors.primary,
+  optionText: {
+    marginLeft: 8,
+    color: colors.text,
     fontWeight: '500',
-    fontSize: 14,
-    marginLeft: 4,
-  },
-  deleteAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.danger,
-    marginRight: 12,
-  },
-  deleteAllText: {
-    color: colors.danger,
-    fontWeight: '500',
-    fontSize: 14,
-    marginLeft: 4,
   },
   disabledButton: {
     opacity: 0.6,
