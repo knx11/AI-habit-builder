@@ -1,6 +1,4 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Task, SubTask, DailyStats, PomodoroSettings, TaskPriority } from '@/types/task';
 import { generateUniqueId } from '@/utils/helpers';
 
@@ -49,9 +47,7 @@ const priorityWeights: Record<TaskPriority, number> = {
   optional: 1,
 };
 
-export const useTaskStore = create<TaskStore>()(
-  persist(
-    (set, get) => ({
+export const useTaskStore = create<TaskStore>()((set, get) => ({
       tasks: [],
       dailyStats: [],
       pomodoroSettings: defaultPomodoroSettings,
@@ -263,13 +259,7 @@ export const useTaskStore = create<TaskStore>()(
           return { tasks: sortedTasks };
         });
       },
-    }),
-    {
-      name: 'task-store',
-      storage: createJSONStorage(() => AsyncStorage),
-    }
-  )
-);
+}))
 
 function generateProjectSubtasks(totalMinutes: number): SubTask[] {
   const phases = ['Planning', 'Execution', 'Review'] as const;
