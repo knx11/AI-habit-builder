@@ -22,10 +22,13 @@ export default function TasksScreen() {
   const [showCategoryMenu, setShowCategoryMenu] = useState<boolean>(false);
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
 
-  // Auto-sort tasks by priority when the component mounts or tasks change
+  // Auto-sort tasks by priority when the component mounts
   useEffect(() => {
-    autoAssignPriorities();
-  }, [tasks.length]);
+    if (tasks.length > 0) {
+      autoAssignPriorities();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const categories = useMemo<string[]>(() => {
     const set = new Set<string>();

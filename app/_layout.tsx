@@ -8,7 +8,7 @@ import { generateMockTasks, generateMockStats } from "@/utils/mockData";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { StyleSheet, Platform, StatusBar, View } from "react-native";
+import { StyleSheet, StatusBar } from "react-native";
 import { colors } from "@/constants/colors";
 
 export const unstable_settings = {
@@ -46,7 +46,7 @@ export default function RootLayout() {
         addDailyStats(stat);
       });
     }
-  }, []);
+  }, [tasks.length, dailyStats.length, addTask, addDailyStats]);
 
   useEffect(() => {
     if (error) throw error;

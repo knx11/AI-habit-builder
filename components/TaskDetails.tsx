@@ -27,7 +27,7 @@ import {
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { colors } from '@/constants/colors';
-import { Task, TaskPriority } from '@/types/task';
+import { TaskPriority } from '@/types/task';
 import { useTaskStore } from '@/store/taskStore';
 import { formatTime, formatDate } from '@/utils/helpers';
 import Button from '@/components/Button';

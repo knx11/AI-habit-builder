@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -7,11 +7,11 @@ import {
   Switch,
   TextInput,
   ScrollView,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { 
-  Clock, 
   Bell, 
   Calendar, 
   Trash2, 
@@ -26,8 +26,6 @@ import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import Button from '@/components/Button';
 import * as Haptics from 'expo-haptics';
-import { Platform } from 'react-native';
-import { useRouter } from 'expo-router';
 
 export default function SettingsScreen() {
   const router = useRouter();
