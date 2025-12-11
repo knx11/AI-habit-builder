@@ -7,10 +7,9 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   Platform,
 } from 'react-native';
-import { X, Mic, Zap, AlertTriangle } from 'lucide-react-native';
+import { X, Mic, Zap } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
 import { useTaskStore } from '@/store/taskStore';
 import Button from '@/components/Button';
@@ -193,7 +192,7 @@ Format your response as a JSON array of tasks:
 
           <ScrollView style={styles.body}>
             <Text style={styles.description}>
-              Type out everything on your mind, including any deadlines or dates. I'll organize it into actionable tasks and add them to your calendar.
+              Type out everything on your mind, including any deadlines or dates. I&apos;ll organize it into actionable tasks and add them to your calendar.
             </Text>
 
             <TextInput

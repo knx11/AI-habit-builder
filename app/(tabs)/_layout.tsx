@@ -1,8 +1,7 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Settings, CheckSquare, Calendar, BarChart, Home } from 'lucide-react-native';
 import { colors } from '@/constants/colors';
-import { useRouter } from 'expo-router';
 
 export default function TabLayout() {
   const router = useRouter();
@@ -12,7 +11,7 @@ export default function TabLayout() {
       screenOptions={{
         headerRight: () => (
           <TouchableOpacity 
-            onPress={() => router.push('/settings')}
+            onPress={() => router.push('/settings' as any)}
             style={styles.headerButton}
           >
             <Settings size={24} color={colors.text} />

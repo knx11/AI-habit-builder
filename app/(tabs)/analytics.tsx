@@ -41,7 +41,7 @@ export default function AnalyticsScreen() {
           },
           headerRight: () => (
             <TouchableOpacity 
-              onPress={() => router.push('/settings')}
+              onPress={() => router.push('/settings' as any)}
               style={styles.headerButton}
             >
               <Settings size={24} color={colors.text} />

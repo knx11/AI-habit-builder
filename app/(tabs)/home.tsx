@@ -34,7 +34,7 @@ export default function HomeScreen() {
           },
           headerRight: () => (
             <TouchableOpacity 
-              onPress={() => router.push('/settings')}
+              onPress={() => router.push('/settings' as any)}
               style={styles.headerButton}
             >
               <Settings size={24} color={colors.text} />
@@ -46,10 +46,10 @@ export default function HomeScreen() {
       <ScrollView style={styles.content}>
         <TouchableOpacity 
           style={styles.overviewCard}
-          onPress={() => router.push('/analytics')}
+          onPress={() => router.push('/(tabs)/analytics' as any)}
         >
           <View style={styles.overviewHeader}>
-            <Text style={styles.overviewTitle}>Today's Overview</Text>
+            <Text style={styles.overviewTitle}>Today&apos;s Overview</Text>
             <Text style={styles.seeMoreText}>See More</Text>
           </View>
           
